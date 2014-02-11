@@ -88,7 +88,7 @@ The following operators are available. These are, in order of precedence:
 
 - `THE VALUE AT` - unary operator returning the bit value at the address-of-a-bit held by the variable on the right. This only makes sense for address-of-a-bit variables; attempting to take `THE VALUE AT` a bit variable is an error.
 - `THE VALUE BEYOND` - unary operator returning the bit value in the next memory address beyond the address-of-a-bit held by the variable on the right. This only makes sense for address-of-a-bit variables; attempting to take `THE VALUE BEYOND` a bit variable is an error.
-- `THE ADDRESS OF` - unary operator returning the address-of-a-bit of the bit variable on the right. This only makes sense for bit variables; attempting to take THE ADDRESS OF an address-of-a-bit variable is an error. Attempting to take `THE ADDRESS OF THE JUMP REGISTER` is also an error.
+- `THE ADDRESS OF` - unary operator returning the address-of-a-bit of the bit variable on the right. This only makes sense for bit variables; attempting to take `THE ADDRESS OF` an address-of-a-bit variable is an error. Attempting to take `THE ADDRESS OF THE JUMP REGISTER` is also an error.
 - `NAND` - binary operator returning ZERO if both bit operands are ONE, returning ONE if either is ZERO. Ir either operand is an address-of-a-bit, this is an error.
 - `EQUALS` - the assignment operator. Sets the variable on the left to the value of the expression on the right. The variable on the left may be `THE JUMP REGISTER`. Bit values may only be assigned to bit variables, and address-of-a-bit values may only be assigned to address-of-a-bit variables; anything else is an error.
 
