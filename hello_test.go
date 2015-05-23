@@ -5,7 +5,7 @@ import (
 	"os"
 )
 
-func ExampleHello() {
+func Example() {
 	f, err := os.Open("hello.bit")
 	if err != nil {
 		panic(err)
