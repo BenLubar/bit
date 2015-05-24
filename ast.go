@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
 
 	"github.com/BenLubar/bit/bitio"
 )
@@ -16,6 +17,13 @@ var (
 	ErrDereferenceValue   = errors.New("cannot dereference value")
 	ErrValueOfAddress     = errors.New("cannot take value of address-of-bit variable")
 )
+
+type context struct {
+	jump   bool
+	memory *big.Int
+	bVar   *big.Int
+	aVar   map[uint64]uint64
+}
 
 type line struct {
 	stmt  Stmt
@@ -56,18 +64,21 @@ func (err *ProgramError) Error() string {
 }
 
 func (p Program) Run(in bitio.BitReader, out bitio.BitWriter) error {
-	var jump bool
-	var memory []bool
-	variables := make(map[uint64]*Val)
+	ctx := &context{
+		jump:   false,
+		memory: new(big.Int),
+		bVar:   new(big.Int),
+		aVar:   make(map[uint64]uint64),
+	}
 	pc := p.Start()
 
 	for {
 		line := p[pc]
-		err := line.stmt.run(in, out, &jump, &memory, variables)
+		err := line.stmt.run(in, out, ctx)
 		if err != nil {
 			return &ProgramError{Err: err, Line: pc}
 		}
-		if !jump {
+		if !ctx.jump {
 			if line.goto0 != nil {
 				pc = *line.goto0
 			} else {
@@ -101,7 +112,7 @@ func (p Program) RunByte(r io.ByteReader, w io.ByteWriter) error {
 }
 
 type Stmt interface {
-	run(in bitio.BitReader, out bitio.BitWriter, jump *bool, memory *[]bool, variables map[uint64]*Val) error
+	run(in bitio.BitReader, out bitio.BitWriter, ctx *context) error
 }
 
 type AssignStmt struct {
@@ -109,86 +120,100 @@ type AssignStmt struct {
 	Right Expr
 }
 
-func (stmt AssignStmt) run(in bitio.BitReader, out bitio.BitWriter, jump *bool, memory *[]bool, variables map[uint64]*Val) error {
-	left, err := stmt.Left.run(*memory, variables)
+func (stmt AssignStmt) run(in bitio.BitReader, out bitio.BitWriter, ctx *context) error {
+	left, err := stmt.Left.run(ctx)
 	if err != nil {
 		return err
 	}
-	right, err := stmt.Right.run(*memory, variables)
+	right, err := stmt.Right.run(ctx)
 	if err != nil {
 		return err
 	}
-	if !left.lvalue {
-		return ErrNotLValue
-	}
-	if left.actual != nil {
-		panic("internal error")
-	}
-	if right.unknown {
-		return ErrUnassignedVariable
-	}
-	if left.unknown {
-		left.unknown = false
-		left.addr = right.addr
-	}
-	if left.addr {
-		left.index, err = right.pointer()
-		return err
-	}
-	v, err := right.value(*memory)
-	if err != nil {
-		return err
-	}
-	if left.index >= uint64(len(*memory)) {
-		if !v {
+	if vv, ok := left.(varVal); ok {
+		if vv.isAddr(ctx) {
+			a, err := right.pointer(ctx)
+			if err != nil {
+				return err
+			}
+			ctx.aVar[uint64(vv)] = a
 			return nil
 		}
-		mem := make([]bool, left.index+1)
-		copy(mem, *memory)
-		*memory = mem
+		if vv.isValue(ctx) {
+			b, err := right.value(ctx)
+			if err != nil {
+				return err
+			}
+			var n uint
+			if b {
+				n = 1
+			}
+			ctx.memory.SetBit(ctx.memory, int(vv), n)
+			return nil
+		}
+		if right.isAddr(ctx) {
+			a, err := right.pointer(ctx)
+			if err != nil {
+				return err
+			}
+			ctx.aVar[uint64(vv)] = a
+			return nil
+		}
+		if right.isValue(ctx) {
+			b, err := right.value(ctx)
+			if err != nil {
+				return err
+			}
+			ctx.bVar.SetBit(ctx.bVar, int(vv), 1)
+			var n uint
+			if b {
+				n = 1
+			}
+			ctx.memory.SetBit(ctx.memory, int(vv), n)
+			return nil
+		}
+		return ErrUnassignedVariable
 	}
-	(*memory)[left.index] = v
-	return nil
+	return ErrNotLValue
 }
 
 type JumpRegisterStmt struct {
 	Right Expr
 }
 
-func (stmt JumpRegisterStmt) run(in bitio.BitReader, out bitio.BitWriter, jump *bool, memory *[]bool, variables map[uint64]*Val) error {
-	right, err := stmt.Right.run(*memory, variables)
+func (stmt JumpRegisterStmt) run(in bitio.BitReader, out bitio.BitWriter, ctx *context) error {
+	right, err := stmt.Right.run(ctx)
 	if err != nil {
 		return err
 	}
 
-	v, err := right.value(*memory)
+	v, err := right.value(ctx)
 	if err != nil {
 		return err
 	}
 
-	*jump = v
+	ctx.jump = v
 	return nil
 }
 
 type PrintStmt bool
 
-func (stmt PrintStmt) run(in bitio.BitReader, out bitio.BitWriter, jump *bool, memory *[]bool, variables map[uint64]*Val) error {
+func (stmt PrintStmt) run(in bitio.BitReader, out bitio.BitWriter, ctx *context) error {
 	return out.WriteBit(bool(stmt))
 }
 
 type ReadStmt struct{}
 
-func (stmt ReadStmt) run(in bitio.BitReader, out bitio.BitWriter, jump *bool, memory *[]bool, variables map[uint64]*Val) error {
+func (stmt ReadStmt) run(in bitio.BitReader, out bitio.BitWriter, ctx *context) error {
 	c, err := in.ReadBit()
 	if err != nil {
 		return err
 	}
-	*jump = c
+	ctx.jump = c
 	return nil
 }
 
 type Expr interface {
-	run(memory []bool, variables map[uint64]*Val) (*Val, error)
+	run(*context) (Val, error)
 }
 
 type NandExpr struct {
@@ -196,135 +221,148 @@ type NandExpr struct {
 	Right Expr
 }
 
-func (expr NandExpr) run(memory []bool, variables map[uint64]*Val) (*Val, error) {
-	left, err := expr.Left.run(memory, variables)
+func (expr NandExpr) run(ctx *context) (Val, error) {
+	left, err := expr.Left.run(ctx)
 	if err != nil {
 		return nil, err
 	}
-	right, err := expr.Right.run(memory, variables)
+	right, err := expr.Right.run(ctx)
 	if err != nil {
 		return nil, err
 	}
-	l, err := left.value(memory)
+	l, err := left.value(ctx)
 	if err != nil {
 		return nil, err
 	}
-	r, err := right.value(memory)
+	r, err := right.value(ctx)
 	if err != nil {
 		return nil, err
 	}
-	v := !(l && r)
-	return &Val{actual: &v}, nil
+	return !actualVal(l && r), nil
 }
 
 type VarExpr uint64
 
-func (expr VarExpr) run(memory []bool, variables map[uint64]*Val) (*Val, error) {
-	if v, ok := variables[uint64(expr)]; ok {
-		return v, nil
-	}
-	v := &Val{unknown: true, lvalue: true, index: uint64(expr)}
-	variables[uint64(expr)] = v
-	return v, nil
+func (expr VarExpr) run(ctx *context) (Val, error) {
+	return varVal(expr), nil
 }
 
 type AddrExpr struct {
 	X Expr
 }
 
-func (expr AddrExpr) run(memory []bool, variables map[uint64]*Val) (*Val, error) {
-	x, err := expr.X.run(memory, variables)
+func (expr AddrExpr) run(ctx *context) (Val, error) {
+	x, err := expr.X.run(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if x.actual != nil {
-		return nil, ErrAddressOfValue
-	}
-	if x.unknown {
-		x.unknown = false
-	}
-	if x.addr {
-		return nil, ErrAddressOfAddress
-	}
-	return &Val{addr: true, index: x.index}, nil
+	return x.addr(ctx)
 }
 
 type NextExpr struct {
 	X Expr
 }
 
-func (expr NextExpr) run(memory []bool, variables map[uint64]*Val) (*Val, error) {
-	x, err := expr.X.run(memory, variables)
+func (expr NextExpr) run(ctx *context) (Val, error) {
+	x, err := expr.X.run(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if x.unknown {
-		return nil, ErrUnassignedVariable
+
+	i, err := x.pointer(ctx)
+	if err != nil {
+		return nil, err
 	}
-	if !x.addr {
-		return nil, ErrDereferenceValue
-	}
-	return &Val{lvalue: true, index: x.index + 1}, nil
+
+	return varVal(i + 1), nil
 }
 
 type StarExpr struct {
 	X Expr
 }
 
-func (expr StarExpr) run(memory []bool, variables map[uint64]*Val) (*Val, error) {
-	x, err := expr.X.run(memory, variables)
+func (expr StarExpr) run(ctx *context) (Val, error) {
+	x, err := expr.X.run(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if x.unknown {
-		return nil, ErrUnassignedVariable
+
+	i, err := x.pointer(ctx)
+	if err != nil {
+		return nil, err
 	}
-	if !x.addr {
-		return nil, ErrDereferenceValue
-	}
-	return &Val{lvalue: true, index: x.index}, nil
+
+	v := varVal(i)
+	_, err = v.value(ctx)
+	return v, err
 }
 
 type BitExpr bool
 
-func (expr BitExpr) run(memory []bool, variables map[uint64]*Val) (*Val, error) {
-	v := bool(expr)
-	return &Val{actual: &v}, nil
+func (expr BitExpr) run(ctx *context) (Val, error) {
+	return actualVal(expr), nil
 }
 
-type Val struct {
-	addr    bool
-	unknown bool
-	lvalue  bool
-	index   uint64
-	actual  *bool
+type Val interface {
+	value(*context) (bool, error)
+	pointer(*context) (uint64, error)
+	addr(*context) (Val, error)
+	isAddr(*context) bool
+	isValue(*context) bool
 }
 
-func (v *Val) value(memory []bool) (bool, error) {
-	if v.actual != nil {
-		return *v.actual, nil
-	}
-	if v.unknown {
-		return false, ErrUnassignedVariable
-	}
-	if v.addr {
+type actualVal bool
+
+func (v actualVal) value(*context) (bool, error)     { return bool(v), nil }
+func (v actualVal) pointer(*context) (uint64, error) { return 0, ErrDereferenceValue }
+func (v actualVal) addr(*context) (Val, error)       { return nil, ErrAddressOfValue }
+func (v actualVal) isAddr(*context) bool             { return false }
+func (v actualVal) isValue(*context) bool            { return true }
+
+type addrVal uint64
+
+func (v addrVal) value(*context) (bool, error)     { return false, ErrValueOfAddress }
+func (v addrVal) pointer(*context) (uint64, error) { return uint64(v), nil }
+func (v addrVal) addr(*context) (Val, error)       { return nil, ErrAddressOfAddress }
+func (v addrVal) isAddr(*context) bool             { return true }
+func (v addrVal) isValue(*context) bool            { return false }
+
+type varVal uint64
+
+func (v varVal) value(ctx *context) (bool, error) {
+	if v.isAddr(ctx) {
 		return false, ErrValueOfAddress
 	}
-	if uint64(len(memory)) < v.index {
-		return false, nil
-	}
-	return memory[v.index], nil
-}
 
-func (v *Val) pointer() (uint64, error) {
-	if v.actual != nil {
-		return 0, ErrDereferenceValue
+	// remember that we used this variable as a bit.
+	ctx.bVar.SetBit(ctx.bVar, int(v), 1)
+
+	return ctx.memory.Bit(int(v)) != 0, nil
+}
+func (v varVal) pointer(ctx *context) (uint64, error) {
+	if v.isValue(ctx) {
+		return 0, ErrAddressOfValue
 	}
-	if v.unknown {
-		return 0, ErrUnassignedVariable
+	if a, ok := ctx.aVar[uint64(v)]; ok {
+		return a, nil
 	}
-	if !v.addr {
-		return 0, ErrDereferenceValue
+
+	return 0, ErrUnassignedVariable
+}
+func (v varVal) addr(ctx *context) (Val, error) {
+	if v.isAddr(ctx) {
+		return nil, ErrAddressOfAddress
 	}
-	return v.index, nil
+
+	// remember that we used this variable as a bit.
+	ctx.bVar.SetBit(ctx.bVar, int(v), 1)
+
+	return addrVal(v), nil
+}
+func (v varVal) isAddr(ctx *context) bool {
+	_, ok := ctx.aVar[uint64(v)]
+	return ok
+}
+func (v varVal) isValue(ctx *context) bool {
+	return ctx.bVar.Bit(int(v)) != 0
 }
