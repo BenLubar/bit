@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/BenLubar/bit"
-	"github.com/BenLubar/bit/bitio"
 )
 
 func Example() {
@@ -37,7 +36,7 @@ func Example() {
 	bw := bufio.NewWriter(os.Stdout)
 	defer bw.Flush()
 
-	err = prog.Run(bitio.NewReader(bufio.NewReader(os.Stdin)), bitio.NewWriter(bw))
+	err = prog.RunByte(bufio.NewReader(os.Stdin), bw)
 	if err != nil {
 		panic(err)
 	}

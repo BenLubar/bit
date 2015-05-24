@@ -166,8 +166,8 @@ const (
 	varDataPtr        = "VARIABLE ZERO"
 	varScratchPtr     = "VARIABLE ONE"
 	varDataIndexStart = "VARIABLE ONE ZERO"
-	varScratch64Start = "VARIABLE ONE ZERO ZERO ZERO ONE ZERO"
-	varUserStart      = "VARIABLE ONE ZERO ZERO ZERO ZERO ONE ZERO"
+	varScratch64Start = "VARIABLE ONE ZERO ZERO ZERO ZERO ONE ZERO"
+	varUserStart      = "VARIABLE ONE ZERO ZERO ZERO ZERO ZERO ONE ZERO"
 
 	addr  = "THE ADDRESS OF "
 	deref = "THE VALUE AT "
@@ -307,54 +307,48 @@ func (w *Writer) assign(start uint64, left, right string, end uint64) {
 }
 
 func (w *Writer) right(start, end uint64) {
+	n1 := w.reserve()
 	n2 := w.reserve()
-	n3 := w.reserve()
 
 	// ptr++;
-	w.assign(start, varDataPtr, w.offset(varDataPtr, 8), n2)
+	w.assign(start, varDataPtr, w.offset(varDataPtr, 8), n1)
 	// scratch = &index;
-	w.assign(n2, varScratchPtr, addr+varDataIndexStart, n3)
+	w.assign(n1, varScratchPtr, addr+varDataIndexStart, n2)
 	// *scratch++;
-	w.increment(n3, 64, end, 0)
+	w.increment(n2, 64, end, 0)
 }
 
 func (w *Writer) left(start, end uint64) {
+	n1 := w.reserve()
 	n2 := w.reserve()
-	n3 := w.reserve()
+	var n3 [64]uint64
+	for i := range n3 {
+		n3[i] = w.reserve()
+	}
 	n4 := w.reserve()
 	n5 := w.reserve()
-	var n6 [64]uint64
-	for i := range n6 {
-		n6[i] = w.reserve()
-	}
-	n7 := w.reserve()
-	n8 := w.reserve()
-	n9 := w.reserve()
+	n6 := w.reserve()
 
 	// scratch = &index;
-	w.assign(start, varScratchPtr, addr+varDataIndexStart, n2)
+	w.assign(start, varScratchPtr, addr+varDataIndexStart, n1)
+
 	// *scratch--;
-	w.decrement(n2, 64, n3, 0)
+	w.decrement(n1, 64, n2, 0)
 
-	// // copy the current index to scratch64.
-	// ptr = &scratch64;
-	w.assign(n3, varDataPtr, addr+varScratch64Start, n4)
-	// scratch = &index;
-	w.assign(n4, varScratchPtr, addr+varDataIndexStart, n5)
-	for i := 0; i < 64; i++ {
-		// *(ptr + i) = *(scratch + i);
-		w.assign(n5, deref+w.offset(varDataPtr, i), deref+w.offset(varScratchPtr, i), n6[i])
-		n5 = n6[i]
+	// scratch64 = index;
+	for i := range n3 {
+		w.assign(n2, deref+w.offset(addr+varScratch64Start, i), deref+w.offset(addr+varDataIndexStart, i), n3[i])
+		n2 = n3[i]
 	}
 
 	// ptr = &array[0];
-	w.assign(n5, varDataPtr, addr+varUserStart, n7)
+	w.assign(n2, varDataPtr, addr+varUserStart, n4)
 	// scratch = &scratch64;
-	w.assign(n7, varScratchPtr, addr+varScratch64Start, n8)
+	w.assign(n4, varScratchPtr, addr+varScratch64Start, n5)
 	// while (*scratch--)
-	w.decrement(n8, 64, n9, end)
+	w.decrement(n5, 64, n6, end)
 	// ptr++;
-	w.assign(n9, varDataPtr, w.offset(varDataPtr, 8), n7)
+	w.assign(n6, varDataPtr, w.offset(varDataPtr, 8), n2)
 }
 
 func (w *Writer) output(start, end uint64) {
