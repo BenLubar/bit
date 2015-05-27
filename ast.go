@@ -342,8 +342,16 @@ type StarExpr struct {
 }
 
 func (expr StarExpr) simplify() Expr {
+	x := expr.X.simplify()
+
+	if addr, ok := x.(AddrExpr); ok {
+		if next, ok := addr.X.(NextExpr); ok {
+			return next
+		}
+	}
+
 	return StarExpr{
-		X: expr.X.simplify(),
+		X: x,
 	}
 }
 
