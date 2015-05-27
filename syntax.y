@@ -135,7 +135,7 @@ expr1
 expr2
 : THE VALUE BEYOND expr2
 	{
-		$$ = NextExpr{$4}
+		$$ = NextExpr{$4, 0}
 	}
 | expr3
 	{

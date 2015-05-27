@@ -55,7 +55,10 @@ const PARENTHESIS = 57367
 const PRINT = 57368
 const READ = 57369
 
-var yyToknames = []string{
+var yyToknames = [...]string{
+	"$end",
+	"error",
+	"$unk",
 	"ZERO",
 	"ONE",
 	"GOTO",
@@ -81,14 +84,14 @@ var yyToknames = []string{
 	"PRINT",
 	"READ",
 }
-var yyStatenames = []string{}
+var yyStatenames = [...]string{}
 
 const yyEofCode = 1
 const yyErrCode = 2
 const yyMaxDepth = 200
 
 //line yacctab:1
-var yyExca = []int{
+var yyExca = [...]int{
 	-1, 1,
 	1, -1,
 	-2, 0,
@@ -102,7 +105,7 @@ var yyStates []string
 
 const yyLast = 87
 
-var yyAct = []int{
+var yyAct = [...]int{
 
 	18, 28, 24, 22, 23, 10, 11, 8, 9, 9,
 	13, 59, 19, 37, 13, 12, 29, 31, 31, 32,
@@ -114,7 +117,7 @@ var yyAct = []int{
 	33, 25, 10, 11, 10, 11, 27, 26, 14, 15,
 	10, 11, 2, 17, 4, 5, 1,
 }
-var yyPact = []int{
+var yyPact = [...]int{
 
 	55, 55, 62, 58, 62, -1000, 76, 76, 68, -1000,
 	-1000, -1000, 70, -1000, 50, 1, 48, -1000, -3, 51,
@@ -123,24 +126,24 @@ var yyPact = []int{
 	-1000, 23, 2, 21, 54, 41, -1, -4, 76, -1000,
 	-1000, 25, -1000, 18, 21, -14, -1000, 13, 2, -1000,
 }
-var yyPgo = []int{
+var yyPgo = [...]int{
 
 	0, 86, 82, 85, 83, 76, 0, 3, 4, 2,
 	71, 1, 7,
 }
-var yyR1 = []int{
+var yyR1 = [...]int{
 
 	0, 1, 1, 11, 11, 12, 12, 3, 3, 5,
 	6, 6, 7, 7, 8, 8, 9, 9, 10, 10,
 	10, 4, 4, 4, 4, 2, 2,
 }
-var yyR2 = []int{
+var yyR2 = [...]int{
 
 	0, 1, 2, 1, 1, 1, 2, 2, 8, 2,
 	3, 1, 4, 1, 4, 1, 4, 1, 5, 1,
 	1, 3, 5, 2, 1, 5, 2,
 }
-var yyChk = []int{
+var yyChk = [...]int{
 
 	-1000, -1, -2, 7, -2, -3, 6, 8, -12, -11,
 	4, 5, -12, -11, 10, 9, 11, -4, -6, 11,
@@ -149,7 +152,7 @@ var yyChk = []int{
 	-7, 11, -6, 20, 18, 17, 13, -6, 14, -7,
 	-8, 11, -9, 11, 22, 24, -11, 16, -6, 25,
 }
-var yyDef = []int{
+var yyDef = [...]int{
 
 	0, -2, 1, 0, 2, 26, 0, 0, 7, 5,
 	3, 4, 0, 6, 0, 0, 0, 25, 0, 0,
@@ -158,25 +161,34 @@ var yyDef = []int{
 	10, 0, 21, 0, 0, 0, 0, 0, 0, 12,
 	14, 0, 16, 0, 0, 0, 8, 0, 22, 18,
 }
-var yyTok1 = []int{
+var yyTok1 = [...]int{
 
 	1,
 }
-var yyTok2 = []int{
+var yyTok2 = [...]int{
 
 	2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
 	12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
 	22, 23, 24, 25, 26, 27,
 }
-var yyTok3 = []int{
+var yyTok3 = [...]int{
 	0,
 }
+
+var yyErrorMessages = [...]struct {
+	state int
+	token int
+	msg   string
+}{}
 
 //line yaccpar:1
 
 /*	parser for yacc output	*/
 
-var yyDebug = 0
+var (
+	yyDebug        = 0
+	yyErrorVerbose = false
+)
 
 type yyLexer interface {
 	Lex(lval *yySymType) int
@@ -206,10 +218,9 @@ func yyNewParser() yyParser {
 const yyFlag = -1000
 
 func yyTokname(c int) string {
-	// 4 is TOKSTART above
-	if c >= 4 && c-4 < len(yyToknames) {
-		if yyToknames[c-4] != "" {
-			return yyToknames[c-4]
+	if c >= 1 && c-1 < len(yyToknames) {
+		if yyToknames[c-1] != "" {
+			return yyToknames[c-1]
 		}
 	}
 	return __yyfmt__.Sprintf("tok-%v", c)
@@ -222,6 +233,70 @@ func yyStatname(s int) string {
 		}
 	}
 	return __yyfmt__.Sprintf("state-%v", s)
+}
+
+func yyErrorMessage(state, lookAhead int) string {
+	const TOKSTART = 4
+
+	if !yyErrorVerbose {
+		return "syntax error"
+	}
+
+	for _, e := range yyErrorMessages {
+		if e.state == state && e.token == lookAhead {
+			return "syntax error: " + e.msg
+		}
+	}
+
+	res := "syntax error: unexpected " + yyTokname(lookAhead)
+
+	// To match Bison, suggest at most four expected tokens.
+	expected := make([]int, 0, 4)
+
+	// Look for shiftable tokens.
+	base := yyPact[state]
+	for tok := TOKSTART; tok-1 < len(yyToknames); tok++ {
+		if n := base + tok; n >= 0 && n < yyLast && yyChk[yyAct[n]] == tok {
+			if len(expected) == cap(expected) {
+				return res
+			}
+			expected = append(expected, tok)
+		}
+	}
+
+	if yyDef[state] == -2 {
+		i := 0
+		for yyExca[i] != -1 || yyExca[i+1] != state {
+			i += 2
+		}
+
+		// Look for tokens that we accept or reduce.
+		for i += 2; yyExca[i] >= 0; i += 2 {
+			tok := yyExca[i]
+			if tok < TOKSTART || yyExca[i+1] == 0 {
+				continue
+			}
+			if len(expected) == cap(expected) {
+				return res
+			}
+			expected = append(expected, tok)
+		}
+
+		// If the default action is to accept or reduce, give up.
+		if yyExca[i+1] != 0 {
+			return res
+		}
+	}
+
+	for i, tok := range expected {
+		if i == 0 {
+			res += ", expecting "
+		} else {
+			res += " or "
+		}
+		res += yyTokname(tok)
+	}
+	return res
 }
 
 func yylex1(lex yyLexer, lval *yySymType) (char, token int) {
@@ -278,6 +353,7 @@ func (yyrcvr *yyParserImpl) Parse(yylex yyLexer) int {
 	yyrcvr.lookahead = func() int { return yychar }
 	defer func() {
 		// Make sure we report no lookahead when not parsing.
+		yystate = -1
 		yychar = -1
 		yytoken = -1
 	}()
@@ -360,7 +436,7 @@ yydefault:
 		/* error ... attempt to resume parsing */
 		switch Errflag {
 		case 0: /* brand new error */
-			yylex.Error("syntax error")
+			yylex.Error(yyErrorMessage(yystate, yytoken))
 			Nerrs++
 			if yyDebug >= 1 {
 				__yyfmt__.Printf("%s", yyStatname(yystate))
@@ -543,7 +619,7 @@ yydefault:
 		yyDollar = yyS[yypt-4 : yypt+1]
 		//line syntax.y:137
 		{
-			yyVAL.expr = NextExpr{yyDollar[4].expr}
+			yyVAL.expr = NextExpr{yyDollar[4].expr, 0}
 		}
 	case 15:
 		yyDollar = yyS[yypt-1 : yypt+1]

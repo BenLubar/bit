@@ -38,7 +38,7 @@ func (p Program) AddLine(n uint64, stmt Stmt, goto0, goto1 *uint64) error {
 		return fmt.Errorf("bit: duplicate line number %v", n)
 	}
 
-	p[n] = line{stmt: stmt, goto0: goto0, goto1: goto1}
+	p[n] = line{stmt: stmt.simplify(), goto0: goto0, goto1: goto1}
 
 	return nil
 }
@@ -113,11 +113,19 @@ func (p Program) RunByte(r io.ByteReader, w io.ByteWriter) error {
 
 type Stmt interface {
 	run(in bitio.BitReader, out bitio.BitWriter, ctx *context) error
+	simplify() Stmt
 }
 
 type AssignStmt struct {
 	Left  Expr
 	Right Expr
+}
+
+func (stmt AssignStmt) simplify() Stmt {
+	return AssignStmt{
+		Left:  stmt.Left.simplify(),
+		Right: stmt.Right.simplify(),
+	}
 }
 
 func (stmt AssignStmt) run(in bitio.BitReader, out bitio.BitWriter, ctx *context) error {
@@ -180,6 +188,12 @@ type JumpRegisterStmt struct {
 	Right Expr
 }
 
+func (stmt JumpRegisterStmt) simplify() Stmt {
+	return JumpRegisterStmt{
+		Right: stmt.Right.simplify(),
+	}
+}
+
 func (stmt JumpRegisterStmt) run(in bitio.BitReader, out bitio.BitWriter, ctx *context) error {
 	right, err := stmt.Right.run(ctx)
 	if err != nil {
@@ -197,11 +211,19 @@ func (stmt JumpRegisterStmt) run(in bitio.BitReader, out bitio.BitWriter, ctx *c
 
 type PrintStmt bool
 
+func (stmt PrintStmt) simplify() Stmt {
+	return stmt
+}
+
 func (stmt PrintStmt) run(in bitio.BitReader, out bitio.BitWriter, ctx *context) error {
 	return out.WriteBit(bool(stmt))
 }
 
 type ReadStmt struct{}
+
+func (stmt ReadStmt) simplify() Stmt {
+	return stmt
+}
 
 func (stmt ReadStmt) run(in bitio.BitReader, out bitio.BitWriter, ctx *context) error {
 	c, err := in.ReadBit()
@@ -214,11 +236,19 @@ func (stmt ReadStmt) run(in bitio.BitReader, out bitio.BitWriter, ctx *context) 
 
 type Expr interface {
 	run(*context) (Val, error)
+	simplify() Expr
 }
 
 type NandExpr struct {
 	Left  Expr
 	Right Expr
+}
+
+func (expr NandExpr) simplify() Expr {
+	return NandExpr{
+		Left:  expr.Left.simplify(),
+		Right: expr.Right.simplify(),
+	}
 }
 
 func (expr NandExpr) run(ctx *context) (Val, error) {
@@ -243,12 +273,22 @@ func (expr NandExpr) run(ctx *context) (Val, error) {
 
 type VarExpr uint64
 
+func (expr VarExpr) simplify() Expr {
+	return expr
+}
+
 func (expr VarExpr) run(ctx *context) (Val, error) {
 	return varVal(expr), nil
 }
 
 type AddrExpr struct {
 	X Expr
+}
+
+func (expr AddrExpr) simplify() Expr {
+	return AddrExpr{
+		X: expr.X.simplify(),
+	}
 }
 
 func (expr AddrExpr) run(ctx *context) (Val, error) {
@@ -261,6 +301,26 @@ func (expr AddrExpr) run(ctx *context) (Val, error) {
 
 type NextExpr struct {
 	X Expr
+
+	additional uint64
+}
+
+func (expr NextExpr) simplify() Expr {
+	x := expr.X.simplify()
+	if addr, ok := x.(AddrExpr); ok {
+		if next, ok := addr.X.(NextExpr); ok {
+			return NextExpr{
+				X: next.X,
+
+				additional: expr.additional + next.additional + 1,
+			}
+		}
+	}
+	return NextExpr{
+		X: x,
+
+		additional: expr.additional,
+	}
 }
 
 func (expr NextExpr) run(ctx *context) (Val, error) {
@@ -274,11 +334,17 @@ func (expr NextExpr) run(ctx *context) (Val, error) {
 		return nil, err
 	}
 
-	return varVal(i + 1), nil
+	return varVal(i + 1 + expr.additional), nil
 }
 
 type StarExpr struct {
 	X Expr
+}
+
+func (expr StarExpr) simplify() Expr {
+	return StarExpr{
+		X: expr.X.simplify(),
+	}
 }
 
 func (expr StarExpr) run(ctx *context) (Val, error) {
@@ -298,6 +364,10 @@ func (expr StarExpr) run(ctx *context) (Val, error) {
 }
 
 type BitExpr bool
+
+func (expr BitExpr) simplify() Expr {
+	return expr
+}
 
 func (expr BitExpr) run(ctx *context) (Val, error) {
 	return actualVal(expr), nil
