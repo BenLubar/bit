@@ -334,7 +334,12 @@ func (expr NextExpr) run(ctx *context) (Val, error) {
 		return nil, err
 	}
 
-	return varVal(i + 1 + expr.additional), nil
+	v := varVal(i + 1 + expr.additional)
+
+	// remember that we're a bit
+	_, err = v.value(ctx)
+
+	return v, err
 }
 
 type StarExpr struct {
