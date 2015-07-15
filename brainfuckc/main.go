@@ -348,7 +348,7 @@ func (w *Writer) left(start, end uint64) {
 	// while (*scratch--)
 	w.decrement(n5, 64, n6, end)
 	// ptr++;
-	w.assign(n6, varDataPtr, w.offset(varDataPtr, 8), n2)
+	w.assign(n6, varDataPtr, w.offset(varDataPtr, 8), n5)
 }
 
 func (w *Writer) output(start, end uint64) {
