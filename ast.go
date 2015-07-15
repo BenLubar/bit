@@ -16,6 +16,7 @@ var (
 	ErrAddressOfAddress   = errors.New("cannot take address of address")
 	ErrDereferenceValue   = errors.New("cannot dereference value")
 	ErrValueOfAddress     = errors.New("cannot take value of address-of-bit variable")
+	ErrMissingLine        = errors.New("missing line for goto")
 )
 
 type context struct {
@@ -29,16 +30,18 @@ type line struct {
 	stmt  Stmt
 	goto0 *uint64
 	goto1 *uint64
+	line0 *line
+	line1 *line
 }
 
-type Program map[uint64]line
+type Program map[uint64]*line
 
 func (p Program) AddLine(n uint64, stmt Stmt, goto0, goto1 *uint64) error {
 	if _, ok := p[n]; ok {
 		return fmt.Errorf("bit: duplicate line number %v", n)
 	}
 
-	p[n] = line{stmt: stmt.simplify(), goto0: goto0, goto1: goto1}
+	p[n] = &line{stmt: stmt.simplify(), goto0: goto0, goto1: goto1}
 
 	return nil
 }
@@ -52,6 +55,26 @@ func (p Program) Start() uint64 {
 			return i
 		}
 	}
+}
+
+func (p Program) bake() (Program, error) {
+	var ok bool
+	for pc, l := range p {
+		if l.goto0 != nil {
+			l.line0, ok = p[*l.goto0]
+			if !ok {
+				return nil, &ProgramError{ErrMissingLine, pc}
+			}
+		}
+		if l.goto1 != nil {
+			l.line1, ok = p[*l.goto1]
+			if !ok {
+				return nil, &ProgramError{ErrMissingLine, pc}
+			}
+		}
+	}
+
+	return p, nil
 }
 
 type ProgramError struct {
@@ -70,28 +93,24 @@ func (p Program) Run(in bitio.BitReader, out bitio.BitWriter) error {
 		bVar:   new(big.Int),
 		aVar:   make(map[uint64]uint64),
 	}
-	pc := p.Start()
+	pc := new(uint64)
+	*pc = p.Start()
+	line := p[*pc]
 
-	for {
-		line := p[pc]
+	for line != nil {
 		err := line.stmt.run(in, out, ctx)
 		if err != nil {
-			return &ProgramError{Err: err, Line: pc}
+			return &ProgramError{Err: err, Line: *pc}
 		}
 		if !ctx.jump {
-			if line.goto0 != nil {
-				pc = *line.goto0
-			} else {
-				return nil
-			}
+			pc = line.goto0
+			line = line.line0
 		} else {
-			if line.goto1 != nil {
-				pc = *line.goto1
-			} else {
-				return nil
-			}
+			pc = line.goto1
+			line = line.line1
 		}
 	}
+	return nil
 }
 
 func (p Program) RunByte(r io.ByteReader, w io.ByteWriter) error {
@@ -137,16 +156,16 @@ func (stmt AssignStmt) run(in bitio.BitReader, out bitio.BitWriter, ctx *context
 	if err != nil {
 		return err
 	}
-	if vv, ok := left.(varVal); ok {
-		if vv.isAddr(ctx) {
+	if !left.actual && !left.ptr {
+		if left.isAddr(ctx) {
 			a, err := right.pointer(ctx)
 			if err != nil {
 				return err
 			}
-			ctx.aVar[uint64(vv)] = a
+			ctx.aVar[uint64(left.a)] = a
 			return nil
 		}
-		if vv.isValue(ctx) {
+		if left.isValue(ctx) {
 			b, err := right.value(ctx)
 			if err != nil {
 				return err
@@ -155,7 +174,7 @@ func (stmt AssignStmt) run(in bitio.BitReader, out bitio.BitWriter, ctx *context
 			if b {
 				n = 1
 			}
-			ctx.memory.SetBit(ctx.memory, int(vv), n)
+			ctx.memory.SetBit(ctx.memory, int(left.a), n)
 			return nil
 		}
 		if right.isAddr(ctx) {
@@ -163,7 +182,7 @@ func (stmt AssignStmt) run(in bitio.BitReader, out bitio.BitWriter, ctx *context
 			if err != nil {
 				return err
 			}
-			ctx.aVar[uint64(vv)] = a
+			ctx.aVar[left.a] = a
 			return nil
 		}
 		if right.isValue(ctx) {
@@ -171,12 +190,12 @@ func (stmt AssignStmt) run(in bitio.BitReader, out bitio.BitWriter, ctx *context
 			if err != nil {
 				return err
 			}
-			ctx.bVar.SetBit(ctx.bVar, int(vv), 1)
+			ctx.bVar.SetBit(ctx.bVar, int(left.a), 1)
 			var n uint
 			if b {
 				n = 1
 			}
-			ctx.memory.SetBit(ctx.memory, int(vv), n)
+			ctx.memory.SetBit(ctx.memory, int(left.a), n)
 			return nil
 		}
 		return ErrUnassignedVariable
@@ -254,21 +273,21 @@ func (expr NandExpr) simplify() Expr {
 func (expr NandExpr) run(ctx *context) (Val, error) {
 	left, err := expr.Left.run(ctx)
 	if err != nil {
-		return nil, err
+		return Val{}, err
 	}
 	right, err := expr.Right.run(ctx)
 	if err != nil {
-		return nil, err
+		return Val{}, err
 	}
 	l, err := left.value(ctx)
 	if err != nil {
-		return nil, err
+		return Val{}, err
 	}
 	r, err := right.value(ctx)
 	if err != nil {
-		return nil, err
+		return Val{}, err
 	}
-	return !actualVal(l && r), nil
+	return actualVal(!(l && r)), nil
 }
 
 type VarExpr uint64
@@ -278,7 +297,7 @@ func (expr VarExpr) simplify() Expr {
 }
 
 func (expr VarExpr) run(ctx *context) (Val, error) {
-	return varVal(expr), nil
+	return varVal(uint64(expr)), nil
 }
 
 type AddrExpr struct {
@@ -294,7 +313,7 @@ func (expr AddrExpr) simplify() Expr {
 func (expr AddrExpr) run(ctx *context) (Val, error) {
 	x, err := expr.X.run(ctx)
 	if err != nil {
-		return nil, err
+		return Val{}, err
 	}
 	return x.addr(ctx)
 }
@@ -326,12 +345,12 @@ func (expr NextExpr) simplify() Expr {
 func (expr NextExpr) run(ctx *context) (Val, error) {
 	x, err := expr.X.run(ctx)
 	if err != nil {
-		return nil, err
+		return Val{}, err
 	}
 
 	i, err := x.pointer(ctx)
 	if err != nil {
-		return nil, err
+		return Val{}, err
 	}
 
 	v := varVal(i + 1 + expr.additional)
@@ -363,12 +382,12 @@ func (expr StarExpr) simplify() Expr {
 func (expr StarExpr) run(ctx *context) (Val, error) {
 	x, err := expr.X.run(ctx)
 	if err != nil {
-		return nil, err
+		return Val{}, err
 	}
 
 	i, err := x.pointer(ctx)
 	if err != nil {
-		return nil, err
+		return Val{}, err
 	}
 
 	v := varVal(i)
@@ -383,69 +402,83 @@ func (expr BitExpr) simplify() Expr {
 }
 
 func (expr BitExpr) run(ctx *context) (Val, error) {
-	return actualVal(expr), nil
+	return actualVal(bool(expr)), nil
 }
 
-type Val interface {
-	value(*context) (bool, error)
-	pointer(*context) (uint64, error)
-	addr(*context) (Val, error)
-	isAddr(*context) bool
-	isValue(*context) bool
+type Val struct {
+	a      uint64
+	ptr    bool
+	actual bool
 }
 
-type actualVal bool
+func actualVal(b bool) Val { return Val{0, b, true} }
+func addrVal(a uint64) Val { return Val{a, true, false} }
+func varVal(a uint64) Val  { return Val{a, false, false} }
 
-func (v actualVal) value(*context) (bool, error)     { return bool(v), nil }
-func (v actualVal) pointer(*context) (uint64, error) { return 0, ErrDereferenceValue }
-func (v actualVal) addr(*context) (Val, error)       { return nil, ErrAddressOfValue }
-func (v actualVal) isAddr(*context) bool             { return false }
-func (v actualVal) isValue(*context) bool            { return true }
-
-type addrVal uint64
-
-func (v addrVal) value(*context) (bool, error)     { return false, ErrValueOfAddress }
-func (v addrVal) pointer(*context) (uint64, error) { return uint64(v), nil }
-func (v addrVal) addr(*context) (Val, error)       { return nil, ErrAddressOfAddress }
-func (v addrVal) isAddr(*context) bool             { return true }
-func (v addrVal) isValue(*context) bool            { return false }
-
-type varVal uint64
-
-func (v varVal) value(ctx *context) (bool, error) {
+func (v Val) value(ctx *context) (bool, error) {
+	if v.actual {
+		return v.ptr, nil
+	}
+	if v.ptr {
+		return false, ErrValueOfAddress
+	}
 	if v.isAddr(ctx) {
 		return false, ErrValueOfAddress
 	}
 
 	// remember that we used this variable as a bit.
-	ctx.bVar.SetBit(ctx.bVar, int(v), 1)
+	ctx.bVar.SetBit(ctx.bVar, int(v.a), 1)
 
-	return ctx.memory.Bit(int(v)) != 0, nil
+	return ctx.memory.Bit(int(v.a)) != 0, nil
 }
-func (v varVal) pointer(ctx *context) (uint64, error) {
+func (v Val) pointer(ctx *context) (uint64, error) {
+	if v.actual {
+		return 0, ErrDereferenceValue
+	}
+	if v.ptr {
+		return v.a, nil
+	}
 	if v.isValue(ctx) {
 		return 0, ErrAddressOfValue
 	}
-	if a, ok := ctx.aVar[uint64(v)]; ok {
+	if a, ok := ctx.aVar[v.a]; ok {
 		return a, nil
 	}
 
 	return 0, ErrUnassignedVariable
 }
-func (v varVal) addr(ctx *context) (Val, error) {
+func (v Val) addr(ctx *context) (Val, error) {
+	if v.actual {
+		return Val{}, ErrAddressOfValue
+	}
+	if v.ptr {
+		return Val{}, ErrAddressOfAddress
+	}
 	if v.isAddr(ctx) {
-		return nil, ErrAddressOfAddress
+		return Val{}, ErrAddressOfAddress
 	}
 
 	// remember that we used this variable as a bit.
-	ctx.bVar.SetBit(ctx.bVar, int(v), 1)
+	ctx.bVar.SetBit(ctx.bVar, int(v.a), 1)
 
-	return addrVal(v), nil
+	return addrVal(v.a), nil
 }
-func (v varVal) isAddr(ctx *context) bool {
-	_, ok := ctx.aVar[uint64(v)]
+func (v Val) isAddr(ctx *context) bool {
+	if v.actual {
+		return false
+	}
+	if v.ptr {
+		return true
+	}
+	_, ok := ctx.aVar[v.a]
 	return ok
 }
-func (v varVal) isValue(ctx *context) bool {
-	return ctx.bVar.Bit(int(v)) != 0
+func (v Val) isValue(ctx *context) bool {
+	if v.actual {
+		return true
+	}
+	if v.ptr {
+		return false
+	}
+	return ctx.bVar.Bit(int(v.a)) != 0
 }

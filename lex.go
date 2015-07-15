@@ -122,5 +122,5 @@ func Parse(r io.RuneReader) (prog Program, err error) {
 
 	yyParse(l)
 
-	return l.prog, nil
+	return l.prog.bake()
 }
