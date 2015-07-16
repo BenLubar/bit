@@ -4,36 +4,35 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
 	"unicode"
 	"unicode/utf8"
 )
 
-var tokens = map[string]int{
-	"ZERO":        ZERO,
-	"ONE":         ONE,
-	"GOTO":        GOTO,
-	"LINE":        LINE,
-	"NUMBER":      NUMBER,
-	"CODE":        CODE,
-	"IF":          IF,
-	"THE":         THE,
-	"JUMP":        JUMP,
-	"REGISTER":    REGISTER,
-	"IS":          IS,
-	"VARIABLE":    VARIABLE,
-	"VALUE":       VALUE,
-	"AT":          AT,
-	"BEYOND":      BEYOND,
-	"ADDRESS":     ADDRESS,
-	"OF":          OF,
-	"NAND":        NAND,
-	"EQUALS":      EQUALS,
-	"OPEN":        OPEN,
-	"CLOSE":       CLOSE,
-	"PARENTHESIS": PARENTHESIS,
-	"PRINT":       PRINT,
-	"READ":        READ,
+var tokens = map[int][]rune{
+	ZERO:        []rune("ZERO"),
+	ONE:         []rune("ONE"),
+	GOTO:        []rune("GOTO"),
+	LINE:        []rune("LINE"),
+	NUMBER:      []rune("NUMBER"),
+	CODE:        []rune("CODE"),
+	IF:          []rune("IF"),
+	THE:         []rune("THE"),
+	JUMP:        []rune("JUMP"),
+	REGISTER:    []rune("REGISTER"),
+	IS:          []rune("IS"),
+	VARIABLE:    []rune("VARIABLE"),
+	VALUE:       []rune("VALUE"),
+	AT:          []rune("AT"),
+	BEYOND:      []rune("BEYOND"),
+	ADDRESS:     []rune("ADDRESS"),
+	OF:          []rune("OF"),
+	NAND:        []rune("NAND"),
+	EQUALS:      []rune("EQUALS"),
+	OPEN:        []rune("OPEN"),
+	CLOSE:       []rune("CLOSE"),
+	PARENTHESIS: []rune("PARENTHESIS"),
+	PRINT:       []rune("PRINT"),
+	READ:        []rune("READ"),
 }
 
 var ErrInvalidUnicode = errors.New("bit: invalid unicode")
@@ -43,16 +42,17 @@ type lex struct {
 	line int
 	col  int
 	off  int
+	buf  []rune
 	prog Program
 }
 
 func (l *lex) Lex(lcal *yySymType) int {
-	var s string
+	l.buf = l.buf[:0]
 
 	for {
 		r, size, err := l.r.ReadRune()
 		if err == io.EOF {
-			if s == "" {
+			if len(l.buf) == 0 {
 				return 0
 			}
 			panic(io.ErrUnexpectedEOF)
@@ -74,18 +74,26 @@ func (l *lex) Lex(lcal *yySymType) int {
 			continue
 		}
 
-		s += string(r)
+		l.buf = append(l.buf, r)
 		any := false
-		for k, v := range tokens {
-			if k == s {
-				return v
-			} else if strings.HasPrefix(k, s) {
-				any = true
+	tokenLoop:
+		for id, token := range tokens {
+			if len(token) < len(l.buf) {
+				continue
+			}
+			for i := range l.buf {
+				if token[i] != l.buf[i] {
+					continue tokenLoop
+				}
+			}
+			any = true
+			if len(token) == len(l.buf) {
+				return id
 			}
 		}
 
 		if !any {
-			panic(fmt.Errorf("bit: unknown token %q", s))
+			panic(fmt.Errorf("bit: unknown token %q", l.buf))
 		}
 	}
 }
