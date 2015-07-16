@@ -77,15 +77,7 @@ func (w *Writer) numberBits(n uint64) {
 	}
 }
 
-func main() {
-	b, err := ioutil.ReadAll(os.Stdin)
-	if err != nil {
-		log.Fatal(err)
-	}
-	s := string(b)
-
-	w := NewWriter(os.Stdout)
-
+func (w *Writer) Program(s string) {
 	for _, r := range s {
 		switch r {
 		case 'h', 'H':
@@ -98,6 +90,17 @@ func main() {
 			w.Print(Beer)
 		}
 	}
+}
+
+func main() {
+	b, err := ioutil.ReadAll(os.Stdin)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	w := NewWriter(os.Stdout)
+
+	w.Program(string(b))
 
 	err = w.Close()
 	if err != nil {
