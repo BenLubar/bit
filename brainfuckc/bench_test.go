@@ -2,11 +2,11 @@ package main
 
 import (
 	"bytes"
-	"io"
 	"io/ioutil"
 	"testing"
 
 	"github.com/BenLubar/bit"
+	"github.com/BenLubar/bit/bitio"
 )
 
 func BenchmarkBFParse(b *testing.B) {
@@ -113,15 +113,10 @@ func BenchmarkHello(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			err := prog.Run(&discard{}, &discard{})
+			err := prog.Run(bitio.Null, bitio.Null)
 			if err != nil {
 				panic(err)
 			}
 		}
 	})
 }
-
-type discard struct{}
-
-func (*discard) ReadBit() (bool, error) { return false, io.EOF }
-func (*discard) WriteBit(bool) error    { return nil }
