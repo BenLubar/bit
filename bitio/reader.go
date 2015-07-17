@@ -30,6 +30,21 @@ func (r *reader) ReadBit() (c bool, err error) {
 	return (r.bits>>r.remain)&1 == 1, nil
 }
 
+func (r *reader) ReadByte() (c byte, err error) {
+	if r.remain < 8 {
+		b, err := r.br.ReadByte()
+		if err != nil {
+			return 0, err
+		}
+		r.remain += 8
+		r.bits <<= 8
+		r.bits |= uint16(b)
+	}
+	r.remain -= 8
+	r.unread = true // don't allow UnreadBit after ReadByte
+	return byte(r.bits >> r.remain), nil
+}
+
 func (r *reader) UnreadBit() error {
 	if r.unread {
 		return ErrDoubleUnread

@@ -25,6 +25,28 @@ func (w *writer) WriteBit(c bool) error {
 	return nil
 }
 
+func (w *writer) WriteByte(c byte) error {
+	// make sure there's not an old failed write waiting
+	if err := w.write(); err != nil {
+		return err
+	}
+
+	if w.index == 0 {
+		// fast path: write the entire byte at once
+		return w.bw.WriteByte(c)
+	}
+
+	for i := 0; i < 8; i++ {
+		w.bits |= c >> uint(7-i) & 1
+		w.index++
+		if err := w.write(); err != nil {
+			return err
+		}
+		w.bits <<= 1
+	}
+	return nil
+}
+
 func (w *writer) write() error {
 	if w.index != 8 {
 		return nil
