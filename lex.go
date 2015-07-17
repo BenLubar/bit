@@ -117,7 +117,7 @@ func Parse(r io.RuneReader) (prog Program, err error) {
 	l := &lex{r: r, line: 1}
 
 	defer func() {
-		if r := recover(); r != nil {
+		/*if r := recover(); r != nil {
 			err = r.(error)
 			err = &ParseError{
 				Err:    err,
@@ -125,7 +125,7 @@ func Parse(r io.RuneReader) (prog Program, err error) {
 				Column: l.col,
 				Offset: l.off,
 			}
-		}
+		}*/
 	}()
 
 	yyParse(l)

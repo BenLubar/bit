@@ -24,6 +24,7 @@ type context struct {
 	memory *big.Int
 	bVar   *big.Int
 	aVar   map[uint64]uint64
+	n0, n1 big.Int
 }
 
 type line struct {
@@ -32,6 +33,7 @@ type line struct {
 	goto1 *uint64
 	line0 *line
 	line1 *line
+	opt   optimized
 }
 
 type Program map[uint64]*line
@@ -57,26 +59,6 @@ func (p Program) Start() uint64 {
 	}
 }
 
-func (p Program) bake() (Program, error) {
-	var ok bool
-	for pc, l := range p {
-		if l.goto0 != nil {
-			l.line0, ok = p[*l.goto0]
-			if !ok {
-				return nil, &ProgramError{ErrMissingLine, pc}
-			}
-		}
-		if l.goto1 != nil {
-			l.line1, ok = p[*l.goto1]
-			if !ok {
-				return nil, &ProgramError{ErrMissingLine, pc}
-			}
-		}
-	}
-
-	return p, nil
-}
-
 type ProgramError struct {
 	Err  error
 	Line uint64
@@ -98,16 +80,25 @@ func (p Program) Run(in bitio.BitReader, out bitio.BitWriter) error {
 	line := p[*pc]
 
 	for line != nil {
-		err := line.stmt.run(in, out, ctx)
-		if err != nil {
-			return &ProgramError{Err: err, Line: *pc}
-		}
-		if !ctx.jump {
-			pc = line.goto0
-			line = line.line0
+		if line.opt != nil {
+			newpc, newline, err := line.opt.run(in, out, ctx)
+			if err != nil {
+				return &ProgramError{Err: err, Line: *pc}
+			}
+			pc = newpc
+			line = newline
 		} else {
-			pc = line.goto1
-			line = line.line1
+			err := line.stmt.run(in, out, ctx)
+			if err != nil {
+				return &ProgramError{Err: err, Line: *pc}
+			}
+			if !ctx.jump {
+				pc = line.goto0
+				line = line.line0
+			} else {
+				pc = line.goto1
+				line = line.line1
+			}
 		}
 	}
 	return nil
