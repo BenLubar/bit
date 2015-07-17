@@ -86,6 +86,34 @@ intrinsicPrint:
 		}
 	}
 
+	// intrinsic print(*ptr)
+	for _, l := range p {
+		js, ok := l.stmt.(JumpRegisterStmt)
+		if !ok {
+			continue
+		}
+		next, ok := js.Right.(NextExpr)
+		if !ok {
+			continue
+		}
+		if next.additional != 8-2 {
+			continue
+		}
+		ptr, ok := next.X.(VarExpr)
+		if !ok {
+			continue
+		}
+		done, donepc, ok := p.verifyPrint(l, ptr, 8-2)
+		if !ok {
+			continue
+		}
+		l.opt = optPrintByte{
+			p: ptr,
+			l: done,
+			g: donepc,
+		}
+	}
+
 	return p, nil
 }
 
@@ -162,6 +190,33 @@ func (p Program) verifyIncDec(l *line, ptr VarExpr, offset uint64, inc bool) (do
 	return
 }
 
+func (p Program) verifyPrint(l *line, ptr VarExpr, offset uint64) (done *line, donepc *uint64, ok bool) {
+	if l == nil || l.line0 == nil || l.line1 == nil {
+		return
+	}
+	if offset == 0 {
+		if l.stmt != (JumpRegisterStmt{Right: StarExpr{X: ptr}}) {
+			return
+		}
+	} else {
+		if l.stmt != (JumpRegisterStmt{Right: NextExpr{X: ptr, additional: offset - 1}}) {
+			return
+		}
+	}
+	done, donepc = l.line0.line0, l.line0.goto0
+	if done != l.line0.line1 || done != l.line1.line0 || done != l.line1.line1 {
+		return
+	}
+	if l.line0.stmt != PrintStmt(false) || l.line1.stmt != PrintStmt(true) {
+		return
+	}
+	if offset == 0 {
+		ok = true
+		return
+	}
+	return p.verifyPrint(done, ptr, offset-1)
+}
+
 type optimized interface {
 	run(bitio.BitReader, bitio.BitWriter, *context) (*uint64, *line, error)
 }
@@ -234,4 +289,29 @@ type optPrintByteConst struct {
 
 func (opt optPrintByteConst) run(in bitio.BitReader, out bitio.BitWriter, ctx *context) (g *uint64, l *line, err error) {
 	return opt.g, opt.l, bitio.WriteByte(out, opt.b)
+}
+
+var byteMask = big.NewInt(0xFF)
+
+type optPrintByte struct {
+	p VarExpr
+	g *uint64
+	l *line
+}
+
+func (opt optPrintByte) run(in bitio.BitReader, out bitio.BitWriter, ctx *context) (g *uint64, l *line, err error) {
+	ctx.n0.Rsh(ctx.bVar, uint(opt.p))
+	for i := 0; i < 8; i++ {
+		if ctx.n0.Bit(i) == 0 {
+			_, err = varVal(uint64(opt.p) + uint64(i)).value(ctx)
+			if err != nil {
+				return
+			}
+		}
+	}
+
+	ctx.n0.Rsh(ctx.memory, uint(opt.p))
+	ctx.n0.And(&ctx.n0, byteMask)
+
+	return opt.g, opt.l, bitio.WriteByte(out, byte(ctx.n0.Uint64()))
 }
