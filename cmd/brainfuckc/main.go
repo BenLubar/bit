@@ -352,90 +352,52 @@ func (w *Writer) left(start, end uint64) {
 }
 
 func (w *Writer) output(start, end uint64) {
-	n1 := w.reserve()
-	n2 := w.reserve()
-	n3 := w.reserve()
-	n4 := w.reserve()
-	n5 := w.reserve()
-	n6 := w.reserve()
-	n7 := w.reserve()
-	n8 := w.reserve()
+	var n1 [8]uint64
+	for i := range n1[1:] {
+		n1[i+1] = w.reserve()
+	}
+	n1[0] = end
 
-	// scratch = ptr;
-	w.assign(start, varScratchPtr, varDataPtr, n1)
-	// write(*scratch++);
-	w.outputBit(n1, n2)
-	// write(*scratch++);
-	w.outputBit(n2, n3)
-	// write(*scratch++);
-	w.outputBit(n3, n4)
-	// write(*scratch++);
-	w.outputBit(n4, n5)
-	// write(*scratch++);
-	w.outputBit(n5, n6)
-	// write(*scratch++);
-	w.outputBit(n6, n7)
-	// write(*scratch++);
-	w.outputBit(n7, n8)
-	// write(*scratch++);
-	w.outputBit(n8, end)
+	for i := 8 - 1; i >= 0; i-- {
+		// write(*(ptr + i));
+		w.outputBit(start, w.offset(varDataPtr, i), n1[i])
+		start = n1[i]
+	}
 }
 
-func (w *Writer) outputBit(start, end uint64) {
+func (w *Writer) outputBit(start uint64, addr string, end uint64) {
 	n1 := w.reserve()
 	n2 := w.reserve()
-	n3 := w.reserve()
 
-	// jump = *scratch;
-	w.jump(start, deref+varScratchPtr, n1, n2)
+	// jump = *addr;
+	w.jump(start, deref+addr, n1, n2)
 	// if (jump == 0) write(0);
-	w.line(n1, "PRINT ZERO", n3, n3)
+	w.line(n1, "PRINT ZERO", end, end)
 	// else write(1);
-	w.line(n2, "PRINT ONE", n3, n3)
-	// scratch++;
-	w.assign(n3, varScratchPtr, w.offset(varScratchPtr, 1), end)
+	w.line(n2, "PRINT ONE", end, end)
 }
 
 func (w *Writer) input(start, end uint64) {
-	n1 := w.reserve()
-	n2 := w.reserve()
-	n3 := w.reserve()
-	n4 := w.reserve()
-	n5 := w.reserve()
-	n6 := w.reserve()
-	n7 := w.reserve()
-	n8 := w.reserve()
+	var n1 [8]uint64
+	for i := range n1[1:] {
+		n1[i+1] = w.reserve()
+	}
+	n1[0] = end
 
-	// scratch = ptr;
-	w.assign(start, varScratchPtr, varDataPtr, n1)
-	// *scratch++ = read();
-	w.inputBit(n1, n2)
-	// *scratch++ = read();
-	w.inputBit(n2, n3)
-	// *scratch++ = read();
-	w.inputBit(n3, n4)
-	// *scratch++ = read();
-	w.inputBit(n4, n5)
-	// *scratch++ = read();
-	w.inputBit(n5, n6)
-	// *scratch++ = read();
-	w.inputBit(n6, n7)
-	// *scratch++ = read();
-	w.inputBit(n7, n8)
-	// *scratch++ = read();
-	w.inputBit(n8, end)
+	for i := 8 - 1; i >= 0; i-- {
+		// *(ptr + i) = read();
+		w.inputBit(start, w.offset(varDataPtr, i), n1[i])
+		start = n1[i]
+	}
 }
 
-func (w *Writer) inputBit(start, end uint64) {
+func (w *Writer) inputBit(start uint64, addr string, end uint64) {
 	n1 := w.reserve()
-	n2 := w.reserve()
 
 	// jump = read();
 	w.line(start, "READ", n1, n1)
-	// *scratch = jump;
-	w.assign(n1, deref+varScratchPtr, "THE JUMP REGISTER", n2)
-	// scratch++;
-	w.assign(n2, varScratchPtr, w.offset(varScratchPtr, 1), end)
+	// *addr = jump;
+	w.assign(n1, deref+addr, "THE JUMP REGISTER", end)
 }
 
 func (w *Writer) loop(start uint64, list []Command, end uint64) {
@@ -473,7 +435,7 @@ func (w *Writer) offset(ptr string, n int) string {
 func (w *Writer) increment(start uint64, bits int, end, overflow uint64) {
 	next := start
 
-	for i := bits - 1; i >= 0; i-- {
+	for i := 0; i < bits; i++ {
 		current := deref + w.offset(varScratchPtr, i)
 
 		n1 := w.reserve()
@@ -484,7 +446,7 @@ func (w *Writer) increment(start uint64, bits int, end, overflow uint64) {
 		// n1: *(scratch + i) = 1; goto end;
 		w.assign(n1, current, "ONE", end)
 
-		if i == 0 {
+		if i == bits-1 {
 			next = overflow
 		} else {
 			next = w.reserve()
@@ -497,7 +459,7 @@ func (w *Writer) increment(start uint64, bits int, end, overflow uint64) {
 func (w *Writer) decrement(start uint64, bits int, end, underflow uint64) {
 	next := start
 
-	for i := bits - 1; i >= 0; i-- {
+	for i := 0; i < bits; i++ {
 		current := deref + w.offset(varScratchPtr, i)
 
 		n1 := w.reserve()
@@ -506,7 +468,7 @@ func (w *Writer) decrement(start uint64, bits int, end, underflow uint64) {
 		// if (*(scratch + i) == 0) goto n1; else goto n2;
 		w.jump(next, current, n1, n2)
 
-		if i == 0 {
+		if i == bits-1 {
 			next = underflow
 		} else {
 			next = w.reserve()
