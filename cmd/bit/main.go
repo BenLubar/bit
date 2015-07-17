@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -9,8 +10,13 @@ import (
 	"github.com/BenLubar/bit"
 )
 
+var flagNoOpt = flag.Bool("no-opt", false, "Don't build intrinsic versions of common patterns")
+
 func main() {
-	if len(os.Args) != 2 {
+	flag.Usage = usage
+	flag.Parse()
+
+	if flag.NArg() != 1 {
 		usage()
 	}
 
@@ -52,7 +58,7 @@ func handle(err error) {
 }
 
 func parse() bit.Program {
-	f, err := os.Open(os.Args[1])
+	f, err := os.Open(flag.Arg(0))
 	if err != nil {
 		handle(err)
 		panic("unreachable")
@@ -70,11 +76,16 @@ func parse() bit.Program {
 		panic("unreachable")
 	}
 
+	if !*flagNoOpt {
+		prog.Optimize()
+	}
+
 	return prog
 }
 
 func usage() {
 	fmt.Fprintf(os.Stderr, "Usage of %q:\n", os.Args[0])
-	fmt.Fprintf(os.Stderr, "%s filename.bit\n", os.Args[0])
+	fmt.Fprintf(os.Stderr, "%s [options] filename.bit\n", os.Args[0])
+	flag.PrintDefaults()
 	os.Exit(2)
 }

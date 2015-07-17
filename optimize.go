@@ -24,6 +24,10 @@ func (p Program) bake() (Program, error) {
 		}
 	}
 
+	return p, nil
+}
+
+func (p Program) Optimize() {
 	// intrinsic x++ and x--
 	for _, l := range p {
 		as, ok := l.stmt.(AssignStmt)
@@ -113,8 +117,6 @@ intrinsicPrint:
 			g: donepc,
 		}
 	}
-
-	return p, nil
 }
 
 func (p Program) out(l *line, jr bool) *line {
