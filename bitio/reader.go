@@ -62,3 +62,22 @@ func NewReader(br io.ByteReader) BitScanner {
 		unread: true,
 	}
 }
+
+// ReadByte reads a byte from r, most significant bit first. If r implements
+// io.ByteReader, r.ReadByte will be called instead.
+func ReadByte(r BitReader) (byte, error) {
+	if br, ok := r.(io.ByteReader); ok {
+		return br.ReadByte()
+	}
+
+	var b byte
+	for i := 0; i < 8; i++ {
+		b <<= 1
+		if ok, err := r.ReadBit(); err != nil {
+			return 0, err
+		} else if ok {
+			b |= 1
+		}
+	}
+	return b, nil
+}

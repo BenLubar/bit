@@ -57,6 +57,35 @@ func (p Program) bake() (Program, error) {
 		}
 	}
 
+	// intrinsic print(byte)
+intrinsicPrint:
+	for _, l := range p {
+		var b byte
+		ll := l
+		var g *uint64
+
+		for i := uint(8); i > 0; i-- {
+			if ll == nil || ll.line0 != ll.line1 {
+				continue intrinsicPrint
+			}
+			ps, ok := ll.stmt.(PrintStmt)
+			if !ok {
+				continue intrinsicPrint
+			}
+			if bool(ps) {
+				b |= 1 << (i - 1)
+			}
+			g = ll.goto0
+			ll = ll.line0
+		}
+
+		l.opt = optPrintByteConst{
+			b: b,
+			l: ll,
+			g: g,
+		}
+	}
+
 	return p, nil
 }
 
@@ -195,4 +224,14 @@ func (opt optIncDec) run(in bitio.BitReader, out bitio.BitWriter, ctx *context) 
 	}
 
 	return
+}
+
+type optPrintByteConst struct {
+	b byte
+	g *uint64
+	l *line
+}
+
+func (opt optPrintByteConst) run(in bitio.BitReader, out bitio.BitWriter, ctx *context) (g *uint64, l *line, err error) {
+	return opt.g, opt.l, bitio.WriteByte(out, opt.b)
 }

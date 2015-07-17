@@ -65,3 +65,18 @@ func NewWriter(bw io.ByteWriter) BitWriter {
 		bw: bw,
 	}
 }
+
+// WriteByte writes c to w, most significant bit first. If w implements
+// io.ByteWriter, w.WriteByte will be called instead.
+func WriteByte(w BitWriter, c byte) error {
+	if bw, ok := w.(io.ByteWriter); ok {
+		return bw.WriteByte(c)
+	}
+
+	for i := 0; i < 8; i++ {
+		if err := w.WriteBit(c>>uint(7-i)&1 == 1); err != nil {
+			return err
+		}
+	}
+	return nil
+}
