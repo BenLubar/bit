@@ -313,5 +313,9 @@ func (opt optPrintByte) run(in bitio.BitReader, out bitio.BitWriter, ctx *contex
 	ctx.n0.Rsh(ctx.memory, uint(opt.p))
 	ctx.n0.And(&ctx.n0, byteMask)
 
-	return opt.g, opt.l, bitio.WriteByte(out, byte(ctx.n0.Uint64()))
+	b := byte(ctx.n0.Uint64())
+
+	ctx.jump = b&1 == 1
+
+	return opt.g, opt.l, bitio.WriteByte(out, b)
 }
