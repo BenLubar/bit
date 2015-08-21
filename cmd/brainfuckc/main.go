@@ -429,7 +429,7 @@ func (w *Writer) loop(start uint64, list []Command, end uint64) {
 }
 
 func (w *Writer) offset(ptr string, n int) string {
-	return strings.Repeat("OPEN PARENTHESIS THE ADDRESS OF OPEN PARENTHESIS THE VALUE BEYOND ", n) + "OPEN PARENTHESIS " + ptr + strings.Repeat(" CLOSE PARENTHESIS", 2*n+1)
+	return strings.Repeat("THE ADDRESS OF THE VALUE BEYOND ", n) + ptr
 }
 
 func (w *Writer) increment(start uint64, bits int, end, overflow uint64) {
