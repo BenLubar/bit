@@ -30,7 +30,7 @@ import "fmt"
 %type <program>    program
 %type <line>       line goto
 %type <stmt>       stmt
-%type <expr>       variable expr expr1 expr2 expr3 expr4
+%type <expr>       expr expr1 expr2
 %type <number>     bit_constant
 %type <numberbits> number
 
@@ -103,13 +103,6 @@ goto
 	}
 ;
 
-variable
-: VARIABLE number
-	{
-		$$ = VarExpr($2.number)
-	}
-;
-
 expr
 : expr NAND expr1
 	{
@@ -126,6 +119,14 @@ expr1
 	{
 		$$ = AddrExpr{$4}
 	}
+| THE VALUE BEYOND expr1
+	{
+		$$ = NextExpr{$4, 0}
+	}
+| THE VALUE AT expr1
+	{
+		$$ = StarExpr{$4}
+	}
 | expr2
 	{
 		$$ = $1
@@ -133,35 +134,13 @@ expr1
 ;
 
 expr2
-: THE VALUE BEYOND expr2
-	{
-		$$ = NextExpr{$4, 0}
-	}
-| expr3
-	{
-		$$ = $1
-	}
-;
-
-expr3
-: THE VALUE AT expr3
-	{
-		$$ = StarExpr{$4}
-	}
-| expr4
-	{
-		$$ = $1
-	}
-;
-
-expr4
 : OPEN PARENTHESIS expr CLOSE PARENTHESIS
 	{
 		$$ = $3
 	}
-| variable
+| VARIABLE number
 	{
-		$$ = $1
+		$$ = VarExpr($2.number)
 	}
 | bit_constant
 	{

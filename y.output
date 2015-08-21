@@ -44,9 +44,9 @@ state 4
 	goto  goto 5
 
 state 5
-	line:  line goto.    (26)
+	line:  line goto.    (23)
 
-	.  reduce 26 (src line 205)
+	.  reduce 23 (src line 184)
 
 
 state 6
@@ -130,52 +130,49 @@ state 15
 	ZERO  shift 10
 	ONE  shift 11
 	THE  shift 19
-	VARIABLE  shift 29
-	OPEN  shift 26
+	VARIABLE  shift 25
+	OPEN  shift 24
 	PRINT  shift 20
 	READ  shift 21
 	.  error
 
 	stmt  goto 17
-	variable  goto 27
 	expr  goto 18
 	expr1  goto 22
 	expr2  goto 23
-	expr3  goto 24
-	expr4  goto 25
-	bit_constant  goto 28
+	bit_constant  goto 26
 
 state 16
 	goto:  GOTO number IF THE.JUMP REGISTER IS bit_constant 
 
-	JUMP  shift 30
+	JUMP  shift 27
 	.  error
 
 
 state 17
-	line:  LINE NUMBER number CODE stmt.    (25)
+	line:  LINE NUMBER number CODE stmt.    (22)
 
-	.  reduce 25 (src line 199)
+	.  reduce 22 (src line 178)
 
 
 state 18
 	expr:  expr.NAND expr1 
 	stmt:  expr.EQUALS expr 
 
-	NAND  shift 31
-	EQUALS  shift 32
+	NAND  shift 28
+	EQUALS  shift 29
 	.  error
 
 
 state 19
 	expr1:  THE.ADDRESS OF expr1 
-	expr2:  THE.VALUE BEYOND expr2 
-	expr3:  THE.VALUE AT expr3 
+	expr1:  THE.VALUE BEYOND expr1 
+	expr1:  THE.VALUE AT expr1 
 	stmt:  THE.JUMP REGISTER EQUALS expr 
 
-	JUMP  shift 35
-	VALUE  shift 34
-	ADDRESS  shift 33
+	JUMP  shift 32
+	VALUE  shift 31
+	ADDRESS  shift 30
 	.  error
 
 
@@ -186,364 +183,306 @@ state 20
 	ONE  shift 11
 	.  error
 
-	bit_constant  goto 36
+	bit_constant  goto 33
 
 state 21
-	stmt:  READ.    (24)
+	stmt:  READ.    (21)
 
-	.  reduce 24 (src line 193)
+	.  reduce 21 (src line 172)
 
 
 state 22
-	expr:  expr1.    (11)
+	expr:  expr1.    (10)
 
-	.  reduce 11 (src line 118)
+	.  reduce 10 (src line 111)
 
 
 state 23
-	expr1:  expr2.    (13)
+	expr1:  expr2.    (14)
 
-	.  reduce 13 (src line 129)
+	.  reduce 14 (src line 130)
 
 
 state 24
-	expr2:  expr3.    (15)
+	expr2:  OPEN.PARENTHESIS expr CLOSE PARENTHESIS 
 
-	.  reduce 15 (src line 140)
-
-
-state 25
-	expr3:  expr4.    (17)
-
-	.  reduce 17 (src line 151)
-
-
-state 26
-	expr4:  OPEN.PARENTHESIS expr CLOSE PARENTHESIS 
-
-	PARENTHESIS  shift 37
+	PARENTHESIS  shift 34
 	.  error
 
 
-state 27
-	expr4:  variable.    (19)
-
-	.  reduce 19 (src line 162)
-
-
-state 28
-	expr4:  bit_constant.    (20)
-
-	.  reduce 20 (src line 166)
-
-
-state 29
-	variable:  VARIABLE.number 
+state 25
+	expr2:  VARIABLE.number 
 
 	ZERO  shift 10
 	ONE  shift 11
 	.  error
 
 	bit_constant  goto 9
-	number  goto 38
+	number  goto 35
 
-state 30
+state 26
+	expr2:  bit_constant.    (17)
+
+	.  reduce 17 (src line 145)
+
+
+state 27
 	goto:  GOTO number IF THE JUMP.REGISTER IS bit_constant 
 
-	REGISTER  shift 39
+	REGISTER  shift 36
 	.  error
 
 
-state 31
+state 28
 	expr:  expr NAND.expr1 
 
 	ZERO  shift 10
 	ONE  shift 11
-	THE  shift 41
-	VARIABLE  shift 29
-	OPEN  shift 26
+	THE  shift 38
+	VARIABLE  shift 25
+	OPEN  shift 24
 	.  error
 
-	variable  goto 27
-	expr1  goto 40
+	expr1  goto 37
 	expr2  goto 23
-	expr3  goto 24
-	expr4  goto 25
-	bit_constant  goto 28
+	bit_constant  goto 26
 
-state 32
+state 29
 	stmt:  expr EQUALS.expr 
 
 	ZERO  shift 10
 	ONE  shift 11
-	THE  shift 41
-	VARIABLE  shift 29
-	OPEN  shift 26
+	THE  shift 38
+	VARIABLE  shift 25
+	OPEN  shift 24
 	.  error
 
-	variable  goto 27
-	expr  goto 42
+	expr  goto 39
 	expr1  goto 22
 	expr2  goto 23
-	expr3  goto 24
-	expr4  goto 25
-	bit_constant  goto 28
+	bit_constant  goto 26
 
-state 33
+state 30
 	expr1:  THE ADDRESS.OF expr1 
 
-	OF  shift 43
+	OF  shift 40
 	.  error
+
+
+state 31
+	expr1:  THE VALUE.BEYOND expr1 
+	expr1:  THE VALUE.AT expr1 
+
+	AT  shift 42
+	BEYOND  shift 41
+	.  error
+
+
+state 32
+	stmt:  THE JUMP.REGISTER EQUALS expr 
+
+	REGISTER  shift 43
+	.  error
+
+
+state 33
+	stmt:  PRINT bit_constant.    (20)
+
+	.  reduce 20 (src line 164)
 
 
 state 34
-	expr2:  THE VALUE.BEYOND expr2 
-	expr3:  THE VALUE.AT expr3 
-
-	AT  shift 45
-	BEYOND  shift 44
-	.  error
-
-
-state 35
-	stmt:  THE JUMP.REGISTER EQUALS expr 
-
-	REGISTER  shift 46
-	.  error
-
-
-state 36
-	stmt:  PRINT bit_constant.    (23)
-
-	.  reduce 23 (src line 185)
-
-
-state 37
-	expr4:  OPEN PARENTHESIS.expr CLOSE PARENTHESIS 
+	expr2:  OPEN PARENTHESIS.expr CLOSE PARENTHESIS 
 
 	ZERO  shift 10
 	ONE  shift 11
-	THE  shift 41
-	VARIABLE  shift 29
-	OPEN  shift 26
+	THE  shift 38
+	VARIABLE  shift 25
+	OPEN  shift 24
 	.  error
 
-	variable  goto 27
-	expr  goto 47
+	expr  goto 44
 	expr1  goto 22
 	expr2  goto 23
-	expr3  goto 24
-	expr4  goto 25
-	bit_constant  goto 28
+	bit_constant  goto 26
 
-state 38
+state 35
 	number:  number.bit_constant 
-	variable:  VARIABLE number.    (9)
+	expr2:  VARIABLE number.    (16)
 
 	ZERO  shift 10
 	ONE  shift 11
-	.  reduce 9 (src line 106)
+	.  reduce 16 (src line 141)
 
 	bit_constant  goto 13
 
-state 39
+state 36
 	goto:  GOTO number IF THE JUMP REGISTER.IS bit_constant 
 
-	IS  shift 48
+	IS  shift 45
 	.  error
+
+
+state 37
+	expr:  expr NAND expr1.    (9)
+
+	.  reduce 9 (src line 106)
+
+
+state 38
+	expr1:  THE.ADDRESS OF expr1 
+	expr1:  THE.VALUE BEYOND expr1 
+	expr1:  THE.VALUE AT expr1 
+
+	VALUE  shift 31
+	ADDRESS  shift 30
+	.  error
+
+
+state 39
+	expr:  expr.NAND expr1 
+	stmt:  expr EQUALS expr.    (18)
+
+	NAND  shift 28
+	.  reduce 18 (src line 155)
 
 
 state 40
-	expr:  expr NAND expr1.    (10)
-
-	.  reduce 10 (src line 113)
-
-
-state 41
-	expr1:  THE.ADDRESS OF expr1 
-	expr2:  THE.VALUE BEYOND expr2 
-	expr3:  THE.VALUE AT expr3 
-
-	VALUE  shift 34
-	ADDRESS  shift 33
-	.  error
-
-
-state 42
-	expr:  expr.NAND expr1 
-	stmt:  expr EQUALS expr.    (21)
-
-	NAND  shift 31
-	.  reduce 21 (src line 176)
-
-
-state 43
 	expr1:  THE ADDRESS OF.expr1 
 
 	ZERO  shift 10
 	ONE  shift 11
-	THE  shift 41
-	VARIABLE  shift 29
-	OPEN  shift 26
+	THE  shift 38
+	VARIABLE  shift 25
+	OPEN  shift 24
 	.  error
 
-	variable  goto 27
-	expr1  goto 49
+	expr1  goto 46
 	expr2  goto 23
-	expr3  goto 24
-	expr4  goto 25
-	bit_constant  goto 28
+	bit_constant  goto 26
 
-state 44
-	expr2:  THE VALUE BEYOND.expr2 
+state 41
+	expr1:  THE VALUE BEYOND.expr1 
 
 	ZERO  shift 10
 	ONE  shift 11
-	THE  shift 51
-	VARIABLE  shift 29
-	OPEN  shift 26
+	THE  shift 38
+	VARIABLE  shift 25
+	OPEN  shift 24
 	.  error
 
-	variable  goto 27
-	expr2  goto 50
-	expr3  goto 24
-	expr4  goto 25
-	bit_constant  goto 28
+	expr1  goto 47
+	expr2  goto 23
+	bit_constant  goto 26
 
-state 45
-	expr3:  THE VALUE AT.expr3 
+state 42
+	expr1:  THE VALUE AT.expr1 
 
 	ZERO  shift 10
 	ONE  shift 11
-	THE  shift 53
-	VARIABLE  shift 29
-	OPEN  shift 26
+	THE  shift 38
+	VARIABLE  shift 25
+	OPEN  shift 24
 	.  error
 
-	variable  goto 27
-	expr3  goto 52
-	expr4  goto 25
-	bit_constant  goto 28
+	expr1  goto 48
+	expr2  goto 23
+	bit_constant  goto 26
 
-state 46
+state 43
 	stmt:  THE JUMP REGISTER.EQUALS expr 
 
-	EQUALS  shift 54
+	EQUALS  shift 49
 	.  error
 
 
-state 47
+state 44
 	expr:  expr.NAND expr1 
-	expr4:  OPEN PARENTHESIS expr.CLOSE PARENTHESIS 
+	expr2:  OPEN PARENTHESIS expr.CLOSE PARENTHESIS 
 
-	NAND  shift 31
-	CLOSE  shift 55
+	NAND  shift 28
+	CLOSE  shift 50
 	.  error
 
 
-state 48
+state 45
 	goto:  GOTO number IF THE JUMP REGISTER IS.bit_constant 
 
 	ZERO  shift 10
 	ONE  shift 11
 	.  error
 
-	bit_constant  goto 56
+	bit_constant  goto 51
+
+state 46
+	expr1:  THE ADDRESS OF expr1.    (11)
+
+	.  reduce 11 (src line 117)
+
+
+state 47
+	expr1:  THE VALUE BEYOND expr1.    (12)
+
+	.  reduce 12 (src line 122)
+
+
+state 48
+	expr1:  THE VALUE AT expr1.    (13)
+
+	.  reduce 13 (src line 126)
+
 
 state 49
-	expr1:  THE ADDRESS OF expr1.    (12)
-
-	.  reduce 12 (src line 124)
-
-
-state 50
-	expr2:  THE VALUE BEYOND expr2.    (14)
-
-	.  reduce 14 (src line 135)
-
-
-state 51
-	expr2:  THE.VALUE BEYOND expr2 
-	expr3:  THE.VALUE AT expr3 
-
-	VALUE  shift 34
-	.  error
-
-
-state 52
-	expr3:  THE VALUE AT expr3.    (16)
-
-	.  reduce 16 (src line 146)
-
-
-state 53
-	expr3:  THE.VALUE AT expr3 
-
-	VALUE  shift 57
-	.  error
-
-
-state 54
 	stmt:  THE JUMP REGISTER EQUALS.expr 
 
 	ZERO  shift 10
 	ONE  shift 11
-	THE  shift 41
-	VARIABLE  shift 29
-	OPEN  shift 26
+	THE  shift 38
+	VARIABLE  shift 25
+	OPEN  shift 24
 	.  error
 
-	variable  goto 27
-	expr  goto 58
+	expr  goto 52
 	expr1  goto 22
 	expr2  goto 23
-	expr3  goto 24
-	expr4  goto 25
-	bit_constant  goto 28
+	bit_constant  goto 26
 
-state 55
-	expr4:  OPEN PARENTHESIS expr CLOSE.PARENTHESIS 
+state 50
+	expr2:  OPEN PARENTHESIS expr CLOSE.PARENTHESIS 
 
-	PARENTHESIS  shift 59
+	PARENTHESIS  shift 53
 	.  error
 
 
-state 56
+state 51
 	goto:  GOTO number IF THE JUMP REGISTER IS bit_constant.    (8)
 
 	.  reduce 8 (src line 92)
 
 
-state 57
-	expr3:  THE VALUE.AT expr3 
-
-	AT  shift 45
-	.  error
-
-
-state 58
+state 52
 	expr:  expr.NAND expr1 
-	stmt:  THE JUMP REGISTER EQUALS expr.    (22)
+	stmt:  THE JUMP REGISTER EQUALS expr.    (19)
 
-	NAND  shift 31
-	.  reduce 22 (src line 181)
-
-
-state 59
-	expr4:  OPEN PARENTHESIS expr CLOSE PARENTHESIS.    (18)
-
-	.  reduce 18 (src line 157)
+	NAND  shift 28
+	.  reduce 19 (src line 160)
 
 
-27 terminals, 13 nonterminals
-27 grammar rules, 60/2000 states
+state 53
+	expr2:  OPEN PARENTHESIS expr CLOSE PARENTHESIS.    (15)
+
+	.  reduce 15 (src line 136)
+
+
+27 terminals, 10 nonterminals
+24 grammar rules, 54/2000 states
 0 shift/reduce, 0 reduce/reduce conflicts reported
-62 working sets used
-memory: parser 68/30000
-32 extra closures
-90 shift entries, 1 exceptions
-30 goto entries
-36 entries saved by goto default
-Optimizer space used: output 87/30000
-87 table entries, 0 zero
-maximum spread: 27, maximum offset: 54
+59 working sets used
+memory: parser 41/30000
+26 extra closures
+87 shift entries, 1 exceptions
+27 goto entries
+18 entries saved by goto default
+Optimizer space used: output 71/30000
+71 table entries, 0 zero
+maximum spread: 27, maximum offset: 49
