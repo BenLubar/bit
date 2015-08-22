@@ -6,7 +6,8 @@ import (
 	"io"
 	"log"
 	"os"
-	"strings"
+
+	"github.com/BenLubar/bit/bitgen"
 )
 
 // BF represents a single Brainfuck token.
@@ -155,124 +156,41 @@ func parse(tokens <-chan BF, err <-chan error, depth int) ([]Command, error) {
 	return list, e
 }
 
-const (
-	// variable zero - pointer, data pointer
-	// variable one - pointer, scratch
-	// variable one zero...one zero zero zero one zero - bits, data index
-	// variable one zero zero zero one zero...one zero zero zero zero one zero - bits, scratch
-	// variable one zero zero zero zero one zero - bit, first bit of data
-	// variable one zero zero one zero one zero is the first bit of the second cell, and so on.
-
-	varDataPtr        = "VARIABLE ZERO"
-	varScratchPtr     = "VARIABLE ONE"
-	varDataIndexStart = "VARIABLE ONE ZERO"
-	varScratch64Start = "VARIABLE ONE ZERO ZERO ZERO ZERO ONE ZERO"
-	varUserStart      = "VARIABLE ONE ZERO ZERO ZERO ZERO ZERO ONE ZERO"
-
-	addr  = "THE ADDRESS OF "
-	deref = "THE VALUE AT "
-)
-
 type Writer struct {
-	w     *bufio.Writer
-	n     uint64
-	taken map[uint64]bool
+	*bitgen.Writer
+	DataPtr    bitgen.Variable
+	ScratchPtr bitgen.Variable
+	DataIndex  bitgen.Integer
+	Scratch64  bitgen.Integer
+	UserStart  bitgen.Variable
 }
 
-func (w *Writer) Close() error {
-	return w.w.Flush()
-}
+func (w *Writer) Command(n bitgen.Line, cmd Command, done bitgen.Line) {
+	cell := bitgen.Integer{bitgen.ValueAt{w.DataPtr}, 8}
 
-func (w *Writer) reserve() uint64 {
-	n := w.n
-	w.n++
-	return n
-}
-
-func (w *Writer) number(n uint64) {
-	if n == 0 {
-		w.w.WriteString(" ZERO")
-	} else {
-		w.numberBits(n)
-	}
-}
-
-func (w *Writer) numberBits(n uint64) {
-	if n == 0 {
-		return
-	}
-
-	w.numberBits(n >> 1)
-	if n&1 == 0 {
-		w.w.WriteString(" ZERO")
-	} else {
-		w.w.WriteString(" ONE")
-	}
-}
-
-func (w *Writer) line(n uint64, line string, goto0, goto1 uint64) {
-	if w.taken[n] {
-		panic("INTERNAL COMPILER ERROR: DUPLICATE LINE NUMBER")
-	}
-	w.taken[n] = true
-	w.w.WriteString("LINE NUMBER")
-	w.number(n)
-	w.w.WriteString(" CODE ")
-	w.w.WriteString(line)
-
-	// XXX: we don't allow jumping to line zero.
-	if goto0 == goto1 {
-		if goto0 != 0 {
-			w.w.WriteString(" GOTO")
-			w.number(goto0)
-		}
-	} else {
-		if goto0 != 0 {
-			w.w.WriteString(" GOTO")
-			w.number(goto0)
-			w.w.WriteString(" IF THE JUMP REGISTER IS ZERO")
-		}
-		if goto1 != 0 {
-			w.w.WriteString(" GOTO")
-			w.number(goto1)
-			w.w.WriteString(" IF THE JUMP REGISTER IS ONE")
-		}
-	}
-	w.w.WriteString("\n")
-}
-
-func (w *Writer) command(n uint64, cmd Command, done uint64) {
 	switch cmd.Token {
 	case Right:
-		w.right(n, done)
+		w.Right(n, done)
 	case Left:
-		w.left(n, done)
+		w.Left(n, done)
 	case Increment:
-		next := w.reserve()
-		// scratch = ptr;
-		w.assign(n, varScratchPtr, varDataPtr, next)
-		// *scratch++;
-		w.increment(next, 8, done, done)
+		w.Increment(n, cell, done, done)
 	case Decrement:
-		next := w.reserve()
-		// scratch = ptr;
-		w.assign(n, varScratchPtr, varDataPtr, next)
-		// *scratch--;
-		w.decrement(next, 8, done, done)
+		w.Decrement(n, cell, done, done)
 	case Output:
-		w.output(n, done)
+		w.Output(n, cell, done)
 	case Input:
-		w.input(n, done)
+		w.Input(n, cell, done)
 	case Begin:
-		w.loop(n, cmd.Loop, done)
+		w.Loop(n, cell, cmd.Loop, done)
 	}
 }
 
-func (w *Writer) commands(list []Command, done uint64) uint64 {
+func (w *Writer) Commands(list []Command, done bitgen.Line) bitgen.Line {
 	for i := len(list) - 1; i >= 0; i-- {
-		n := w.reserve()
+		n := w.ReserveLine()
 
-		w.command(n, list[i], done)
+		w.Command(n, list[i], done)
 
 		done = n
 	}
@@ -281,211 +199,52 @@ func (w *Writer) commands(list []Command, done uint64) uint64 {
 }
 
 func (w *Writer) Program(list []Command) {
-	var first uint64
+	var first bitgen.Line
 	if len(list) != 0 {
-		first = w.reserve()
+		first = w.ReserveLine()
 	}
 
-	// char *ptr = &array[0];
-	w.assign(0, varDataPtr, addr+varUserStart, first)
+	w.Assign(0, w.DataPtr, bitgen.AddressOf{w.UserStart}, first)
 
-	// // the rest of the program
 	if len(list) != 0 {
-		second := w.commands(list[1:], 0)
-		w.command(first, list[0], second)
+		second := w.Commands(list[1:], 0)
+		w.Command(first, list[0], second)
 	}
 }
 
-func (w *Writer) jump(start uint64, value string, goto0, goto1 uint64) {
-	// if (!value) goto goto0; else goto goto1;
-	w.line(start, "THE JUMP REGISTER EQUALS "+value, goto0, goto1)
+func (w *Writer) Right(start, end bitgen.Line) {
+	n1 := w.ReserveLine()
+
+	w.Assign(start, w.DataPtr, bitgen.Offset{w.DataPtr, 8}, n1)
+	w.Increment(n1, w.DataIndex, end, 0)
 }
 
-func (w *Writer) assign(start uint64, left, right string, end uint64) {
-	// left = right;
-	w.line(start, left+" EQUALS "+right, end, end)
+func (w *Writer) Left(start, end bitgen.Line) {
+	n1 := w.ReserveLine()
+	n2 := w.ReserveLine()
+	n3 := w.ReserveLine()
+	n4 := w.ReserveLine()
+
+	w.Decrement(start, w.DataIndex, n1, 0)
+	w.Copy(n1, w.Scratch64, w.DataIndex, n2)
+	w.Assign(n2, w.DataPtr, bitgen.AddressOf{w.UserStart}, n3)
+	w.Decrement(n3, w.Scratch64, n4, end)
+	w.Assign(n4, w.DataPtr, bitgen.Offset{w.DataPtr, 8}, n3)
 }
 
-func (w *Writer) right(start, end uint64) {
-	n1 := w.reserve()
-	n2 := w.reserve()
-
-	// ptr++;
-	w.assign(start, varDataPtr, w.offset(varDataPtr, 8), n1)
-	// scratch = &index;
-	w.assign(n1, varScratchPtr, addr+varDataIndexStart, n2)
-	// *scratch++;
-	w.increment(n2, 64, end, 0)
+func (w *Writer) Loop(start bitgen.Line, value bitgen.Integer, list []Command, end bitgen.Line) {
+	inner := w.Commands(list, start)
+	w.Cmp(start, value, 0, end, inner)
 }
 
-func (w *Writer) left(start, end uint64) {
-	n1 := w.reserve()
-	n2 := w.reserve()
-	var n3 [64]uint64
-	for i := range n3 {
-		n3[i] = w.reserve()
-	}
-	n4 := w.reserve()
-	n5 := w.reserve()
-	n6 := w.reserve()
-
-	// scratch = &index;
-	w.assign(start, varScratchPtr, addr+varDataIndexStart, n1)
-
-	// *scratch--;
-	w.decrement(n1, 64, n2, 0)
-
-	// scratch64 = index;
-	for i := range n3 {
-		w.assign(n2, deref+w.offset(addr+varScratch64Start, i), deref+w.offset(addr+varDataIndexStart, i), n3[i])
-		n2 = n3[i]
-	}
-
-	// ptr = &array[0];
-	w.assign(n2, varDataPtr, addr+varUserStart, n4)
-	// scratch = &scratch64;
-	w.assign(n4, varScratchPtr, addr+varScratch64Start, n5)
-	// while (*scratch--)
-	w.decrement(n5, 64, n6, end)
-	// ptr++;
-	w.assign(n6, varDataPtr, w.offset(varDataPtr, 8), n5)
-}
-
-func (w *Writer) output(start, end uint64) {
-	var n1 [8]uint64
-	for i := range n1[1:] {
-		n1[i+1] = w.reserve()
-	}
-	n1[0] = end
-
-	for i := 8 - 1; i >= 0; i-- {
-		// write(*(ptr + i));
-		w.outputBit(start, w.offset(varDataPtr, i), n1[i])
-		start = n1[i]
-	}
-}
-
-func (w *Writer) outputBit(start uint64, addr string, end uint64) {
-	n1 := w.reserve()
-	n2 := w.reserve()
-
-	// jump = *addr;
-	w.jump(start, deref+addr, n1, n2)
-	// if (jump == 0) write(0);
-	w.line(n1, "PRINT ZERO", end, end)
-	// else write(1);
-	w.line(n2, "PRINT ONE", end, end)
-}
-
-func (w *Writer) input(start, end uint64) {
-	var n1 [8]uint64
-	for i := range n1[1:] {
-		n1[i+1] = w.reserve()
-	}
-	n1[0] = end
-
-	for i := 8 - 1; i >= 0; i-- {
-		// *(ptr + i) = read();
-		w.inputBit(start, w.offset(varDataPtr, i), n1[i])
-		start = n1[i]
-	}
-}
-
-func (w *Writer) inputBit(start uint64, addr string, end uint64) {
-	n1 := w.reserve()
-
-	// jump = read();
-	w.line(start, "READ", n1, n1)
-	// *addr = jump;
-	w.assign(n1, deref+addr, "THE JUMP REGISTER", end)
-}
-
-func (w *Writer) loop(start uint64, list []Command, end uint64) {
-	inner := w.commands(list, start)
-	n1 := w.reserve()
-	n2 := w.reserve()
-	n3 := w.reserve()
-	n4 := w.reserve()
-	n5 := w.reserve()
-	n6 := w.reserve()
-	n7 := w.reserve()
-
-	// if (*ptr != 0) goto inner;
-	w.jump(start, deref+varDataPtr, n1, inner)
-	// if (*(ptr + 1) != 0) goto inner;
-	w.jump(n1, deref+w.offset(varDataPtr, 1), n2, inner)
-	// if (*(ptr + 2) != 0) goto inner;
-	w.jump(n2, deref+w.offset(varDataPtr, 2), n3, inner)
-	// if (*(ptr + 3) != 0) goto inner;
-	w.jump(n3, deref+w.offset(varDataPtr, 3), n4, inner)
-	// if (*(ptr + 4) != 0) goto inner;
-	w.jump(n4, deref+w.offset(varDataPtr, 4), n5, inner)
-	// if (*(ptr + 5) != 0) goto inner;
-	w.jump(n5, deref+w.offset(varDataPtr, 5), n6, inner)
-	// if (*(ptr + 6) != 0) goto inner;
-	w.jump(n6, deref+w.offset(varDataPtr, 6), n7, inner)
-	// if (*(ptr + 7) != 0) goto inner;
-	w.jump(n7, deref+w.offset(varDataPtr, 7), end, inner)
-}
-
-func (w *Writer) offset(ptr string, n int) string {
-	return strings.Repeat("THE ADDRESS OF THE VALUE BEYOND ", n) + ptr
-}
-
-func (w *Writer) increment(start uint64, bits int, end, overflow uint64) {
-	next := start
-
-	for i := 0; i < bits; i++ {
-		current := deref + w.offset(varScratchPtr, i)
-
-		n1 := w.reserve()
-		n2 := w.reserve()
-
-		// if (*(scratch + i) == 0) goto n1; else goto n2;
-		w.jump(next, current, n1, n2)
-		// n1: *(scratch + i) = 1; goto end;
-		w.assign(n1, current, "ONE", end)
-
-		if i == bits-1 {
-			next = overflow
-		} else {
-			next = w.reserve()
-		}
-		// n2: *(scratch + i) = 0; goto next;
-		w.assign(n2, current, "ZERO", next)
-	}
-}
-
-func (w *Writer) decrement(start uint64, bits int, end, underflow uint64) {
-	next := start
-
-	for i := 0; i < bits; i++ {
-		current := deref + w.offset(varScratchPtr, i)
-
-		n1 := w.reserve()
-		n2 := w.reserve()
-
-		// if (*(scratch + i) == 0) goto n1; else goto n2;
-		w.jump(next, current, n1, n2)
-
-		if i == bits-1 {
-			next = underflow
-		} else {
-			next = w.reserve()
-		}
-		// n1: *(scratch + i) = 1; goto next;
-		w.assign(n1, current, "ONE", next)
-		// n2: *(scratch + i) = 0; goto end;
-		w.assign(n2, current, "ZERO", end)
-	}
-}
-
-func NewWriter(w io.Writer) *Writer {
-	return &Writer{
-		w:     bufio.NewWriter(w),
-		n:     1,
-		taken: make(map[uint64]bool),
-	}
+func NewWriter(writer io.Writer) *Writer {
+	w := &Writer{Writer: bitgen.NewWriter(writer)}
+	w.DataPtr = w.ReserveVariable()
+	w.ScratchPtr = w.ReserveVariable()
+	w.DataIndex = w.ReserveInteger(64)
+	w.Scratch64 = w.ReserveInteger(64)
+	w.UserStart = w.ReserveHeap()
+	return w
 }
 
 func main() {
