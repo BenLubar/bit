@@ -29,11 +29,13 @@ func number(n uint64) string {
 	return string(buf)
 }
 
+// Value represents an expression whose value is known at runtime.
 type Value interface {
 	fmt.Stringer
 	simplify() Value
 }
 
+// Variable is a Value that represents a location in memory.
 type Variable uint64
 
 func (v Variable) String() string {
@@ -41,6 +43,8 @@ func (v Variable) String() string {
 }
 func (v Variable) simplify() Value { return v }
 
+// ValueAt is a Value that represents the value at another Value. The inner
+// Value must be an address-of-a-bit.
 type ValueAt struct {
 	Value
 }
@@ -61,6 +65,8 @@ func (v ValueAt) simplify() Value {
 	return v
 }
 
+// AddressOf is a Value that represents the address-of-a-bit of another Value.
+// The inner Value must be a bit and must not be a constant.
 type AddressOf struct {
 	Value
 }
@@ -76,19 +82,21 @@ func (v AddressOf) simplify() Value {
 	return v
 }
 
+// Bit is a Value that represents a bit constant.
 type Bit bool
 
 func (v Bit) String() string {
 	if v {
 		return "ONE"
-	} else {
-		return "ZERO"
 	}
+	return "ZERO"
 }
 func (v Bit) simplify() Value {
 	return v
 }
 
+// Offset is a Value that represents a chain of THE ADDRESS OF THE VALUE BEYOND.
+// The inner Value must be an address-of-a-bit.
 type Offset struct {
 	Value
 	Offset uint
@@ -117,13 +125,17 @@ func (v offsetValue) simplify() Value {
 	panic("bitgen: offsetValue.simplify should be unreachable")
 }
 
+// Integer represents an unsigned integer of a specified width.
 type Integer struct {
 	Start Value
 	Width uint
 }
 
+// Line represents a line number. It should be treated as an opaque type, except
+// that 0 can be used as the first line number and the line number to exit on.
 type Line uint64
 
+// Writer generates BIT code.
 type Writer struct {
 	w     *bufio.Writer
 	n     Line
@@ -132,6 +144,7 @@ type Writer struct {
 	taken map[Line]bool
 }
 
+// NewWriter returns a *Writer. Remember to call Close when you're done!
 func NewWriter(w io.Writer) *Writer {
 	return &Writer{
 		w:     bufio.NewWriter(w),
@@ -139,15 +152,18 @@ func NewWriter(w io.Writer) *Writer {
 	}
 }
 
+// Close flushes the internal buffer.
 func (w *Writer) Close() error {
 	return w.w.Flush()
 }
 
+// ReserveLine returns a line number that has not yet been used.
 func (w *Writer) ReserveLine() Line {
 	w.n++
 	return w.n
 }
 
+// ReserveVariable returns a Variable that has not yet been used.
 func (w *Writer) ReserveVariable() Variable {
 	if w.heap {
 		panic("bitgen: cannot reserve after reserving heap")
@@ -157,6 +173,8 @@ func (w *Writer) ReserveVariable() Variable {
 	return v
 }
 
+// ReserveInteger returns an Integer covering memory locations that have not yet
+// been used.
 func (w *Writer) ReserveInteger(width uint) Integer {
 	if w.heap {
 		panic("bitgen: cannot reserve after reserving heap")
@@ -173,6 +191,8 @@ func (w *Writer) ReserveInteger(width uint) Integer {
 	}
 }
 
+// ReserveHeap returns the first unused memory location after all reservations.
+// No additional memory may be reserved after ReserveHeap is called.
 func (w *Writer) ReserveHeap() Variable {
 	w.heap = true
 	return w.v
@@ -208,14 +228,17 @@ func (w *Writer) line(n Line, line string, goto0, goto1 Line) {
 	w.w.WriteString("\n")
 }
 
+// Jump to goto0 if value is ZERO or goto1 if value is ONE.
 func (w *Writer) Jump(start Line, value Value, goto0, goto1 Line) {
 	w.line(start, "THE JUMP REGISTER EQUALS "+value.simplify().String(), goto0, goto1)
 }
 
+// Assign sets left to right.
 func (w *Writer) Assign(start Line, left, right Value, end Line) {
 	w.line(start, left.simplify().String()+" EQUALS "+right.simplify().String(), end, end)
 }
 
+// Output writes value, most significant bit first.
 func (w *Writer) Output(start Line, value Integer, end Line) {
 	n1 := make([]Line, value.Width)
 	for i := range n1[1:] {
@@ -229,6 +252,7 @@ func (w *Writer) Output(start Line, value Integer, end Line) {
 	}
 }
 
+// OutputBit writes value to the standard output.
 func (w *Writer) OutputBit(start Line, value Value, end Line) {
 	n1 := w.ReserveLine()
 	n2 := w.ReserveLine()
@@ -238,6 +262,7 @@ func (w *Writer) OutputBit(start Line, value Value, end Line) {
 	w.line(n2, "PRINT ONE", end, end)
 }
 
+// Input reads value, most significant bit first.
 func (w *Writer) Input(start Line, value Integer, end Line) {
 	n1 := make([]Line, value.Width)
 	for i := range n1[1:] {
@@ -251,6 +276,7 @@ func (w *Writer) Input(start Line, value Integer, end Line) {
 	}
 }
 
+// InputBit reads value from the standard input.
 func (w *Writer) InputBit(start Line, value Value, end Line) {
 	n1 := w.ReserveLine()
 	n2 := w.ReserveLine()
@@ -260,6 +286,7 @@ func (w *Writer) InputBit(start Line, value Value, end Line) {
 	w.Assign(n2, value, Bit(true), end)
 }
 
+// Cmp jumps to same if value == base or different otherwise.
 func (w *Writer) Cmp(start Line, value Integer, base uint64, same, different Line) {
 	n1 := make([]Line, value.Width)
 	for i := range n1[:value.Width-1] {
@@ -277,6 +304,8 @@ func (w *Writer) Cmp(start Line, value Integer, base uint64, same, different Lin
 	}
 }
 
+// Increment adds ONE to value, then jumps to end if successful or overflow if
+// it needed to carry to a nonexistent bit.
 func (w *Writer) Increment(start Line, value Integer, end, overflow Line) {
 	next := start
 
@@ -298,6 +327,8 @@ func (w *Writer) Increment(start Line, value Integer, end, overflow Line) {
 	}
 }
 
+// Decrement subtracts ONE from value, then jumps to end if successful or
+// underflow if it needed to borrow from a nonexistent bit.
 func (w *Writer) Decrement(start Line, value Integer, end, underflow Line) {
 	next := start
 
@@ -319,6 +350,7 @@ func (w *Writer) Decrement(start Line, value Integer, end, underflow Line) {
 	}
 }
 
+// Copy sets left to right.
 func (w *Writer) Copy(start Line, left, right Integer, end Line) {
 	if left.Width != right.Width {
 		panic("bitgen: cannot copy integers of varying width")
