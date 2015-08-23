@@ -346,6 +346,8 @@ func (l *lexer) Lex(lvalue *yySymType) (tok int) {
 		check(err)
 		switch r {
 		case '=':
+			lvalue.id.Pos = l.file.Pos(int(offset))
+			lvalue.id.Name = "equals"
 			return tokEQUALEQUAL
 		case '>':
 			return tokARROW

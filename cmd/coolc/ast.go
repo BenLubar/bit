@@ -59,6 +59,8 @@ type BlockFeature struct {
 	Expr
 }
 
+type NativeFeature struct{}
+
 type Expr interface{}
 
 type AssignExpr struct {
@@ -91,11 +93,6 @@ type LessThanOrEqualExpr struct {
 }
 
 type LessThanExpr struct {
-	Left  Expr
-	Right Expr
-}
-
-type EqualEqualExpr struct {
 	Left  Expr
 	Right Expr
 }
@@ -143,7 +140,7 @@ type NewExpr struct {
 }
 
 type VarExpr struct {
-	Var  *VarFeature
+	VarFeature
 	Expr Expr
 }
 
@@ -187,3 +184,5 @@ type Case struct {
 	Type TYPE
 	Body Expr
 }
+
+type NativeExpr func(*writer) error

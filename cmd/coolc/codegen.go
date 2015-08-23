@@ -7,7 +7,7 @@ import (
 )
 
 func (ast *AST) WriteTo(out io.Writer) (err error) {
-	w := bitgen.NewWriter(out)
+	w := &writer{Writer: bitgen.NewWriter(out)}
 	defer func() {
 		if e := w.Close(); err == nil {
 			err = e
@@ -15,4 +15,8 @@ func (ast *AST) WriteTo(out io.Writer) (err error) {
 	}()
 
 	panic("unimplemented")
+}
+
+type writer struct {
+	*bitgen.Writer
 }

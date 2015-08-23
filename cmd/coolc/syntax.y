@@ -31,7 +31,7 @@ package main
 %left tokNEGATE
 %left tokMULTIPLY tokDIVIDE
 %left tokPLUS tokMINUS
-%left tokEQUALEQUAL
+%left<id> tokEQUALEQUAL
 %left tokLESSEQUAL tokLESSTHAN
 %left tokMATCH
 %left tokIF tokWHILE
@@ -230,8 +230,12 @@ block0
 | tokVAR tokID tokCOLON tokTYPE tokASSIGN expr tokSEMICOLON block0
 	{
 		$$ = &VarExpr{
-			Var: &VarFeature{
-				
+			VarFeature: VarFeature{
+				VarDecl: VarDecl{
+					Name: $2,
+					Type: $4,
+				},
+				Value: $6,
 			},
 			Expr: $8,
 		}
@@ -293,9 +297,12 @@ expr
 	}
 | expr tokEQUALEQUAL expr
 	{
-		$$ = &EqualEqualExpr{
-			Left:  $1,
-			Right: $3,
+		$$ = &CallExpr{
+			Left: $1,
+			Name: $2,
+			Args: []Expr{
+				$3,
+			},
 		}
 	}
 | expr tokMULTIPLY expr
