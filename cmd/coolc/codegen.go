@@ -31,6 +31,7 @@ type writer struct {
 
 	Ptr     bitgen.Integer   // used for counting pointers, internal
 	Alloc   register         // points at next available memory, internal
+	Unit    register         // points at the constant "()", internal
 	True    register         // points at the constant "true", internal
 	False   register         // points at the constant "false", internal
 	Symbol  register         // points at the last symbol created, internal
@@ -63,6 +64,7 @@ func (w *writer) Init() (start bitgen.Line) {
 
 	w.Ptr = w.ReserveInteger(32)
 	reg(&w.Alloc)
+	reg(&w.Unit)
 	reg(&w.True)
 	reg(&w.False)
 	reg(&w.Symbol)
@@ -135,11 +137,15 @@ func (w *writer) Init() (start bitgen.Line) {
 	}
 
 	next = w.ReserveLine()
-	w.NewNative(start, w.False, basicBoolean, 0, next)
+	w.NewNative(start, w.Unit, basicUnit, 0, next)
 	start = next
 
 	next = w.ReserveLine()
 	w.NewNative(start, w.True, basicBoolean, 0, next)
+	start = next
+
+	next = w.ReserveLine()
+	w.NewNative(start, w.False, basicBoolean, 0, next)
 	start = next
 
 	return
