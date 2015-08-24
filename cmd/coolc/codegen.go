@@ -57,9 +57,9 @@ type register struct {
 func (w *writer) Init() (start bitgen.Line) {
 	var registers []register
 	reg := func(r *register) {
-		registers = append(registers, *r)
 		r.Ptr = w.ReserveVariable()
 		r.Num = w.ReserveInteger(32)
+		registers = append(registers, *r)
 	}
 
 	w.Ptr = w.ReserveInteger(32)
