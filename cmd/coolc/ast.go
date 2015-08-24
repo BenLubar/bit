@@ -134,10 +134,9 @@ type CallExpr struct {
 	Args []Expr
 }
 
-type SelfCallExpr struct {
-	Super bool
-	Name  ID
-	Args  []Expr
+type StaticCallExpr struct {
+	Name ID
+	Args []Expr
 }
 
 type NewExpr struct {

@@ -192,13 +192,15 @@ var basicIO = &ClassDecl{
 			Return: TYPE{
 				Name: "IO",
 			},
-			Body: &SelfCallExpr{
+			Body: &CallExpr{
+				Left: &ThisExpr{},
 				Name: ID{
 					Name: "out",
 				},
 				Args: []Expr{
 					&IfExpr{
-						Condition: &SelfCallExpr{
+						Condition: &CallExpr{
+							Left: &ThisExpr{},
 							Name: ID{
 								Name: "is_null",
 							},
@@ -778,7 +780,8 @@ var basicString = &ClassDecl{
 									},
 									Do: &IfExpr{
 										Condition: &CallExpr{
-											Left: &SelfCallExpr{
+											Left: &CallExpr{
+												Left: &ThisExpr{},
 												Name: ID{
 													Name: "substring",
 												},
@@ -1285,7 +1288,7 @@ func (ast *AST) Semantic() (err error) {
 
 		case *NativeFeature:
 
-		case *SelfCallExpr:
+		case *StaticCallExpr:
 			for _, a := range v.Args {
 				recurse(ns, a)
 			}

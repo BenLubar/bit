@@ -947,17 +947,17 @@ yydefault:
 		yyDollar = yyS[yypt-4 : yypt+1]
 		//line syntax.y:355
 		{
-			yyVAL.exp = &SelfCallExpr{
-				Super: true,
-				Name:  yyDollar[3].id,
-				Args:  yyDollar[4].act,
+			yyVAL.exp = &StaticCallExpr{
+				Name: yyDollar[3].id,
+				Args: yyDollar[4].act,
 			}
 		}
 	case 44:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line syntax.y:363
+		//line syntax.y:362
 		{
-			yyVAL.exp = &SelfCallExpr{
+			yyVAL.exp = &CallExpr{
+				Left: &ThisExpr{},
 				Name: yyDollar[1].id,
 				Args: yyDollar[2].act,
 			}

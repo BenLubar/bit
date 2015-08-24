@@ -353,15 +353,15 @@ expr
 primary
 : tokSUPER tokDOT tokID actuals
 	{
-		$$ = &SelfCallExpr{
-			Super: true,
+		$$ = &StaticCallExpr{
 			Name:  $3,
 			Args:  $4,
 		}
 	}
 | tokID actuals
 	{
-		$$ = &SelfCallExpr{
+		$$ = &CallExpr{
+			Left: &ThisExpr{},
 			Name: $1,
 			Args: $2,
 		}
