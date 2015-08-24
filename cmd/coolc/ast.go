@@ -30,6 +30,8 @@ type ClassDecl struct {
 	Args    []*VarDecl
 	Extends *ExtendsDecl
 	Body    []Feature
+
+	size uint
 }
 
 type VarDecl struct {
@@ -55,6 +57,8 @@ type MethodFeature struct {
 type VarFeature struct {
 	VarDecl
 	Value Expr
+
+	offset uint
 }
 
 type BlockFeature struct {
@@ -187,4 +191,4 @@ type Case struct {
 	Body Expr
 }
 
-type NativeExpr func(w *writer, start, end bitgen.Line) error
+type NativeExpr func(w *writer, start, end bitgen.Line)

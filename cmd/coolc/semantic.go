@@ -25,8 +25,18 @@ var basicAny = &ClassDecl{
 			Return: TYPE{
 				Name: "String",
 			},
-			Body: NativeExpr(func(w *writer, start, end bitgen.Line) error {
-				panic("unimplemented")
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
+				w.EndStack()
+
+				next := w.ReserveLine()
+				w.Load(start, w.This, w.This, 0, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Load(start, w.Return, w.This, 32/8, next)
+				start = next
+
+				w.PopStack(start, end)
 			}),
 		},
 		&MethodFeature{
@@ -46,8 +56,18 @@ var basicAny = &ClassDecl{
 			Return: TYPE{
 				Name: "Boolean",
 			},
-			Body: NativeExpr(func(w *writer, start, end bitgen.Line) error {
-				panic("unimplemented")
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
+				w.EndStack()
+
+				same, different := w.ReserveLine(), w.ReserveLine()
+				w.CmpReg(start, w.This.Num, w.StackOffset(w.Arg(0)), same, different)
+
+				next := w.ReserveLine()
+				w.CopyReg(same, w.Return, w.True, next)
+				w.CopyReg(same, w.Return, w.False, next)
+				start = next
+
+				w.PopStack(start, end)
 			}),
 		},
 	},
@@ -75,8 +95,10 @@ var basicIO = &ClassDecl{
 			Return: TYPE{
 				Name: "Nothing",
 			},
-			Body: NativeExpr(func(w *writer, start, end bitgen.Line) error {
-				panic("unimplemented")
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
+				w.EndStack()
+
+				w.PrintStringArg(start, 0, 0)
 			}),
 		},
 		&MethodFeature{
@@ -96,8 +118,18 @@ var basicIO = &ClassDecl{
 			Return: TYPE{
 				Name: "IO",
 			},
-			Body: NativeExpr(func(w *writer, start, end bitgen.Line) error {
-				panic("unimplemented")
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
+				w.EndStack()
+
+				next := w.ReserveLine()
+				w.CopyReg(start, w.Return, w.This, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.PrintStringArg(start, 0, next)
+				start = next
+
+				w.PopStack(start, end)
 			}),
 		},
 		&MethodFeature{
@@ -202,7 +234,7 @@ var basicIO = &ClassDecl{
 			Return: TYPE{
 				Name: "String",
 			},
-			Body: NativeExpr(func(w *writer, start, end bitgen.Line) error {
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
 				panic("unimplemented")
 			}),
 		},
@@ -223,7 +255,7 @@ var basicIO = &ClassDecl{
 			Return: TYPE{
 				Name: "Symbol",
 			},
-			Body: NativeExpr(func(w *writer, start, end bitgen.Line) error {
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
 				panic("unimplemented")
 			}),
 		},
@@ -244,7 +276,7 @@ var basicIO = &ClassDecl{
 			Return: TYPE{
 				Name: "String",
 			},
-			Body: NativeExpr(func(w *writer, start, end bitgen.Line) error {
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
 				panic("unimplemented")
 			}),
 		},
@@ -274,7 +306,7 @@ var basicInt = &ClassDecl{
 			Return: TYPE{
 				Name: "String",
 			},
-			Body: NativeExpr(func(w *writer, start, end bitgen.Line) error {
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
 				panic("unimplemented")
 			}),
 		},
@@ -296,8 +328,31 @@ var basicInt = &ClassDecl{
 			Return: TYPE{
 				Name: "Boolean",
 			},
-			Body: NativeExpr(func(w *writer, start, end bitgen.Line) error {
-				panic("unimplemented")
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
+				w.EndStack()
+
+				next := w.ReserveLine()
+				w.Load(start, w.General[0], w.Stack, w.Arg(0), next)
+				start = next
+
+				same, different := w.ReserveLine(), w.ReserveLine()
+
+				next = w.ReserveLine()
+				w.Cmp(start, w.General[0].Num, 0, different, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.CmpReg(start, bitgen.Integer{bitgen.ValueAt{w.This.Ptr}, 32}, bitgen.Integer{bitgen.ValueAt{w.General[0].Ptr}, 32}, next, different)
+				start = next
+
+				w.CmpReg(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.This.Ptr, 32}}, 32}, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[0].Ptr, 32}}, 32}, same, different)
+
+				next = w.ReserveLine()
+				w.CopyReg(same, w.Return, w.True, next)
+				w.CopyReg(same, w.Return, w.False, next)
+				start = next
+
+				w.PopStack(start, end)
 			}),
 		},
 	},
@@ -327,28 +382,20 @@ var basicBoolean = &ClassDecl{
 				},
 			},
 		},
-		&MethodFeature{
-			Override: true,
-			Name: ID{
-				Name: "equals",
-			},
-			Args: []*VarDecl{
-				{
-					Name: ID{
-						Name: "other",
-					},
-					Type: TYPE{
-						Name: "Any",
-					},
-				},
-			},
-			Return: TYPE{
-				Name: "Boolean",
-			},
-			Body: NativeExpr(func(w *writer, start, end bitgen.Line) error {
-				panic("unimplemented")
-			}),
+	},
+}
+
+var basicStringLength = &VarFeature{
+	VarDecl: VarDecl{
+		Name: ID{
+			Name: "length",
 		},
+		Type: TYPE{
+			Name: "Int",
+		},
+	},
+	Value: &IntegerExpr{
+		N: 0,
 	},
 }
 
@@ -357,19 +404,7 @@ var basicString = &ClassDecl{
 		Name: "String",
 	},
 	Body: []Feature{
-		&VarFeature{
-			VarDecl: VarDecl{
-				Name: ID{
-					Name: "length",
-				},
-				Type: TYPE{
-					Name: "Int",
-				},
-			},
-			Value: &IntegerExpr{
-				N: 0,
-			},
-		},
+		basicStringLength,
 		&NativeFeature{},
 		&MethodFeature{
 			Override: true,
@@ -399,7 +434,7 @@ var basicString = &ClassDecl{
 			Return: TYPE{
 				Name: "Boolean",
 			},
-			Body: NativeExpr(func(w *writer, start, end bitgen.Line) error {
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
 				panic("unimplemented")
 			}),
 		},
@@ -433,7 +468,7 @@ var basicString = &ClassDecl{
 			Return: TYPE{
 				Name: "String",
 			},
-			Body: NativeExpr(func(w *writer, start, end bitgen.Line) error {
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
 				panic("unimplemented")
 			}),
 		},
@@ -462,7 +497,7 @@ var basicString = &ClassDecl{
 			Return: TYPE{
 				Name: "String",
 			},
-			Body: NativeExpr(func(w *writer, start, end bitgen.Line) error {
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
 				panic("unimplemented")
 			}),
 		},
@@ -483,7 +518,7 @@ var basicString = &ClassDecl{
 			Return: TYPE{
 				Name: "Int",
 			},
-			Body: NativeExpr(func(w *writer, start, end bitgen.Line) error {
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
 				panic("unimplemented")
 			}),
 		},
@@ -718,6 +753,17 @@ var basicSymbol = &ClassDecl{
 				N: 0,
 			},
 		},
+		&VarFeature{
+			VarDecl: VarDecl{
+				Name: ID{
+					Name: "next",
+				},
+				Type: TYPE{
+					Name: "Symbol",
+				},
+			},
+			Value: &NullExpr{},
+		},
 		&NativeFeature{},
 		&MethodFeature{
 			Override: true,
@@ -805,7 +851,7 @@ var basicArrayAny = &ClassDecl{
 			Return: TYPE{
 				Name: "ArrayAny",
 			},
-			Body: NativeExpr(func(w *writer, start, end bitgen.Line) error {
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
 				panic("unimplemented")
 			}),
 		},
@@ -826,7 +872,7 @@ var basicArrayAny = &ClassDecl{
 			Return: TYPE{
 				Name: "Any",
 			},
-			Body: NativeExpr(func(w *writer, start, end bitgen.Line) error {
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
 				panic("unimplemented")
 			}),
 		},
@@ -855,7 +901,7 @@ var basicArrayAny = &ClassDecl{
 			Return: TYPE{
 				Name: "Any",
 			},
-			Body: NativeExpr(func(w *writer, start, end bitgen.Line) error {
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
 				panic("unimplemented")
 			}),
 		},
@@ -1038,7 +1084,7 @@ func (ast *AST) Semantic() (err error) {
 
 		case *ThisExpr:
 
-		case *StringExpr, *IntegerExpr, *BooleanExpr:
+		case *StringExpr, *IntegerExpr, *BooleanExpr, *NullExpr:
 
 		case *IfExpr:
 			recurse(ns, v.Condition)
