@@ -153,7 +153,7 @@ func (w *writer) Init() (start bitgen.Line) {
 
 func (w *writer) ClassDecl(start bitgen.Line, c *ClassDecl, end bitgen.Line) {
 	next := w.ReserveLine()
-	w.StaticAllocString(start, w.General[0], w.General[1], c.Name.Name, next)
+	w.NewString(start, w.General[0], w.General[1], c.Name.Name, next)
 	start = next
 
 	next = w.ReserveLine()
@@ -349,7 +349,7 @@ func (w *writer) StaticAlloc(start bitgen.Line, reg register, size uint, end bit
 	w.Assign(start, w.Alloc.Ptr, bitgen.Offset{w.Alloc.Ptr, 8 * size}, end)
 }
 
-func (w *writer) StaticAllocInt(start bitgen.Line, reg register, value int32, end bitgen.Line) {
+func (w *writer) NewInt(start bitgen.Line, reg register, value int32, end bitgen.Line) {
 	next := w.ReserveLine()
 	w.NewNative(start, reg, basicInt, 32/8, next)
 	start = next
@@ -365,9 +365,9 @@ func (w *writer) StaticAllocInt(start bitgen.Line, reg register, value int32, en
 	}
 }
 
-func (w *writer) StaticAllocString(start bitgen.Line, reg, length register, value string, end bitgen.Line) {
+func (w *writer) NewString(start bitgen.Line, reg, length register, value string, end bitgen.Line) {
 	next := w.ReserveLine()
-	w.StaticAllocInt(start, length, int32(len(value)), next)
+	w.NewInt(start, length, int32(len(value)), next)
 	start = next
 
 	next = w.ReserveLine()

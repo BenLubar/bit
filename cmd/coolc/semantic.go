@@ -312,7 +312,7 @@ var basicIO = &ClassDecl{
 				start = next
 
 				next = w.ReserveLine()
-				w.StaticAllocInt(start, w.General[1], 0, next)
+				w.NewInt(start, w.General[1], 0, next)
 				start = next
 
 				next, done = w.ReserveLine(), w.ReserveLine()
