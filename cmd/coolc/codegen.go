@@ -14,7 +14,9 @@ func (ast *AST) WriteTo(out io.Writer) (err error) {
 		}
 	}()
 
-	w.Init()
+	start := w.Init()
+
+	_ = start
 
 	panic("unimplemented")
 }
@@ -22,13 +24,15 @@ func (ast *AST) WriteTo(out io.Writer) (err error) {
 type writer struct {
 	*bitgen.Writer
 
-	Ptr     bitgen.Integer
-	Alloc   register
-	Return  register
-	Stack   register
-	Offset  uint
-	General [4]register
-	Heap    bitgen.Variable
+	Ptr     bitgen.Integer   // used for counting pointers, internal
+	Alloc   register         // points at next available memory, internal
+	Return  register         // points at return value, not saved
+	This    register         // points at "this" value, saved
+	Stack   register         // points at start of stack segment, saved
+	Offset  uint             // current stack offset, internal
+	Prev    bitgen.Variable  // points at previous stack segment, internal
+	General [4]register      // general purpose registers, saved
+	Heap    bitgen.AddressOf // heap start (also null pointer), internal
 }
 
 type register struct {
@@ -36,7 +40,7 @@ type register struct {
 	Num bitgen.Integer
 }
 
-func (w *writer) Init() {
+func (w *writer) Init() (start bitgen.Line) {
 	reg := func(r *register) {
 		r.Ptr = w.ReserveVariable()
 		r.Num = w.ReserveInteger(32)
@@ -45,11 +49,23 @@ func (w *writer) Init() {
 	w.Ptr = w.ReserveInteger(32)
 	reg(&w.Alloc)
 	reg(&w.Return)
+	reg(&w.This)
 	reg(&w.Stack)
+	w.Prev = w.ReserveVariable()
 	for i := range w.General {
 		reg(&w.General[i])
 	}
-	w.Heap = w.ReserveHeap()
+	w.Heap = bitgen.AddressOf{w.ReserveHeap()}
+
+	next := w.ReserveLine()
+	w.Increment(start, w.Alloc.Num, next, 0)
+	start = next
+
+	next = w.ReserveLine()
+	w.Assign(start, w.Alloc.Ptr, bitgen.Offset{w.Heap, 8}, next)
+	start = next
+
+	return
 }
 
 func (w *writer) Pointer(start bitgen.Line, ptr bitgen.Variable, num bitgen.Integer, end bitgen.Line) {
@@ -79,6 +95,10 @@ func (w *writer) BeginStack(start, end bitgen.Line) {
 	}
 
 	next := w.ReserveLine()
+	w.Assign(start, w.Prev, w.Stack.Ptr, next)
+	start = next
+
+	next = w.ReserveLine()
 	w.Copy(start, bitgen.Integer{bitgen.ValueAt{w.Alloc.Ptr}, 32}, w.Stack.Num, next)
 	start = next
 
@@ -90,21 +110,35 @@ func (w *writer) BeginStack(start, end bitgen.Line) {
 	w.Assign(start, w.Stack.Ptr, w.Alloc.Ptr, next)
 	start = next
 
-	w.Offset = uint(1 + len(w.General))
+	w.Offset = uint(2 + len(w.General))
 	for i := uint(0); i < 32/8*w.Offset; i++ {
 		next = w.ReserveLine()
 		w.Increment(start, w.Alloc.Num, next, 0)
 		start = next
 	}
 
+	next = w.ReserveLine()
+	w.Copy(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.Stack.Ptr, 32}}, 32}, w.This.Num, next)
+	start = next
+
+	for i := 0; i < 32; i++ {
+		next = w.ReserveLine()
+		w.Assign(start, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{w.This.Num.Start}, uint(32 + i)}}, bitgen.Bit(false), next)
+		start = next
+	}
+
+	next = w.ReserveLine()
+	w.Assign(start, w.This.Ptr, w.Heap, next)
+	start = next
+
 	for i := range w.General {
 		next = w.ReserveLine()
-		w.Copy(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.Stack.Ptr, uint(32 + i*32)}}, 32}, w.General[i].Num, next)
+		w.Copy(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.Stack.Ptr, uint(2*32 + i*32)}}, 32}, w.General[i].Num, next)
 		start = next
 
 		for j := 0; j < 32; j++ {
 			next = w.ReserveLine()
-			w.Assign(start, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{w.General[i].Num.Start}, uint(32 + i*32 + j)}}, bitgen.Bit(false), next)
+			w.Assign(start, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{w.General[i].Num.Start}, uint(2*32 + i*32 + j)}}, bitgen.Bit(false), next)
 			start = next
 		}
 
@@ -151,7 +185,7 @@ func (w *writer) PopStack(start, end bitgen.Line) {
 
 	for i := range w.General {
 		next := w.ReserveLine()
-		w.Copy(start, w.General[i].Num, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.Stack.Ptr, uint(32 + i*32)}}, 32}, next)
+		w.Copy(start, w.General[i].Num, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.Stack.Ptr, uint(2*32 + i*32)}}, 32}, next)
 		start = next
 
 		next = w.ReserveLine()
@@ -160,6 +194,14 @@ func (w *writer) PopStack(start, end bitgen.Line) {
 	}
 
 	next := w.ReserveLine()
+	w.Copy(start, w.This.Num, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.Stack.Ptr, 32}}, 32}, next)
+	start = next
+
+	next = w.ReserveLine()
+	w.Pointer(start, w.This.Ptr, w.This.Num, end)
+	start = next
+
+	next = w.ReserveLine()
 	w.Copy(start, w.Stack.Num, bitgen.Integer{bitgen.ValueAt{w.Stack.Ptr}, 32}, next)
 	start = next
 
