@@ -1214,175 +1214,6 @@ func (ast *AST) Semantic() (err error) {
 		return fmt.Errorf("missing Main class")
 	}
 
-	var recurse func([]*ID, interface{})
-	recurse = func(ns []*ID, value interface{}) {
-		addNS := func(target interface{}, name *ID) {
-			for _, n := range ns {
-				if n.Name == name.Name {
-					nPos := ast.FileSet.Position(n.Pos)
-					namePos := ast.FileSet.Position(name.Pos)
-					panic(fmt.Errorf("shadowing is not allowed (%s) at %v, %v", name.Name, nPos, namePos))
-				}
-			}
-			ns = append(ns, name)
-			name.target = target
-		}
-		switch v := value.(type) {
-		case *ID:
-			for _, n := range ns {
-				if n.Name == v.Name {
-					v.target = n.target
-					return
-				}
-			}
-			pos := ast.FileSet.Position(v.Pos)
-			panic(fmt.Errorf("undeclared identifier (%s) at %v", v.Name, pos))
-
-		case *TYPE:
-			if v.Name == "Nothing" || v.Name == "Null" {
-				return
-			}
-			if c, ok := classes[v.Name]; ok {
-				v.target = c
-				return
-			}
-			pos := ast.FileSet.Position(v.Pos)
-			panic(fmt.Errorf("undeclared type (%s) at %v", v.Name, pos))
-
-		case *ClassDecl:
-			recurse(ns, &v.Name)
-			for _, a := range v.Args {
-				addNS(a, &a.Name)
-				recurse(ns, &a.Type)
-			}
-			recurse(ns, v.Extends)
-			for _, f := range v.Body {
-				if a, ok := f.(*VarFeature); ok {
-					addNS(a, &a.Name)
-				}
-			}
-			for _, f := range v.Body {
-				recurse(ns, f)
-			}
-
-		case *ExtendsDecl:
-			recurse(ns, &v.Type)
-			for _, e := range v.Args {
-				recurse(ns, e)
-			}
-
-		case *VarFeature:
-			recurse(ns, &v.Type)
-			recurse(ns, v.Value)
-
-		case *MethodFeature:
-			recurse(ns, &v.Return)
-			for _, a := range v.Args {
-				addNS(a, &a.Name)
-				recurse(ns, &a.Type)
-			}
-			recurse(ns, v.Body)
-
-		case *BlockFeature:
-			recurse(ns, v.Expr)
-
-		case *NativeFeature:
-
-		case *StaticCallExpr:
-			for _, a := range v.Args {
-				recurse(ns, a)
-			}
-
-		case *CallExpr:
-			recurse(ns, v.Left)
-			for _, a := range v.Args {
-				recurse(ns, a)
-			}
-
-		case *NegativeExpr:
-			recurse(ns, v.Right)
-
-		case *NotExpr:
-			recurse(ns, v.Right)
-
-		case *AddExpr:
-			recurse(ns, v.Left)
-			recurse(ns, v.Right)
-
-		case *SubtractExpr:
-			recurse(ns, v.Left)
-			recurse(ns, v.Right)
-
-		case *MultiplyExpr:
-			recurse(ns, v.Left)
-			recurse(ns, v.Right)
-
-		case *DivideExpr:
-			recurse(ns, v.Left)
-			recurse(ns, v.Right)
-
-		case *LessThanExpr:
-			recurse(ns, v.Left)
-			recurse(ns, v.Right)
-
-		case *LessThanOrEqualExpr:
-			recurse(ns, v.Left)
-			recurse(ns, v.Right)
-
-		case *NameExpr:
-			recurse(ns, &v.Name)
-
-		case *ThisExpr:
-
-		case *StringExpr, *IntegerExpr, *BooleanExpr, *NullExpr:
-
-		case *IfExpr:
-			recurse(ns, v.Condition)
-			recurse(ns, v.Then)
-			recurse(ns, v.Else)
-
-		case *WhileExpr:
-			recurse(ns, v.Condition)
-			recurse(ns, v.Do)
-
-		case *MatchExpr:
-			recurse(ns, v.Left)
-			recurse(ns, v.Cases)
-
-		case *Cases:
-			for _, c := range v.Cases {
-				recurse(ns, c)
-			}
-			if v.Null != nil {
-				recurse(ns, v.Null)
-			}
-
-		case *Case:
-			addNS(v, &v.Name)
-			recurse(ns, &v.Type)
-			recurse(ns, v.Body)
-
-		case *AssignExpr:
-			recurse(ns, &v.Left)
-			recurse(ns, v.Right)
-
-		case *VarExpr:
-			recurse(ns, v.Value)
-			addNS(v, &v.Name)
-			recurse(ns, &v.Type)
-			recurse(ns, v.Expr)
-
-		case *ChainExpr:
-			recurse(ns, v.Pre)
-			recurse(ns, v.Expr)
-
-		case NativeExpr:
-
-		default:
-			panic(v)
-		}
-	}
-
 	defer func() {
 		if r := recover(); r != nil {
 			err = r.(error)
@@ -1390,8 +1221,177 @@ func (ast *AST) Semantic() (err error) {
 	}()
 
 	for _, c := range ast.Classes {
-		recurse(nil, c)
+		ast.recurse(classes, nil, c)
 	}
 
 	panic("unimplemented: typecheck")
+}
+
+func (ast *AST) recurse(classes map[string]*ClassDecl, ns []*ID, value interface{}) {
+	recurse := func(v interface{}) {
+		ast.recurse(classes, ns, v)
+	}
+	addNS := func(target interface{}, name *ID) {
+		for _, n := range ns {
+			if n.Name == name.Name {
+				nPos := ast.FileSet.Position(n.Pos)
+				namePos := ast.FileSet.Position(name.Pos)
+				panic(fmt.Errorf("shadowing is not allowed (%s) at %v, %v", name.Name, nPos, namePos))
+			}
+		}
+		ns = append(ns, name)
+		name.target = target
+	}
+	switch v := value.(type) {
+	case *ID:
+		for _, n := range ns {
+			if n.Name == v.Name {
+				v.target = n.target
+				return
+			}
+		}
+		pos := ast.FileSet.Position(v.Pos)
+		panic(fmt.Errorf("undeclared identifier (%s) at %v", v.Name, pos))
+
+	case *TYPE:
+		if v.Name == "Nothing" || v.Name == "Null" {
+			return
+		}
+		if c, ok := classes[v.Name]; ok {
+			v.target = c
+			return
+		}
+		pos := ast.FileSet.Position(v.Pos)
+		panic(fmt.Errorf("undeclared type (%s) at %v", v.Name, pos))
+
+	case *ClassDecl:
+		recurse(&v.Name)
+		for _, a := range v.Args {
+			addNS(a, &a.Name)
+			recurse(&a.Type)
+		}
+		recurse(v.Extends)
+		for _, f := range v.Body {
+			if a, ok := f.(*VarFeature); ok {
+				addNS(a, &a.Name)
+			}
+		}
+		for _, f := range v.Body {
+			recurse(f)
+		}
+
+	case *ExtendsDecl:
+		recurse(&v.Type)
+		for _, e := range v.Args {
+			recurse(e)
+		}
+
+	case *VarFeature:
+		recurse(&v.Type)
+		recurse(v.Value)
+
+	case *MethodFeature:
+		recurse(&v.Return)
+		for _, a := range v.Args {
+			addNS(a, &a.Name)
+			recurse(&a.Type)
+		}
+		recurse(v.Body)
+
+	case *BlockFeature:
+		recurse(v.Expr)
+
+	case *NativeFeature:
+
+	case *StaticCallExpr:
+		for _, a := range v.Args {
+			recurse(a)
+		}
+
+	case *CallExpr:
+		recurse(v.Left)
+		for _, a := range v.Args {
+			recurse(a)
+		}
+
+	case *NegativeExpr:
+		recurse(v.Right)
+
+	case *NotExpr:
+		recurse(v.Right)
+
+	case *AddExpr:
+		recurse(v.Left)
+		recurse(v.Right)
+
+	case *SubtractExpr:
+		recurse(v.Left)
+		recurse(v.Right)
+
+	case *MultiplyExpr:
+		recurse(v.Left)
+		recurse(v.Right)
+
+	case *DivideExpr:
+		recurse(v.Left)
+		recurse(v.Right)
+
+	case *LessThanExpr:
+		recurse(v.Left)
+		recurse(v.Right)
+
+	case *LessThanOrEqualExpr:
+		recurse(v.Left)
+		recurse(v.Right)
+
+	case *NameExpr:
+		recurse(&v.Name)
+
+	case *ThisExpr, *StringExpr, *IntegerExpr, *BooleanExpr, *NullExpr:
+
+	case *IfExpr:
+		recurse(v.Condition)
+		recurse(v.Then)
+		recurse(v.Else)
+
+	case *WhileExpr:
+		recurse(v.Condition)
+		recurse(v.Do)
+
+	case *MatchExpr:
+		recurse(v.Left)
+		recurse(v.Cases)
+
+	case *Cases:
+		for _, c := range v.Cases {
+			recurse(c)
+		}
+		if v.Null != nil {
+			recurse(v.Null)
+		}
+
+	case *Case:
+		addNS(v, &v.Name)
+		recurse(&v.Type)
+		recurse(v.Body)
+
+	case *AssignExpr:
+		recurse(&v.Left)
+		recurse(v.Right)
+
+	case *VarExpr:
+		recurse(v.Value)
+		addNS(v, &v.Name)
+		recurse(&v.Type)
+		recurse(v.Expr)
+
+	case *ChainExpr:
+		recurse(v.Pre)
+		recurse(v.Expr)
+
+	case NativeExpr:
+
+	default:
+		panic(v)
+	}
 }
