@@ -42,7 +42,8 @@ type writer struct {
 
 	Classes map[*ClassDecl]register // class definition pointers, internal
 
-	Null bitgen.Line // null pointer dereference
+	Null       bitgen.Line // null pointer dereference
+	IndexRange bitgen.Line // ArrayAny index out of range
 }
 
 type register struct {
@@ -105,6 +106,9 @@ func (w *writer) Init() (start bitgen.Line) {
 
 	w.Null = w.ReserveLine()
 	w.Abort(w.Null, "runtime error: null pointer dereference")
+
+	w.IndexRange = w.ReserveLine()
+	w.Abort(w.IndexRange, "runtime error: index out of range")
 
 	for _, c := range basicClasses {
 		next = w.ReserveLine()
@@ -473,6 +477,29 @@ func (w *writer) CmpReg(start bitgen.Line, left, right bitgen.Integer, same, dif
 
 		w.Jump(zero, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{right.Start}, i}}, next, different)
 		w.Jump(one, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{right.Start}, i}}, different, next)
+
+		start = next
+	}
+}
+
+func (w *writer) LessThanUnsigned(start bitgen.Line, left, right bitgen.Integer, less, equal, greater bitgen.Line) {
+	if left.Width != right.Width {
+		panic("non-equal widths for CmpReg")
+	}
+
+	for i := uint(0); i < left.Width; i++ {
+		zero, one := w.ReserveLine(), w.ReserveLine()
+		w.Jump(start, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{left.Start}, i}}, zero, one)
+
+		var next bitgen.Line
+		if i == left.Width-1 {
+			next = equal
+		} else {
+			next = w.ReserveLine()
+		}
+
+		w.Jump(zero, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{right.Start}, i}}, next, greater)
+		w.Jump(one, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{right.Start}, i}}, less, next)
 
 		start = next
 	}

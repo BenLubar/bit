@@ -805,19 +805,21 @@ var basicSymbol = &ClassDecl{
 	},
 }
 
+var basicArrayAnyLength = &VarDecl{
+	Name: ID{
+		Name: "length",
+	},
+	Type: TYPE{
+		Name: "Int",
+	},
+}
+
 var basicArrayAny = &ClassDecl{
 	Name: TYPE{
 		Name: "ArrayAny",
 	},
 	Args: []*VarDecl{
-		{
-			Name: ID{
-				Name: "length",
-			},
-			Type: TYPE{
-				Name: "Int",
-			},
-		},
+		basicArrayAnyLength,
 	},
 	Body: []Feature{
 		&NativeFeature{},
@@ -873,7 +875,50 @@ var basicArrayAny = &ClassDecl{
 				Name: "Any",
 			},
 			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
-				panic("unimplemented")
+				w.EndStack()
+
+				next := w.ReserveLine()
+				w.Load(start, w.General[0], w.Stack, w.Arg(0), next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Copy(start, w.General[0].Num, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[0].Ptr, 32}}, 32}, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Load(start, w.General[1], w.This, basicArrayAnyLength.offset, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Copy(start, w.General[1].Num, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[1].Ptr, 32}}, 32}, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.LessThanUnsigned(start, w.General[0].Num, w.General[1].Num, next, w.IndexRange, w.IndexRange)
+				start = next
+
+				next = w.ReserveLine()
+				w.CopyReg(start, w.Return, w.This, next)
+				start = next
+
+				loop, done := start, w.ReserveLine()
+				next = w.ReserveLine()
+				w.Decrement(start, w.General[0].Num, next, done)
+				start = next
+
+				for i := 0; i < 32/8; i++ {
+					next = w.ReserveLine()
+					w.Increment(start, w.Return.Num, next, 0)
+					start = next
+				}
+
+				w.Assign(start, w.Return.Ptr, bitgen.Offset{w.Return.Ptr, 32}, loop)
+
+				next = w.ReserveLine()
+				w.Load(done, w.Return, w.Return, basicArrayAnyLength.offset+32/8, next)
+				start = next
+
+				w.PopStack(start, end)
 			}),
 		},
 		&MethodFeature{
@@ -902,7 +947,54 @@ var basicArrayAny = &ClassDecl{
 				Name: "Any",
 			},
 			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
-				panic("unimplemented")
+				w.EndStack()
+
+				next := w.ReserveLine()
+				w.Load(start, w.General[0], w.Stack, w.Arg(0), next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Copy(start, w.General[0].Num, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[0].Ptr, 32}}, 32}, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Load(start, w.General[1], w.This, basicArrayAnyLength.offset, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Copy(start, w.General[1].Num, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[1].Ptr, 32}}, 32}, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.LessThanUnsigned(start, w.General[0].Num, w.General[1].Num, next, w.IndexRange, w.IndexRange)
+				start = next
+
+				next = w.ReserveLine()
+				w.CopyReg(start, w.General[1], w.This, next)
+				start = next
+
+				loop, done := start, w.ReserveLine()
+				next = w.ReserveLine()
+				w.Decrement(start, w.General[0].Num, next, done)
+				start = next
+
+				for i := 0; i < 32/8; i++ {
+					next = w.ReserveLine()
+					w.Increment(start, w.General[1].Num, next, 0)
+					start = next
+				}
+
+				w.Assign(start, w.General[1].Ptr, bitgen.Offset{w.General[1].Ptr, 32}, loop)
+
+				next = w.ReserveLine()
+				w.Load(done, w.Return, w.General[1], basicArrayAnyLength.offset+32/8, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Copy(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[1].Ptr, basicArrayAnyLength.offset + 32/8}}, 32}, w.StackOffset(w.Arg(1)), next)
+				start = next
+
+				w.PopStack(start, end)
 			}),
 		},
 	},

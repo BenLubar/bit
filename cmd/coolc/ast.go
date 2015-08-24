@@ -37,6 +37,8 @@ type ClassDecl struct {
 type VarDecl struct {
 	Name ID
 	Type TYPE
+
+	offset uint
 }
 
 type ExtendsDecl struct {
@@ -57,8 +59,6 @@ type MethodFeature struct {
 type VarFeature struct {
 	VarDecl
 	Value Expr
-
-	offset uint
 }
 
 type BlockFeature struct {
