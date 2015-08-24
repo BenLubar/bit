@@ -1,6 +1,10 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/BenLubar/bit/bitgen"
+)
 
 var extendsAny = &ExtendsDecl{
 	Type: TYPE{
@@ -21,7 +25,7 @@ var basicAny = &ClassDecl{
 			Return: TYPE{
 				Name: "String",
 			},
-			Body: NativeExpr(func(w *writer) error {
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) error {
 				panic("unimplemented")
 			}),
 		},
@@ -42,7 +46,7 @@ var basicAny = &ClassDecl{
 			Return: TYPE{
 				Name: "Boolean",
 			},
-			Body: NativeExpr(func(w *writer) error {
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) error {
 				panic("unimplemented")
 			}),
 		},
@@ -71,7 +75,7 @@ var basicIO = &ClassDecl{
 			Return: TYPE{
 				Name: "Nothing",
 			},
-			Body: NativeExpr(func(w *writer) error {
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) error {
 				panic("unimplemented")
 			}),
 		},
@@ -92,7 +96,7 @@ var basicIO = &ClassDecl{
 			Return: TYPE{
 				Name: "IO",
 			},
-			Body: NativeExpr(func(w *writer) error {
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) error {
 				panic("unimplemented")
 			}),
 		},
@@ -198,7 +202,7 @@ var basicIO = &ClassDecl{
 			Return: TYPE{
 				Name: "String",
 			},
-			Body: NativeExpr(func(w *writer) error {
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) error {
 				panic("unimplemented")
 			}),
 		},
@@ -219,7 +223,7 @@ var basicIO = &ClassDecl{
 			Return: TYPE{
 				Name: "Symbol",
 			},
-			Body: NativeExpr(func(w *writer) error {
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) error {
 				panic("unimplemented")
 			}),
 		},
@@ -240,7 +244,7 @@ var basicIO = &ClassDecl{
 			Return: TYPE{
 				Name: "String",
 			},
-			Body: NativeExpr(func(w *writer) error {
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) error {
 				panic("unimplemented")
 			}),
 		},
@@ -270,7 +274,7 @@ var basicInt = &ClassDecl{
 			Return: TYPE{
 				Name: "String",
 			},
-			Body: NativeExpr(func(w *writer) error {
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) error {
 				panic("unimplemented")
 			}),
 		},
@@ -292,7 +296,7 @@ var basicInt = &ClassDecl{
 			Return: TYPE{
 				Name: "Boolean",
 			},
-			Body: NativeExpr(func(w *writer) error {
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) error {
 				panic("unimplemented")
 			}),
 		},
@@ -341,7 +345,7 @@ var basicBoolean = &ClassDecl{
 			Return: TYPE{
 				Name: "Boolean",
 			},
-			Body: NativeExpr(func(w *writer) error {
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) error {
 				panic("unimplemented")
 			}),
 		},
@@ -395,7 +399,7 @@ var basicString = &ClassDecl{
 			Return: TYPE{
 				Name: "Boolean",
 			},
-			Body: NativeExpr(func(w *writer) error {
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) error {
 				panic("unimplemented")
 			}),
 		},
@@ -429,7 +433,7 @@ var basicString = &ClassDecl{
 			Return: TYPE{
 				Name: "String",
 			},
-			Body: NativeExpr(func(w *writer) error {
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) error {
 				panic("unimplemented")
 			}),
 		},
@@ -458,7 +462,7 @@ var basicString = &ClassDecl{
 			Return: TYPE{
 				Name: "String",
 			},
-			Body: NativeExpr(func(w *writer) error {
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) error {
 				panic("unimplemented")
 			}),
 		},
@@ -479,7 +483,7 @@ var basicString = &ClassDecl{
 			Return: TYPE{
 				Name: "Int",
 			},
-			Body: NativeExpr(func(w *writer) error {
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) error {
 				panic("unimplemented")
 			}),
 		},
@@ -801,7 +805,7 @@ var basicArrayAny = &ClassDecl{
 			Return: TYPE{
 				Name: "ArrayAny",
 			},
-			Body: NativeExpr(func(w *writer) error {
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) error {
 				panic("unimplemented")
 			}),
 		},
@@ -822,7 +826,7 @@ var basicArrayAny = &ClassDecl{
 			Return: TYPE{
 				Name: "Any",
 			},
-			Body: NativeExpr(func(w *writer) error {
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) error {
 				panic("unimplemented")
 			}),
 		},
@@ -851,7 +855,7 @@ var basicArrayAny = &ClassDecl{
 			Return: TYPE{
 				Name: "Any",
 			},
-			Body: NativeExpr(func(w *writer) error {
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) error {
 				panic("unimplemented")
 			}),
 		},

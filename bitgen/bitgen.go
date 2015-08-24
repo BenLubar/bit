@@ -238,6 +238,35 @@ func (w *Writer) Assign(start Line, left, right Value, end Line) {
 	w.line(start, left.simplify().String()+" EQUALS "+right.simplify().String(), end, end)
 }
 
+// Print writes a byte, most significant bit first.
+func (w *Writer) Print(start Line, value byte, end Line) {
+	n1 := w.ReserveLine()
+	n2 := w.ReserveLine()
+	n3 := w.ReserveLine()
+	n4 := w.ReserveLine()
+	n5 := w.ReserveLine()
+	n6 := w.ReserveLine()
+	n7 := w.ReserveLine()
+
+	w.PrintBit(start, value&0x80 == 0x80, n1)
+	w.PrintBit(n1, value&0x40 == 0x40, n2)
+	w.PrintBit(n2, value&0x20 == 0x20, n3)
+	w.PrintBit(n3, value&0x10 == 0x10, n4)
+	w.PrintBit(n4, value&0x08 == 0x08, n5)
+	w.PrintBit(n5, value&0x04 == 0x04, n6)
+	w.PrintBit(n6, value&0x02 == 0x02, n7)
+	w.PrintBit(n7, value&0x01 == 0x01, end)
+}
+
+// PrintBit writes a bit to the standard output.
+func (w *Writer) PrintBit(start Line, value Bit, end Line) {
+	if value {
+		w.line(start, "PRINT ONE", end, end)
+	} else {
+		w.line(start, "PRINT ZERO", end, end)
+	}
+}
+
 // Output writes value, most significant bit first.
 func (w *Writer) Output(start Line, value Integer, end Line) {
 	n1 := make([]Line, value.Width)

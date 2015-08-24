@@ -2,6 +2,8 @@ package main
 
 import (
 	"go/token"
+
+	"github.com/BenLubar/bit/bitgen"
 )
 
 type AST struct {
@@ -185,4 +187,4 @@ type Case struct {
 	Body Expr
 }
 
-type NativeExpr func(*writer) error
+type NativeExpr func(w *writer, start, end bitgen.Line) error
