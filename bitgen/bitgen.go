@@ -238,6 +238,20 @@ func (w *Writer) Assign(start Line, left, right Value, end Line) {
 	w.line(start, left.simplify().String()+" EQUALS "+right.simplify().String(), end, end)
 }
 
+// PrintString writes the bytes in a string, most significant bit first.
+func (w *Writer) PrintString(start Line, value string, end Line) {
+	n1 := make([]Line, len(value))
+	for i := range n1[:len(value)-1] {
+		n1[i] = w.ReserveLine()
+	}
+	n1[len(value)-1] = end
+
+	for i, next := range n1 {
+		w.Print(start, value[i], next)
+		start = next
+	}
+}
+
 // Print writes a byte, most significant bit first.
 func (w *Writer) Print(start Line, value byte, end Line) {
 	n1 := w.ReserveLine()

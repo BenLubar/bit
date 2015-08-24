@@ -70,15 +70,7 @@ func (w *writer) Pointer(start bitgen.Line, ptr bitgen.Variable, num bitgen.Inte
 }
 
 func (w *writer) Abort(start bitgen.Line, message string) {
-	n1 := make([]bitgen.Line, len(message))
-	for i := range n1[:len(message)-1] {
-		n1[i] = w.ReserveLine()
-	}
-
-	for i, next := range n1 {
-		w.Print(start, message[i], next)
-		start = next
-	}
+	w.PrintString(start, message, 0)
 }
 
 func (w *writer) BeginStack(start, end bitgen.Line) {
