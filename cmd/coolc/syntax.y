@@ -28,11 +28,11 @@ package main
 %token tokINVALID /* returned by the lexer when an error occurs */
 
 %left tokDOT
-%left tokNEGATE
-%left tokMULTIPLY tokDIVIDE
-%left tokPLUS tokMINUS
+%left<id> tokNEGATE
+%left<id> tokMULTIPLY tokDIVIDE
+%left<id> tokPLUS tokMINUS
 %left<id> tokEQUALEQUAL
-%left tokLESSEQUAL tokLESSTHAN
+%left<id> tokLESSEQUAL tokLESSTHAN
 %left tokMATCH
 %left tokIF tokWHILE
 %left tokASSIGN
@@ -256,14 +256,17 @@ expr
 	}
 | tokNEGATE expr
 	{
-		$$ = &NotExpr{
-			Right: $2,
+		$$ = &CallExpr{
+			Left: $2,
+			Name: $1,
 		}
 	}
 | tokMINUS expr %prec tokNEGATE
 	{
-		$$ = &NegativeExpr{
-			Right: $2,
+		$1.Name = "_negative"
+		$$ = &CallExpr{
+			Left: $2,
+			Name: $1,
 		}
 	}
 | tokIF tokLPAREN expr tokRPAREN expr tokELSE expr %prec tokIF
@@ -283,16 +286,22 @@ expr
 	}
 | expr tokLESSEQUAL expr
 	{
-		$$ = &LessThanOrEqualExpr{
-			Left:  $1,
-			Right: $3,
+		$$ = &CallExpr{
+			Left: $1,
+			Name: $2,
+			Args: []Expr{
+				$3,
+			},
 		}
 	}
 | expr tokLESSTHAN expr
 	{
-		$$ = &LessThanExpr{
-			Left:  $1,
-			Right: $3,
+		$$ = &CallExpr{
+			Left: $1,
+			Name: $2,
+			Args: []Expr{
+				$3,
+			},
 		}
 	}
 | expr tokEQUALEQUAL expr
@@ -307,30 +316,42 @@ expr
 	}
 | expr tokMULTIPLY expr
 	{
-		$$ = &MultiplyExpr{
-			Left:  $1,
-			Right: $3,
+		$$ = &CallExpr{
+			Left: $1,
+			Name: $2,
+			Args: []Expr{
+				$3,
+			},
 		}
 	}
 | expr tokDIVIDE expr
 	{
-		$$ = &DivideExpr{
-			Left:  $1,
-			Right: $3,
+		$$ = &CallExpr{
+			Left: $1,
+			Name: $2,
+			Args: []Expr{
+				$3,
+			},
 		}
 	}
 | expr tokPLUS expr
 	{
-		$$ = &AddExpr{
-			Left:  $1,
-			Right: $3,
+		$$ = &CallExpr{
+			Left: $1,
+			Name: $2,
+			Args: []Expr{
+				$3,
+			},
 		}
 	}
 | expr tokMINUS expr
 	{
-		$$ = &SubtractExpr{
-			Left:  $1,
-			Right: $3,
+		$$ = &CallExpr{
+			Left: $1,
+			Name: $2,
+			Args: []Expr{
+				$3,
+			},
 		}
 	}
 | expr tokMATCH tokLBRACE cases tokRBRACE /* note: this slightly differs from the diagrams in cool-manual.pdf */

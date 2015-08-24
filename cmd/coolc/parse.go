@@ -332,14 +332,24 @@ func (l *lexer) Lex(lvalue *yySymType) (tok int) {
 	case '.':
 		return tokDOT
 	case '!':
+		lvalue.id.Pos = l.file.Pos(int(offset))
+		lvalue.id.Name = "_not"
 		return tokNEGATE
 	case '*':
+		lvalue.id.Pos = l.file.Pos(int(offset))
+		lvalue.id.Name = "_multiply"
 		return tokMULTIPLY
 	case '/':
+		lvalue.id.Pos = l.file.Pos(int(offset))
+		lvalue.id.Name = "_divide"
 		return tokDIVIDE
 	case '+':
+		lvalue.id.Pos = l.file.Pos(int(offset))
+		lvalue.id.Name = "_add"
 		return tokPLUS
 	case '-':
+		lvalue.id.Pos = l.file.Pos(int(offset))
+		lvalue.id.Name = "_subtract"
 		return tokMINUS
 	case '=':
 		r, _, err = l.r.ReadRune()
@@ -360,9 +370,13 @@ func (l *lexer) Lex(lvalue *yySymType) (tok int) {
 		check(err)
 		switch r {
 		case '=':
+			lvalue.id.Pos = l.file.Pos(int(offset))
+			lvalue.id.Name = "_less_equal"
 			return tokLESSEQUAL
 		default:
 			check(l.r.UnreadRune())
+			lvalue.id.Pos = l.file.Pos(int(offset))
+			lvalue.id.Name = "_less"
 			return tokLESSTHAN
 		}
 	default:

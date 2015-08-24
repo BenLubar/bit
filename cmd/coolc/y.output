@@ -306,7 +306,7 @@ state 32
 
 	tokLPAREN  shift 19
 	tokASSIGN  shift 67
-	.  reduce 50 (src line 392)
+	.  reduce 50 (src line 413)
 
 	actuals  goto 68
 
@@ -439,37 +439,37 @@ state 40
 state 41
 	primary:  tokNULL.    (48)
 
-	.  reduce 48 (src line 384)
+	.  reduce 48 (src line 405)
 
 
 state 42
 	primary:  tokINTEGER.    (51)
 
-	.  reduce 51 (src line 398)
+	.  reduce 51 (src line 419)
 
 
 state 43
 	primary:  tokSTRING.    (52)
 
-	.  reduce 52 (src line 404)
+	.  reduce 52 (src line 425)
 
 
 state 44
 	primary:  tokTRUE.    (53)
 
-	.  reduce 53 (src line 410)
+	.  reduce 53 (src line 431)
 
 
 state 45
 	primary:  tokFALSE.    (54)
 
-	.  reduce 54 (src line 416)
+	.  reduce 54 (src line 437)
 
 
 state 46
 	primary:  tokTHIS.    (55)
 
-	.  reduce 55 (src line 422)
+	.  reduce 55 (src line 443)
 
 
 state 47
@@ -783,7 +783,7 @@ state 67
 state 68
 	primary:  tokID actuals.    (44)
 
-	.  reduce 44 (src line 361)
+	.  reduce 44 (src line 382)
 
 
 state 69
@@ -829,7 +829,7 @@ state 70
 	tokLESSEQUAL  shift 58
 	tokLESSTHAN  shift 59
 	tokMATCH  shift 65
-	.  reduce 31 (src line 263)
+	.  reduce 31 (src line 264)
 
 
 state 71
@@ -928,7 +928,7 @@ state 76
 state 77
 	primary:  tokLPAREN tokRPAREN.    (49)
 
-	.  reduce 49 (src line 388)
+	.  reduce 49 (src line 409)
 
 
 state 78
@@ -1046,7 +1046,7 @@ state 87
 	expr:  expr.tokDOT tokID actuals 
 
 	tokMATCH  shift 65
-	.  reduce 34 (src line 284)
+	.  reduce 34 (src line 287)
 
 
 state 88
@@ -1062,7 +1062,7 @@ state 88
 	expr:  expr.tokDOT tokID actuals 
 
 	tokMATCH  shift 65
-	.  reduce 35 (src line 291)
+	.  reduce 35 (src line 297)
 
 
 state 89
@@ -1080,7 +1080,7 @@ state 89
 	tokLESSEQUAL  shift 58
 	tokLESSTHAN  shift 59
 	tokMATCH  shift 65
-	.  reduce 36 (src line 298)
+	.  reduce 36 (src line 307)
 
 
 state 90
@@ -1101,7 +1101,7 @@ state 90
 	tokLESSEQUAL  shift 58
 	tokLESSTHAN  shift 59
 	tokMATCH  shift 65
-	.  reduce 37 (src line 308)
+	.  reduce 37 (src line 317)
 
 
 state 91
@@ -1122,7 +1122,7 @@ state 91
 	tokLESSEQUAL  shift 58
 	tokLESSTHAN  shift 59
 	tokMATCH  shift 65
-	.  reduce 38 (src line 315)
+	.  reduce 38 (src line 327)
 
 
 state 92
@@ -1141,7 +1141,7 @@ state 92
 	tokLESSEQUAL  shift 58
 	tokLESSTHAN  shift 59
 	tokMATCH  shift 65
-	.  reduce 39 (src line 322)
+	.  reduce 39 (src line 337)
 
 
 state 93
@@ -1160,7 +1160,7 @@ state 93
 	tokLESSEQUAL  shift 58
 	tokLESSTHAN  shift 59
 	tokMATCH  shift 65
-	.  reduce 40 (src line 329)
+	.  reduce 40 (src line 347)
 
 
 state 94
@@ -1256,19 +1256,19 @@ state 99
 state 100
 	primary:  tokNEW tokTYPE actuals.    (45)
 
-	.  reduce 45 (src line 369)
+	.  reduce 45 (src line 390)
 
 
 state 101
 	primary:  tokLBRACE block tokRBRACE.    (46)
 
-	.  reduce 46 (src line 376)
+	.  reduce 46 (src line 397)
 
 
 state 102
 	primary:  tokLPAREN expr tokRPAREN.    (47)
 
-	.  reduce 47 (src line 380)
+	.  reduce 47 (src line 401)
 
 
 state 103
@@ -1352,7 +1352,7 @@ state 113
 state 114
 	cases:  case.    (56)
 
-	.  reduce 56 (src line 428)
+	.  reduce 56 (src line 449)
 
 
 state 115
@@ -1367,7 +1367,7 @@ state 115
 state 116
 	expr:  expr tokDOT tokID actuals.    (42)
 
-	.  reduce 42 (src line 343)
+	.  reduce 42 (src line 364)
 
 
 state 117
@@ -1419,7 +1419,7 @@ state 118
 state 119
 	primary:  tokSUPER tokDOT tokID actuals.    (43)
 
-	.  reduce 43 (src line 353)
+	.  reduce 43 (src line 374)
 
 
 state 120
@@ -1489,13 +1489,13 @@ state 126
 state 127
 	expr:  expr tokMATCH tokLBRACE cases tokRBRACE.    (41)
 
-	.  reduce 41 (src line 336)
+	.  reduce 41 (src line 357)
 
 
 state 128
 	cases:  cases case.    (57)
 
-	.  reduce 57 (src line 433)
+	.  reduce 57 (src line 454)
 
 
 state 129
@@ -1549,7 +1549,7 @@ state 132
 	expr:  expr.tokMATCH tokLBRACE cases tokRBRACE 
 	expr:  expr.tokDOT tokID actuals 
 
-	.  reduce 33 (src line 277)
+	.  reduce 33 (src line 280)
 
 
 state 133
@@ -1796,7 +1796,7 @@ state 147
 state 148
 	case:  tokCASE tokNULL tokARROW block.    (59)
 
-	.  reduce 59 (src line 460)
+	.  reduce 59 (src line 481)
 
 
 state 149
@@ -1811,7 +1811,7 @@ state 149
 	expr:  expr.tokMATCH tokLBRACE cases tokRBRACE 
 	expr:  expr.tokDOT tokID actuals 
 
-	.  reduce 32 (src line 269)
+	.  reduce 32 (src line 272)
 
 
 state 150
@@ -1918,7 +1918,7 @@ state 156
 state 157
 	case:  tokCASE tokID tokCOLON tokTYPE tokARROW block.    (58)
 
-	.  reduce 58 (src line 447)
+	.  reduce 58 (src line 468)
 
 
 42 terminals, 17 nonterminals

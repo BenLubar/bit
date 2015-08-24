@@ -452,6 +452,143 @@ var basicInt = &ClassDecl{
 				w.PopStack(start, end)
 			}),
 		},
+		&MethodFeature{
+			Name: ID{
+				Name: "_negative",
+			},
+			Return: TYPE{
+				Name: "Int",
+			},
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
+				panic("unimplemented")
+			}),
+		},
+		&MethodFeature{
+			Name: ID{
+				Name: "_add",
+			},
+			Args: []*VarDecl{
+				{
+					Name: ID{
+						Name: "x",
+					},
+					Type: TYPE{
+						Name: "Int",
+					},
+				},
+			},
+			Return: TYPE{
+				Name: "Int",
+			},
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
+				panic("unimplemented")
+			}),
+		},
+		&MethodFeature{
+			Name: ID{
+				Name: "_subtract",
+			},
+			Args: []*VarDecl{
+				{
+					Name: ID{
+						Name: "x",
+					},
+					Type: TYPE{
+						Name: "Int",
+					},
+				},
+			},
+			Return: TYPE{
+				Name: "Int",
+			},
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
+				panic("unimplemented")
+			}),
+		},
+		&MethodFeature{
+			Name: ID{
+				Name: "_multiply",
+			},
+			Args: []*VarDecl{
+				{
+					Name: ID{
+						Name: "x",
+					},
+					Type: TYPE{
+						Name: "Int",
+					},
+				},
+			},
+			Return: TYPE{
+				Name: "Int",
+			},
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
+				panic("unimplemented")
+			}),
+		},
+		&MethodFeature{
+			Name: ID{
+				Name: "_divide",
+			},
+			Args: []*VarDecl{
+				{
+					Name: ID{
+						Name: "x",
+					},
+					Type: TYPE{
+						Name: "Int",
+					},
+				},
+			},
+			Return: TYPE{
+				Name: "Int",
+			},
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
+				panic("unimplemented")
+			}),
+		},
+		&MethodFeature{
+			Name: ID{
+				Name: "_less",
+			},
+			Args: []*VarDecl{
+				{
+					Name: ID{
+						Name: "x",
+					},
+					Type: TYPE{
+						Name: "Int",
+					},
+				},
+			},
+			Return: TYPE{
+				Name: "Int",
+			},
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
+				panic("unimplemented")
+			}),
+		},
+		&MethodFeature{
+			Name: ID{
+				Name: "_less_equal",
+			},
+			Args: []*VarDecl{
+				{
+					Name: ID{
+						Name: "x",
+					},
+					Type: TYPE{
+						Name: "Int",
+					},
+				},
+			},
+			Return: TYPE{
+				Name: "Int",
+			},
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
+				panic("unimplemented")
+			}),
+		},
 	},
 }
 
@@ -476,6 +613,23 @@ var basicBoolean = &ClassDecl{
 				},
 				Else: &StringExpr{
 					S: "false",
+				},
+			},
+		},
+		&MethodFeature{
+			Name: ID{
+				Name: "_not",
+			},
+			Return: TYPE{
+				Name: "Boolean",
+			},
+			Body: &IfExpr{
+				Condition: &ThisExpr{},
+				Then: &BooleanExpr{
+					B: false,
+				},
+				Else: &BooleanExpr{
+					B: true,
 				},
 			},
 		},
@@ -754,15 +908,20 @@ var basicString = &ClassDecl{
 								Name: "Int",
 							},
 						},
-						Value: &SubtractExpr{
+						Value: &CallExpr{
 							Left: &NameExpr{
 								Name: ID{
 									Name: "length",
 								},
 							},
-							Right: &NameExpr{
-								Name: ID{
-									Name: "n",
+							Name: ID{
+								Name: "_subtract",
+							},
+							Args: []Expr{
+								&NameExpr{
+									Name: ID{
+										Name: "n",
+									},
 								},
 							},
 						},
@@ -791,23 +950,31 @@ var basicString = &ClassDecl{
 										Name: "Int",
 									},
 								},
-								Value: &NegativeExpr{
-									Right: &IntegerExpr{
+								Value: &CallExpr{
+									Left: &IntegerExpr{
 										N: 1,
+									},
+									Name: ID{
+										Name: "_negative",
 									},
 								},
 							},
 							Expr: &ChainExpr{
 								Pre: &WhileExpr{
-									Condition: &LessThanOrEqualExpr{
+									Condition: &CallExpr{
 										Left: &NameExpr{
 											Name: ID{
 												Name: "i",
 											},
 										},
-										Right: &NameExpr{
-											Name: ID{
-												Name: "diff",
+										Name: ID{
+											Name: "_less_equal",
+										},
+										Args: []Expr{
+											&NameExpr{
+												Name: ID{
+													Name: "diff",
+												},
 											},
 										},
 									},
@@ -824,15 +991,20 @@ var basicString = &ClassDecl{
 															Name: "i",
 														},
 													},
-													&AddExpr{
+													&CallExpr{
 														Left: &NameExpr{
 															Name: ID{
 																Name: "i",
 															},
 														},
-														Right: &NameExpr{
-															Name: ID{
-																Name: "n",
+														Name: ID{
+															Name: "_add",
+														},
+														Args: []Expr{
+															&NameExpr{
+																Name: ID{
+																	Name: "n",
+																},
 															},
 														},
 													},
@@ -864,14 +1036,19 @@ var basicString = &ClassDecl{
 												Left: ID{
 													Name: "i",
 												},
-												Right: &AddExpr{
+												Right: &CallExpr{
 													Left: &NameExpr{
 														Name: ID{
 															Name: "diff",
 														},
 													},
-													Right: &IntegerExpr{
-														N: 1,
+													Name: ID{
+														Name: "_add",
+													},
+													Args: []Expr{
+														&IntegerExpr{
+															N: 1,
+														},
 													},
 												},
 											},
@@ -880,14 +1057,19 @@ var basicString = &ClassDecl{
 											Left: ID{
 												Name: "i",
 											},
-											Right: &AddExpr{
+											Right: &CallExpr{
 												Left: &NameExpr{
 													Name: ID{
 														Name: "i",
 													},
 												},
-												Right: &IntegerExpr{
-													N: 1,
+												Name: ID{
+													Name: "_add",
+												},
+												Args: []Expr{
+													&IntegerExpr{
+														N: 1,
+													},
 												},
 											},
 										},
@@ -1314,6 +1496,12 @@ func (ast *AST) recurse(classes map[string]*ClassDecl, ns []*ID, value interface
 		for _, e := range v.Args {
 			recurse(e)
 		}
+		for _, f := range v.Type.target.Body {
+			if _, ok := f.(*NativeFeature); ok {
+				pos := ast.FileSet.Position(v.Type.Pos)
+				panic(fmt.Errorf("cannot extend native class (%s) at %v", v.Type.Name, pos))
+			}
+		}
 
 	case *VarFeature:
 		recurse(&v.Type)
@@ -1342,36 +1530,6 @@ func (ast *AST) recurse(classes map[string]*ClassDecl, ns []*ID, value interface
 		for _, a := range v.Args {
 			recurse(a)
 		}
-
-	case *NegativeExpr:
-		recurse(v.Right)
-
-	case *NotExpr:
-		recurse(v.Right)
-
-	case *AddExpr:
-		recurse(v.Left)
-		recurse(v.Right)
-
-	case *SubtractExpr:
-		recurse(v.Left)
-		recurse(v.Right)
-
-	case *MultiplyExpr:
-		recurse(v.Left)
-		recurse(v.Right)
-
-	case *DivideExpr:
-		recurse(v.Left)
-		recurse(v.Right)
-
-	case *LessThanExpr:
-		recurse(v.Left)
-		recurse(v.Right)
-
-	case *LessThanOrEqualExpr:
-		recurse(v.Left)
-		recurse(v.Right)
 
 	case *NameExpr:
 		recurse(&v.Name)

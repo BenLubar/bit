@@ -74,14 +74,6 @@ type AssignExpr struct {
 	Right Expr
 }
 
-type NotExpr struct {
-	Right Expr
-}
-
-type NegativeExpr struct {
-	Right Expr
-}
-
 type IfExpr struct {
 	Condition Expr
 	Then      Expr
@@ -91,36 +83,6 @@ type IfExpr struct {
 type WhileExpr struct {
 	Condition Expr
 	Do        Expr
-}
-
-type LessThanOrEqualExpr struct {
-	Left  Expr
-	Right Expr
-}
-
-type LessThanExpr struct {
-	Left  Expr
-	Right Expr
-}
-
-type MultiplyExpr struct {
-	Left  Expr
-	Right Expr
-}
-
-type DivideExpr struct {
-	Left  Expr
-	Right Expr
-}
-
-type AddExpr struct {
-	Left  Expr
-	Right Expr
-}
-
-type SubtractExpr struct {
-	Left  Expr
-	Right Expr
 }
 
 type MatchExpr struct {

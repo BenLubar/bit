@@ -827,21 +827,24 @@ yydefault:
 		yyDollar = yyS[yypt-2 : yypt+1]
 		//line syntax.y:258
 		{
-			yyVAL.exp = &NotExpr{
-				Right: yyDollar[2].exp,
+			yyVAL.exp = &CallExpr{
+				Left: yyDollar[2].exp,
+				Name: yyDollar[1].id,
 			}
 		}
 	case 31:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line syntax.y:264
+		//line syntax.y:265
 		{
-			yyVAL.exp = &NegativeExpr{
-				Right: yyDollar[2].exp,
+			yyDollar[1].id.Name = "_negative"
+			yyVAL.exp = &CallExpr{
+				Left: yyDollar[2].exp,
+				Name: yyDollar[1].id,
 			}
 		}
 	case 32:
 		yyDollar = yyS[yypt-7 : yypt+1]
-		//line syntax.y:270
+		//line syntax.y:273
 		{
 			yyVAL.exp = &IfExpr{
 				Condition: yyDollar[3].exp,
@@ -851,7 +854,7 @@ yydefault:
 		}
 	case 33:
 		yyDollar = yyS[yypt-5 : yypt+1]
-		//line syntax.y:278
+		//line syntax.y:281
 		{
 			yyVAL.exp = &WhileExpr{
 				Condition: yyDollar[3].exp,
@@ -860,25 +863,31 @@ yydefault:
 		}
 	case 34:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line syntax.y:285
+		//line syntax.y:288
 		{
-			yyVAL.exp = &LessThanOrEqualExpr{
-				Left:  yyDollar[1].exp,
-				Right: yyDollar[3].exp,
+			yyVAL.exp = &CallExpr{
+				Left: yyDollar[1].exp,
+				Name: yyDollar[2].id,
+				Args: []Expr{
+					yyDollar[3].exp,
+				},
 			}
 		}
 	case 35:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line syntax.y:292
+		//line syntax.y:298
 		{
-			yyVAL.exp = &LessThanExpr{
-				Left:  yyDollar[1].exp,
-				Right: yyDollar[3].exp,
+			yyVAL.exp = &CallExpr{
+				Left: yyDollar[1].exp,
+				Name: yyDollar[2].id,
+				Args: []Expr{
+					yyDollar[3].exp,
+				},
 			}
 		}
 	case 36:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line syntax.y:299
+		//line syntax.y:308
 		{
 			yyVAL.exp = &CallExpr{
 				Left: yyDollar[1].exp,
@@ -890,43 +899,55 @@ yydefault:
 		}
 	case 37:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line syntax.y:309
+		//line syntax.y:318
 		{
-			yyVAL.exp = &MultiplyExpr{
-				Left:  yyDollar[1].exp,
-				Right: yyDollar[3].exp,
+			yyVAL.exp = &CallExpr{
+				Left: yyDollar[1].exp,
+				Name: yyDollar[2].id,
+				Args: []Expr{
+					yyDollar[3].exp,
+				},
 			}
 		}
 	case 38:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line syntax.y:316
+		//line syntax.y:328
 		{
-			yyVAL.exp = &DivideExpr{
-				Left:  yyDollar[1].exp,
-				Right: yyDollar[3].exp,
+			yyVAL.exp = &CallExpr{
+				Left: yyDollar[1].exp,
+				Name: yyDollar[2].id,
+				Args: []Expr{
+					yyDollar[3].exp,
+				},
 			}
 		}
 	case 39:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line syntax.y:323
+		//line syntax.y:338
 		{
-			yyVAL.exp = &AddExpr{
-				Left:  yyDollar[1].exp,
-				Right: yyDollar[3].exp,
+			yyVAL.exp = &CallExpr{
+				Left: yyDollar[1].exp,
+				Name: yyDollar[2].id,
+				Args: []Expr{
+					yyDollar[3].exp,
+				},
 			}
 		}
 	case 40:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line syntax.y:330
+		//line syntax.y:348
 		{
-			yyVAL.exp = &SubtractExpr{
-				Left:  yyDollar[1].exp,
-				Right: yyDollar[3].exp,
+			yyVAL.exp = &CallExpr{
+				Left: yyDollar[1].exp,
+				Name: yyDollar[2].id,
+				Args: []Expr{
+					yyDollar[3].exp,
+				},
 			}
 		}
 	case 41:
 		yyDollar = yyS[yypt-5 : yypt+1]
-		//line syntax.y:337
+		//line syntax.y:358
 		{
 			yyVAL.exp = &MatchExpr{
 				Left:  yyDollar[1].exp,
@@ -935,7 +956,7 @@ yydefault:
 		}
 	case 42:
 		yyDollar = yyS[yypt-4 : yypt+1]
-		//line syntax.y:344
+		//line syntax.y:365
 		{
 			yyVAL.exp = &CallExpr{
 				Left: yyDollar[1].exp,
@@ -945,7 +966,7 @@ yydefault:
 		}
 	case 43:
 		yyDollar = yyS[yypt-4 : yypt+1]
-		//line syntax.y:355
+		//line syntax.y:376
 		{
 			yyVAL.exp = &StaticCallExpr{
 				Name: yyDollar[3].id,
@@ -954,7 +975,7 @@ yydefault:
 		}
 	case 44:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line syntax.y:362
+		//line syntax.y:383
 		{
 			yyVAL.exp = &CallExpr{
 				Left: &ThisExpr{},
@@ -964,7 +985,7 @@ yydefault:
 		}
 	case 45:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line syntax.y:370
+		//line syntax.y:391
 		{
 			yyVAL.exp = &NewExpr{
 				Type: yyDollar[2].typ,
@@ -973,31 +994,31 @@ yydefault:
 		}
 	case 46:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line syntax.y:377
+		//line syntax.y:398
 		{
 			yyVAL.exp = yyDollar[2].exp
 		}
 	case 47:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line syntax.y:381
+		//line syntax.y:402
 		{
 			yyVAL.exp = yyDollar[2].exp
 		}
 	case 48:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line syntax.y:385
+		//line syntax.y:406
 		{
 			yyVAL.exp = &NullExpr{}
 		}
 	case 49:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line syntax.y:389
+		//line syntax.y:410
 		{
 			yyVAL.exp = &UnitExpr{}
 		}
 	case 50:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line syntax.y:393
+		//line syntax.y:414
 		{
 			yyVAL.exp = &NameExpr{
 				Name: yyDollar[1].id,
@@ -1005,7 +1026,7 @@ yydefault:
 		}
 	case 51:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line syntax.y:399
+		//line syntax.y:420
 		{
 			yyVAL.exp = &IntegerExpr{
 				N: yyDollar[1].n,
@@ -1013,7 +1034,7 @@ yydefault:
 		}
 	case 52:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line syntax.y:405
+		//line syntax.y:426
 		{
 			yyVAL.exp = &StringExpr{
 				S: yyDollar[1].s,
@@ -1021,7 +1042,7 @@ yydefault:
 		}
 	case 53:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line syntax.y:411
+		//line syntax.y:432
 		{
 			yyVAL.exp = &BooleanExpr{
 				B: true,
@@ -1029,7 +1050,7 @@ yydefault:
 		}
 	case 54:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line syntax.y:417
+		//line syntax.y:438
 		{
 			yyVAL.exp = &BooleanExpr{
 				B: false,
@@ -1037,19 +1058,19 @@ yydefault:
 		}
 	case 55:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line syntax.y:423
+		//line syntax.y:444
 		{
 			yyVAL.exp = &ThisExpr{}
 		}
 	case 56:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line syntax.y:430
+		//line syntax.y:451
 		{
 			yyVAL.cas = yyDollar[1].cas
 		}
 	case 57:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line syntax.y:434
+		//line syntax.y:455
 		{
 			yyVAL.cas = yyDollar[1].cas
 			if yyDollar[2].cas.Null != nil {
@@ -1063,7 +1084,7 @@ yydefault:
 		}
 	case 58:
 		yyDollar = yyS[yypt-6 : yypt+1]
-		//line syntax.y:449
+		//line syntax.y:470
 		{
 			yyVAL.cas = &Cases{
 				Cases: []*Case{
@@ -1077,7 +1098,7 @@ yydefault:
 		}
 	case 59:
 		yyDollar = yyS[yypt-4 : yypt+1]
-		//line syntax.y:461
+		//line syntax.y:482
 		{
 			yyVAL.cas = &Cases{
 				Null: yyDollar[4].exp,
