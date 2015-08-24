@@ -256,7 +256,92 @@ var basicIO = &ClassDecl{
 				Name: "Symbol",
 			},
 			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
-				panic("unimplemented")
+				next := w.ReserveLine()
+				str, prevstr := w.StackAlloc(start, next)
+				start = next
+
+				w.EndStack()
+
+				next = w.ReserveLine()
+				w.CopyReg(start, w.General[0], w.Symbol, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Cmp(start, w.StackOffset(w.Arg(0)), 0, w.Null, next)
+				start = next
+
+				loop, done, found := start, w.ReserveLine(), w.ReserveLine()
+				next = w.ReserveLine()
+				w.Cmp(start, w.General[0].Num, 0, done, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Copy(start, str, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[0].Ptr, basicSymbolName.offset}}, 32}, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.BeginStack(start, next)
+				start = next
+
+				next = w.ReserveLine()
+				arg, _ := w.StackAlloc(start, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Copy(start, arg, w.PrevStackOffset(w.Arg(0)), next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Copy(start, w.This.Num, prevstr, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Pointer(start, w.This.Ptr, w.This.Num, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.StaticCall(start, basicStringEquals, next)
+				start = next
+
+				w.CmpReg(start, w.True.Num, w.Return.Num, found, loop)
+
+				next = w.ReserveLine()
+				w.NewNative(done, w.General[0], basicSymbol, 0, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.StaticAllocInt(start, w.General[1], 0, next)
+				start = next
+
+				next, done = w.ReserveLine(), w.ReserveLine()
+				w.Cmp(start, w.Symbol.Num, 0, done, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Load(start, w.General[2], w.Symbol, basicSymbolHash.offset, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Copy(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[1].Ptr, 32}}, 32}, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[2].Ptr, 32}}, 32}, next)
+				start = next
+
+				w.Increment(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[1].Ptr, 32}}, 32}, done, 0)
+
+				next = w.ReserveLine()
+				w.Copy(done, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[0].Ptr, basicSymbolName.offset * 8}}, 32}, w.StackOffset(w.Arg(0)), next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Copy(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[0].Ptr, basicSymbolHash.offset * 8}}, 32}, w.General[1].Num, next)
+				start = next
+
+				w.CopyReg(start, w.Symbol, w.General[0], found)
+
+				next = w.ReserveLine()
+				w.CopyReg(found, w.Return, w.General[0], next)
+				start = next
+
+				w.PopStack(start, end)
 			}),
 		},
 		&MethodFeature{
@@ -409,6 +494,81 @@ var basicStringLength = &VarFeature{
 	},
 }
 
+var basicStringEquals = &MethodFeature{
+	Override: true,
+	Name: ID{
+		Name: "equals",
+	},
+	Args: []*VarDecl{
+		{
+			Name: ID{
+				Name: "other",
+			},
+			Type: TYPE{
+				Name: "Any",
+			},
+		},
+	},
+	Return: TYPE{
+		Name: "Boolean",
+	},
+	Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
+		w.EndStack()
+
+		next := w.ReserveLine()
+		w.Load(start, w.General[0], w.Stack, w.Arg(0), next)
+		start = next
+
+		same, different := w.ReserveLine(), w.ReserveLine()
+
+		next = w.ReserveLine()
+		w.Cmp(start, w.General[0].Num, 0, different, next)
+		start = next
+
+		next = w.ReserveLine()
+		w.CmpReg(start, bitgen.Integer{bitgen.ValueAt{w.This.Ptr}, 32}, bitgen.Integer{bitgen.ValueAt{w.General[0].Ptr}, 32}, next, different)
+		start = next
+
+		next = w.ReserveLine()
+		w.Load(start, w.General[1], w.General[0], basicStringLength.offset, next)
+		start = next
+
+		next = w.ReserveLine()
+		w.Load(start, w.General[2], w.This, basicStringLength.offset, next)
+		start = next
+
+		next = w.ReserveLine()
+		w.CmpReg(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[1].Ptr, 32}}, 32}, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[2].Ptr, 32}}, 32}, next, different)
+		start = next
+
+		next = w.ReserveLine()
+		w.Copy(start, w.General[1].Num, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[1].Ptr, 32}}, 32}, next)
+		start = next
+
+		loop := start
+		next = w.ReserveLine()
+		w.Decrement(start, w.General[1].Num, next, same)
+		start = next
+
+		next = w.ReserveLine()
+		w.CmpReg(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.This.Ptr, basicStringLength.offset*8 + 32}}, 8}, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[0].Ptr, basicStringLength.offset*8 + 32}}, 8}, next, different)
+		start = next
+
+		next = w.ReserveLine()
+		w.Assign(start, w.This.Ptr, bitgen.Offset{w.This.Ptr, 8}, next)
+		start = next
+
+		w.Assign(start, w.General[0].Ptr, bitgen.Offset{w.General[0].Ptr, 8}, loop)
+
+		next = w.ReserveLine()
+		w.CopyReg(same, w.Return, w.True, next)
+		w.CopyReg(different, w.Return, w.False, next)
+		start = next
+
+		w.PopStack(start, end)
+	}),
+}
+
 var basicString = &ClassDecl{
 	Name: TYPE{
 		Name: "String",
@@ -426,80 +586,7 @@ var basicString = &ClassDecl{
 			},
 			Body: &ThisExpr{},
 		},
-		&MethodFeature{
-			Override: true,
-			Name: ID{
-				Name: "equals",
-			},
-			Args: []*VarDecl{
-				{
-					Name: ID{
-						Name: "other",
-					},
-					Type: TYPE{
-						Name: "Any",
-					},
-				},
-			},
-			Return: TYPE{
-				Name: "Boolean",
-			},
-			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
-				w.EndStack()
-
-				next := w.ReserveLine()
-				w.Load(start, w.General[0], w.Stack, w.Arg(0), next)
-				start = next
-
-				same, different := w.ReserveLine(), w.ReserveLine()
-
-				next = w.ReserveLine()
-				w.Cmp(start, w.General[0].Num, 0, different, next)
-				start = next
-
-				next = w.ReserveLine()
-				w.CmpReg(start, bitgen.Integer{bitgen.ValueAt{w.This.Ptr}, 32}, bitgen.Integer{bitgen.ValueAt{w.General[0].Ptr}, 32}, next, different)
-				start = next
-
-				next = w.ReserveLine()
-				w.Load(start, w.General[1], w.General[0], basicStringLength.offset, next)
-				start = next
-
-				next = w.ReserveLine()
-				w.Load(start, w.General[2], w.This, basicStringLength.offset, next)
-				start = next
-
-				next = w.ReserveLine()
-				w.CmpReg(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[1].Ptr, 32}}, 32}, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[2].Ptr, 32}}, 32}, next, different)
-				start = next
-
-				next = w.ReserveLine()
-				w.Copy(start, w.General[1].Num, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[1].Ptr, 32}}, 32}, next)
-				start = next
-
-				loop := start
-				next = w.ReserveLine()
-				w.Decrement(start, w.General[1].Num, next, same)
-				start = next
-
-				next = w.ReserveLine()
-				w.CmpReg(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.This.Ptr, basicStringLength.offset*8 + 32}}, 8}, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[0].Ptr, basicStringLength.offset*8 + 32}}, 8}, next, different)
-				start = next
-
-				next = w.ReserveLine()
-				w.Assign(start, w.This.Ptr, bitgen.Offset{w.This.Ptr, 8}, next)
-				start = next
-
-				w.Assign(start, w.General[0].Ptr, bitgen.Offset{w.General[0].Ptr, 8}, loop)
-
-				next = w.ReserveLine()
-				w.CopyReg(same, w.Return, w.True, next)
-				w.CopyReg(different, w.Return, w.False, next)
-				start = next
-
-				w.PopStack(start, end)
-			}),
-		},
+		basicStringEquals,
 		&MethodFeature{
 			Name: ID{
 				Name: "length",

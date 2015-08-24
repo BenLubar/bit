@@ -17,7 +17,9 @@ func (ast *AST) WriteTo(out io.Writer) (err error) {
 
 	start := w.Init()
 
-	_ = start
+	methods := w.MethodTable()
+
+	_, _ = start, methods
 
 	panic("unimplemented")
 }
@@ -171,6 +173,14 @@ func (w *writer) ClassDeclFixup(start bitgen.Line, c *ClassDecl, end bitgen.Line
 	w.Copy(start, bitgen.Integer{bitgen.ValueAt{w.This.Ptr}, 32}, w.Classes[basicInt].Num, end)
 }
 
+func (w *writer) MethodTable() (entry bitgen.Line) {
+	entry = w.ReserveLine()
+
+	panic("unimplemented")
+
+	return
+}
+
 func (w *writer) Pointer(start bitgen.Line, ptr bitgen.Variable, num bitgen.Integer, end bitgen.Line) {
 	next := w.ReserveLine()
 	w.Copy(start, w.Ptr, num, next)
@@ -253,12 +263,12 @@ func (w *writer) BeginStack(start, end bitgen.Line) {
 	w.Assign(start, w.Alloc.Ptr, bitgen.Offset{w.Alloc.Ptr, w.Offset * 32}, end)
 }
 
-func (w *writer) StackAlloc(start, end bitgen.Line) bitgen.Integer {
+func (w *writer) StackAlloc(start, end bitgen.Line) (cur, prev bitgen.Integer) {
 	if w.Offset == 0 {
 		panic("StackAlloc while not in stack")
 	}
 
-	ret := bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.Stack.Ptr, w.Offset * 32}}, 32}
+	cur, prev = w.StackOffset(w.Offset), w.PrevStackOffset(w.Offset)
 
 	w.Offset++
 
@@ -270,7 +280,7 @@ func (w *writer) StackAlloc(start, end bitgen.Line) bitgen.Integer {
 
 	w.Assign(start, w.Alloc.Ptr, bitgen.Offset{w.Alloc.Ptr, 32}, end)
 
-	return ret
+	return
 }
 
 func (w *writer) EndStack() {
@@ -459,6 +469,10 @@ func (w *writer) StackOffset(offset uint) bitgen.Integer {
 	return bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.Stack.Ptr, offset * 8}}, 32}
 }
 
+func (w *writer) PrevStackOffset(offset uint) bitgen.Integer {
+	return bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.Prev, offset * 8}}, 32}
+}
+
 func (w *writer) CmpReg(start bitgen.Line, left, right bitgen.Integer, same, different bitgen.Line) {
 	if left.Width != right.Width {
 		panic("non-equal widths for CmpReg")
@@ -540,4 +554,12 @@ func (w *writer) PrintStringArg(start bitgen.Line, arg uint, end bitgen.Line) {
 	start = next
 
 	w.Assign(start, w.General[0].Ptr, bitgen.Offset{w.General[0].Ptr, 8}, loop)
+}
+
+func (w *writer) StaticCall(start bitgen.Line, m *MethodFeature, end bitgen.Line) {
+	panic("unimplemented")
+}
+
+func (w *writer) DynamicCall(start bitgen.Line, m *MethodFeature, end bitgen.Line) {
+	panic("unimplemented")
 }
