@@ -277,7 +277,17 @@ var basicIO = &ClassDecl{
 				Name: "String",
 			},
 			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
-				panic("unimplemented")
+				w.EndStack()
+
+				next := w.ReserveLine()
+				w.Load(start, w.Return, w.Stack, w.Arg(0), next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Load(start, w.Return, w.Return, basicSymbolName.offset, next)
+				start = next
+
+				w.PopStack(start, end)
 			}),
 		},
 	},
@@ -722,48 +732,54 @@ var basicString = &ClassDecl{
 	},
 }
 
+var basicSymbolName = &VarFeature{
+	VarDecl: VarDecl{
+		Name: ID{
+			Name: "name",
+		},
+		Type: TYPE{
+			Name: "String",
+		},
+	},
+	Value: &StringExpr{
+		S: "",
+	},
+}
+
+var basicSymbolHash = &VarFeature{
+	VarDecl: VarDecl{
+		Name: ID{
+			Name: "hash",
+		},
+		Type: TYPE{
+			Name: "Int",
+		},
+	},
+	Value: &IntegerExpr{
+		N: 0,
+	},
+}
+
+var basicSymbolNext = &VarFeature{
+	VarDecl: VarDecl{
+		Name: ID{
+			Name: "next",
+		},
+		Type: TYPE{
+			Name: "Symbol",
+		},
+	},
+	Value: &NullExpr{},
+}
+
 var basicSymbol = &ClassDecl{
 	Name: TYPE{
 		Name: "Symbol",
 	},
 	Body: []Feature{
-		&VarFeature{
-			VarDecl: VarDecl{
-				Name: ID{
-					Name: "name",
-				},
-				Type: TYPE{
-					Name: "String",
-				},
-			},
-			Value: &StringExpr{
-				S: "",
-			},
-		},
-		&VarFeature{
-			VarDecl: VarDecl{
-				Name: ID{
-					Name: "hash",
-				},
-				Type: TYPE{
-					Name: "Int",
-				},
-			},
-			Value: &IntegerExpr{
-				N: 0,
-			},
-		},
-		&VarFeature{
-			VarDecl: VarDecl{
-				Name: ID{
-					Name: "next",
-				},
-				Type: TYPE{
-					Name: "Symbol",
-				},
-			},
-			Value: &NullExpr{},
-		},
+		basicSymbolName,
+		basicSymbolHash,
+		basicSymbolNext,
 		&NativeFeature{},
 		&MethodFeature{
 			Override: true,
