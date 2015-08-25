@@ -43,7 +43,8 @@ type writer struct {
 	General [4]register      // general purpose registers, saved
 	Heap    bitgen.AddressOf // heap start (also null pointer), internal
 
-	Classes map[*ClassDecl]register // class definition pointers, internal
+	Classes  map[*ClassDecl]register // class definition pointers, internal
+	basicInt *ClassDecl              // the same as the global basicInt
 
 	Null       bitgen.Line // null pointer dereference
 	IndexRange bitgen.Line // ArrayAny index out of range
@@ -76,6 +77,7 @@ func (w *writer) Init() (start bitgen.Line) {
 		reg(&w.General[i])
 	}
 	w.Classes = make(map[*ClassDecl]register)
+	w.basicInt = basicInt
 	for _, c := range basicClasses {
 		var r register
 		reg(&r)
@@ -351,7 +353,7 @@ func (w *writer) StaticAlloc(start bitgen.Line, reg register, size uint, end bit
 
 func (w *writer) NewInt(start bitgen.Line, reg register, value int32, end bitgen.Line) {
 	next := w.ReserveLine()
-	w.NewNative(start, reg, basicInt, 32/8, next)
+	w.NewNative(start, reg, w.basicInt, 32/8, next)
 	start = next
 
 	for i := uint(0); i < 32; i++ {
@@ -507,12 +509,12 @@ func (w *writer) LessThanUnsigned(start bitgen.Line, left, right bitgen.Integer,
 		panic("non-equal widths for CmpReg")
 	}
 
-	for i := uint(0); i < left.Width; i++ {
+	for i := left.Width - 1; i < left.Width; i-- {
 		zero, one := w.ReserveLine(), w.ReserveLine()
 		w.Jump(start, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{left.Start}, i}}, zero, one)
 
 		var next bitgen.Line
-		if i == left.Width-1 {
+		if i == 0 {
 			next = equal
 		} else {
 			next = w.ReserveLine()
@@ -522,6 +524,40 @@ func (w *writer) LessThanUnsigned(start bitgen.Line, left, right bitgen.Integer,
 		w.Jump(one, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{right.Start}, i}}, less, next)
 
 		start = next
+	}
+}
+
+func (w *writer) AddReg(start bitgen.Line, left, right bitgen.Integer, end bitgen.Line) {
+	if left.Width != right.Width {
+		panic("non-equal widths for AddReg")
+	}
+
+	var carry bitgen.Line
+
+	for i := uint(0); i < left.Width; i++ {
+		curL := bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{left.Start}, i}}
+		curR := bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{right.Start}, i}}
+
+		var next, nextCarry bitgen.Line
+		if i == left.Width-1 {
+			next, nextCarry = end, end
+		} else {
+			next, nextCarry = w.ReserveLine(), w.ReserveLine()
+		}
+
+		one := w.ReserveLine()
+		w.Jump(start, curR, next, one)
+
+		if carry != 0 {
+			w.Jump(carry, curR, one, nextCarry)
+		}
+
+		setOne, setTwo := w.ReserveLine(), w.ReserveLine()
+		w.Jump(one, curL, setOne, setTwo)
+		w.Assign(setOne, curL, bitgen.Bit(true), next)
+		w.Assign(setTwo, curL, bitgen.Bit(false), nextCarry)
+
+		start, carry = next, nextCarry
 	}
 }
 
