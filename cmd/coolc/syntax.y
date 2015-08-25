@@ -13,7 +13,8 @@ package main
 	ftr []Feature
 	exp Expr
 	act []Expr
-	cas *Cases
+	cas *Case
+	css []*Case
 }
 
 %token<id>  tokID
@@ -23,7 +24,8 @@ package main
 
 %token tokCLASS tokEXTENDS tokLPAREN tokRPAREN tokVAR tokCOLON tokCOMMA
 %token tokLBRACE tokRBRACE tokOVERRIDE tokDEF tokSEMICOLON tokELSE tokSUPER
-%token tokNEW tokNULL tokTRUE tokFALSE tokTHIS tokCASE tokARROW
+%token tokNEW tokTRUE tokFALSE tokTHIS tokCASE tokARROW
+%token<typ> tokNULL
 
 %token tokINVALID /* returned by the lexer when an error occurs */
 
@@ -34,7 +36,7 @@ package main
 %left<id> tokEQUALEQUAL
 %left<id> tokLESSEQUAL tokLESSTHAN
 %left tokMATCH
-%left tokIF tokWHILE
+%left<typ> tokIF tokWHILE
 %left tokASSIGN
 
 %type<cls> classdecl
@@ -42,7 +44,8 @@ package main
 %type<ftr> classbody features
 %type<exp> block block0 expr primary
 %type<act> actuals actuals0
-%type<cas> cases case
+%type<css> cases
+%type<cas> case
 
 %%
 
@@ -272,6 +275,7 @@ expr
 | tokIF tokLPAREN expr tokRPAREN expr tokELSE expr %prec tokIF
 	{
 		$$ = &IfExpr{
+			Pos:       $1.Pos,
 			Condition: $3,
 			Then:      $5,
 			Else:      $7,
@@ -280,6 +284,7 @@ expr
 | tokWHILE tokLPAREN expr tokRPAREN expr %prec tokWHILE
 	{
 		$$ = &WhileExpr{
+			Pos:       $1.Pos,
 			Condition: $3,
 			Do:        $5,
 		}
@@ -354,9 +359,9 @@ expr
 			},
 		}
 	}
-| expr tokMATCH tokLBRACE cases tokRBRACE /* note: this slightly differs from the diagrams in cool-manual.pdf */
-	{
-		$$ = &MatchExpr{
+	| expr tokMATCH tokLBRACE cases tokRBRACE /* note: this slightly differs from the diagrams in cool-manual.pdf */
+		{
+			$$ = &MatchExpr{
 			Left:  $1,
 			Cases: $4,
 		}
@@ -449,39 +454,32 @@ primary
 cases
 : case
 	{
-		$$ = $1
+		$$ = []*Case{$1}
 	}
 | cases case
 	{
-		$$ = $1
-		if $2.Null != nil {
-			if $$.Null == nil {
-				$$.Null = $2.Null
-			} else {
-				yylex.Error("duplicate null case")
-			}
-		}
-		$$.Cases = append($$.Cases, $2.Cases...)
+		$$ = append($1, $2)
 	}
 ;
 
 case
 : tokCASE tokID tokCOLON tokTYPE tokARROW block
 	{
-		$$ = &Cases{
-			Cases: []*Case{
-				{
-					Name: $2,
-					Type: $4,
-					Body: $6,
-				},
-			},
+		$$ = &Case{
+			Name: $2,
+			Type: $4,
+			Body: $6,
 		}
 	}
 | tokCASE tokNULL tokARROW block
 	{
-		$$ = &Cases{
-			Null: $4,
+		$$ = &Case{
+			Name: ID{
+				Name: "_null_" + yylex.(*lexer).ast.FileSet.Position($2.Pos).String(),
+				Pos:  $2.Pos,
+			},
+			Type: $2,
+			Body: $4,
 		}
 	}
 ;

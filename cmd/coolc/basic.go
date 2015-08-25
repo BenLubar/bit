@@ -144,22 +144,28 @@ var basicIO = &ClassDecl{
 						Name: "arg",
 					},
 				},
-				Cases: &Cases{
-					Cases: []*Case{
-						{
-							Name: ID{
-								Name: "x",
-							},
-							Type: TYPE{
-								Name: "Any",
-							},
-							Body: &BooleanExpr{
-								B: false,
-							},
+				Cases: []*Case{
+					{
+						Name: ID{
+							Name: "_null",
+						},
+						Type: TYPE{
+							Name: "Null",
+						},
+						Body: &BooleanExpr{
+							B: true,
 						},
 					},
-					Null: &BooleanExpr{
-						B: true,
+					{
+						Name: ID{
+							Name: "x",
+						},
+						Type: TYPE{
+							Name: "Any",
+						},
+						Body: &BooleanExpr{
+							B: false,
+						},
 					},
 				},
 			},
@@ -617,7 +623,7 @@ var basicInt = &ClassDecl{
 				},
 			},
 			Return: TYPE{
-				Name: "Int",
+				Name: "Boolean",
 			},
 			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
 				w.EndStack()
@@ -661,7 +667,7 @@ var basicInt = &ClassDecl{
 				},
 			},
 			Return: TYPE{
-				Name: "Int",
+				Name: "Boolean",
 			},
 			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
 				w.EndStack()

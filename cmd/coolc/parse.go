@@ -212,6 +212,10 @@ func (l *lexer) Lex(lvalue *yySymType) (tok int) {
 				check(l.r.UnreadRune())
 				s := string(buf)
 				if tok, ok := idTokens[s]; ok {
+					if tok == tokIF || tok == tokWHILE || tok == tokNULL {
+						lvalue.typ.Pos = l.file.Pos(int(offset))
+						lvalue.typ.Name = "Null"
+					}
 					return tok
 				}
 				lvalue.id.Pos = l.file.Pos(int(offset))

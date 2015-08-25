@@ -31,7 +31,8 @@ type ClassDecl struct {
 	Extends *ExtendsDecl
 	Body    []Feature
 
-	size uint
+	methods map[string]*MethodFeature
+	size    uint
 }
 
 type VarDecl struct {
@@ -75,19 +76,21 @@ type AssignExpr struct {
 }
 
 type IfExpr struct {
+	Pos       token.Pos
 	Condition Expr
 	Then      Expr
 	Else      Expr
 }
 
 type WhileExpr struct {
+	Pos       token.Pos
 	Condition Expr
 	Do        Expr
 }
 
 type MatchExpr struct {
 	Left  Expr
-	Cases *Cases
+	Cases []*Case
 }
 
 type CallExpr struct {
@@ -139,11 +142,6 @@ type BooleanExpr struct {
 }
 
 type ThisExpr struct {
-}
-
-type Cases struct {
-	Cases []*Case
-	Null  Expr
 }
 
 type Case struct {

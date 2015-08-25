@@ -3,7 +3,7 @@ state 0
 	$accept: .program $end 
 	program: .    (1)
 
-	.  reduce 1 (src line 49)
+	.  reduce 1 (src line 52)
 
 	program  goto 1
 
@@ -20,7 +20,7 @@ state 1
 state 2
 	program:  program classdecl.    (2)
 
-	.  reduce 2 (src line 51)
+	.  reduce 2 (src line 54)
 
 
 state 3
@@ -63,7 +63,7 @@ state 6
 state 7
 	classdecl:  tokCLASS tokTYPE varformals classbody.    (3)
 
-	.  reduce 3 (src line 57)
+	.  reduce 3 (src line 60)
 
 
 state 8
@@ -77,14 +77,14 @@ state 9
 	classbody:  tokLBRACE.features tokRBRACE 
 	features: .    (10)
 
-	.  reduce 10 (src line 115)
+	.  reduce 10 (src line 118)
 
 	features  goto 14
 
 state 10
 	varformals:  tokLPAREN tokRPAREN.    (5)
 
-	.  reduce 5 (src line 80)
+	.  reduce 5 (src line 83)
 
 
 state 11
@@ -129,7 +129,7 @@ state 14
 state 15
 	varformals:  tokLPAREN varformals0 tokRPAREN.    (6)
 
-	.  reduce 6 (src line 85)
+	.  reduce 6 (src line 88)
 
 
 state 16
@@ -166,10 +166,10 @@ state 19
 	tokLBRACE  shift 39
 	tokSUPER  shift 37
 	tokNEW  shift 38
-	tokNULL  shift 41
 	tokTRUE  shift 44
 	tokFALSE  shift 45
 	tokTHIS  shift 46
+	tokNULL  shift 41
 	tokNEGATE  shift 33
 	tokMINUS  shift 34
 	tokIF  shift 35
@@ -183,7 +183,7 @@ state 19
 state 20
 	classbody:  tokLBRACE features tokRBRACE.    (9)
 
-	.  reduce 9 (src line 108)
+	.  reduce 9 (src line 111)
 
 
 state 21
@@ -219,15 +219,15 @@ state 24
 	tokLBRACE  shift 39
 	tokSUPER  shift 37
 	tokNEW  shift 38
-	tokNULL  shift 41
 	tokTRUE  shift 44
 	tokFALSE  shift 45
 	tokTHIS  shift 46
+	tokNULL  shift 41
 	tokNEGATE  shift 33
 	tokMINUS  shift 34
 	tokIF  shift 35
 	tokWHILE  shift 36
-	.  reduce 23 (src line 207)
+	.  reduce 23 (src line 210)
 
 	block  goto 50
 	block0  goto 51
@@ -251,13 +251,13 @@ state 26
 state 27
 	classdecl:  tokCLASS tokTYPE varformals tokEXTENDS tokTYPE actuals classbody.    (4)
 
-	.  reduce 4 (src line 66)
+	.  reduce 4 (src line 69)
 
 
 state 28
 	actuals:  tokLPAREN tokRPAREN.    (19)
 
-	.  reduce 19 (src line 185)
+	.  reduce 19 (src line 188)
 
 
 state 29
@@ -290,13 +290,13 @@ state 30
 	tokLESSEQUAL  shift 58
 	tokLESSTHAN  shift 59
 	tokMATCH  shift 65
-	.  reduce 21 (src line 196)
+	.  reduce 21 (src line 199)
 
 
 state 31
 	expr:  primary.    (28)
 
-	.  reduce 28 (src line 245)
+	.  reduce 28 (src line 248)
 
 
 state 32
@@ -306,7 +306,7 @@ state 32
 
 	tokLPAREN  shift 19
 	tokASSIGN  shift 67
-	.  reduce 50 (src line 413)
+	.  reduce 50 (src line 418)
 
 	actuals  goto 68
 
@@ -320,10 +320,10 @@ state 33
 	tokLBRACE  shift 39
 	tokSUPER  shift 37
 	tokNEW  shift 38
-	tokNULL  shift 41
 	tokTRUE  shift 44
 	tokFALSE  shift 45
 	tokTHIS  shift 46
+	tokNULL  shift 41
 	tokNEGATE  shift 33
 	tokMINUS  shift 34
 	tokIF  shift 35
@@ -343,10 +343,10 @@ state 34
 	tokLBRACE  shift 39
 	tokSUPER  shift 37
 	tokNEW  shift 38
-	tokNULL  shift 41
 	tokTRUE  shift 44
 	tokFALSE  shift 45
 	tokTHIS  shift 46
+	tokNULL  shift 41
 	tokNEGATE  shift 33
 	tokMINUS  shift 34
 	tokIF  shift 35
@@ -396,15 +396,15 @@ state 39
 	tokLBRACE  shift 39
 	tokSUPER  shift 37
 	tokNEW  shift 38
-	tokNULL  shift 41
 	tokTRUE  shift 44
 	tokFALSE  shift 45
 	tokTHIS  shift 46
+	tokNULL  shift 41
 	tokNEGATE  shift 33
 	tokMINUS  shift 34
 	tokIF  shift 35
 	tokWHILE  shift 36
-	.  reduce 23 (src line 207)
+	.  reduce 23 (src line 210)
 
 	block  goto 75
 	block0  goto 51
@@ -423,10 +423,10 @@ state 40
 	tokLBRACE  shift 39
 	tokSUPER  shift 37
 	tokNEW  shift 38
-	tokNULL  shift 41
 	tokTRUE  shift 44
 	tokFALSE  shift 45
 	tokTHIS  shift 46
+	tokNULL  shift 41
 	tokNEGATE  shift 33
 	tokMINUS  shift 34
 	tokIF  shift 35
@@ -439,37 +439,37 @@ state 40
 state 41
 	primary:  tokNULL.    (48)
 
-	.  reduce 48 (src line 405)
+	.  reduce 48 (src line 410)
 
 
 state 42
 	primary:  tokINTEGER.    (51)
 
-	.  reduce 51 (src line 419)
+	.  reduce 51 (src line 424)
 
 
 state 43
 	primary:  tokSTRING.    (52)
 
-	.  reduce 52 (src line 425)
+	.  reduce 52 (src line 430)
 
 
 state 44
 	primary:  tokTRUE.    (53)
 
-	.  reduce 53 (src line 431)
+	.  reduce 53 (src line 436)
 
 
 state 45
 	primary:  tokFALSE.    (54)
 
-	.  reduce 54 (src line 437)
+	.  reduce 54 (src line 442)
 
 
 state 46
 	primary:  tokTHIS.    (55)
 
-	.  reduce 55 (src line 443)
+	.  reduce 55 (src line 448)
 
 
 state 47
@@ -504,7 +504,7 @@ state 50
 state 51
 	block:  block0.    (24)
 
-	.  reduce 24 (src line 212)
+	.  reduce 24 (src line 215)
 
 
 state 52
@@ -530,7 +530,7 @@ state 52
 	tokLESSEQUAL  shift 58
 	tokLESSTHAN  shift 59
 	tokMATCH  shift 65
-	.  reduce 25 (src line 218)
+	.  reduce 25 (src line 221)
 
 
 state 53
@@ -550,13 +550,13 @@ state 54
 state 55
 	varformals0:  tokVAR tokID tokCOLON tokTYPE.    (7)
 
-	.  reduce 7 (src line 91)
+	.  reduce 7 (src line 94)
 
 
 state 56
 	actuals:  tokLPAREN actuals0 tokRPAREN.    (20)
 
-	.  reduce 20 (src line 190)
+	.  reduce 20 (src line 193)
 
 
 state 57
@@ -569,10 +569,10 @@ state 57
 	tokLBRACE  shift 39
 	tokSUPER  shift 37
 	tokNEW  shift 38
-	tokNULL  shift 41
 	tokTRUE  shift 44
 	tokFALSE  shift 45
 	tokTHIS  shift 46
+	tokNULL  shift 41
 	tokNEGATE  shift 33
 	tokMINUS  shift 34
 	tokIF  shift 35
@@ -592,10 +592,10 @@ state 58
 	tokLBRACE  shift 39
 	tokSUPER  shift 37
 	tokNEW  shift 38
-	tokNULL  shift 41
 	tokTRUE  shift 44
 	tokFALSE  shift 45
 	tokTHIS  shift 46
+	tokNULL  shift 41
 	tokNEGATE  shift 33
 	tokMINUS  shift 34
 	tokIF  shift 35
@@ -615,10 +615,10 @@ state 59
 	tokLBRACE  shift 39
 	tokSUPER  shift 37
 	tokNEW  shift 38
-	tokNULL  shift 41
 	tokTRUE  shift 44
 	tokFALSE  shift 45
 	tokTHIS  shift 46
+	tokNULL  shift 41
 	tokNEGATE  shift 33
 	tokMINUS  shift 34
 	tokIF  shift 35
@@ -638,10 +638,10 @@ state 60
 	tokLBRACE  shift 39
 	tokSUPER  shift 37
 	tokNEW  shift 38
-	tokNULL  shift 41
 	tokTRUE  shift 44
 	tokFALSE  shift 45
 	tokTHIS  shift 46
+	tokNULL  shift 41
 	tokNEGATE  shift 33
 	tokMINUS  shift 34
 	tokIF  shift 35
@@ -661,10 +661,10 @@ state 61
 	tokLBRACE  shift 39
 	tokSUPER  shift 37
 	tokNEW  shift 38
-	tokNULL  shift 41
 	tokTRUE  shift 44
 	tokFALSE  shift 45
 	tokTHIS  shift 46
+	tokNULL  shift 41
 	tokNEGATE  shift 33
 	tokMINUS  shift 34
 	tokIF  shift 35
@@ -684,10 +684,10 @@ state 62
 	tokLBRACE  shift 39
 	tokSUPER  shift 37
 	tokNEW  shift 38
-	tokNULL  shift 41
 	tokTRUE  shift 44
 	tokFALSE  shift 45
 	tokTHIS  shift 46
+	tokNULL  shift 41
 	tokNEGATE  shift 33
 	tokMINUS  shift 34
 	tokIF  shift 35
@@ -707,10 +707,10 @@ state 63
 	tokLBRACE  shift 39
 	tokSUPER  shift 37
 	tokNEW  shift 38
-	tokNULL  shift 41
 	tokTRUE  shift 44
 	tokFALSE  shift 45
 	tokTHIS  shift 46
+	tokNULL  shift 41
 	tokNEGATE  shift 33
 	tokMINUS  shift 34
 	tokIF  shift 35
@@ -730,10 +730,10 @@ state 64
 	tokLBRACE  shift 39
 	tokSUPER  shift 37
 	tokNEW  shift 38
-	tokNULL  shift 41
 	tokTRUE  shift 44
 	tokFALSE  shift 45
 	tokTHIS  shift 46
+	tokNULL  shift 41
 	tokNEGATE  shift 33
 	tokMINUS  shift 34
 	tokIF  shift 35
@@ -767,10 +767,10 @@ state 67
 	tokLBRACE  shift 39
 	tokSUPER  shift 37
 	tokNEW  shift 38
-	tokNULL  shift 41
 	tokTRUE  shift 44
 	tokFALSE  shift 45
 	tokTHIS  shift 46
+	tokNULL  shift 41
 	tokNEGATE  shift 33
 	tokMINUS  shift 34
 	tokIF  shift 35
@@ -783,7 +783,7 @@ state 67
 state 68
 	primary:  tokID actuals.    (44)
 
-	.  reduce 44 (src line 382)
+	.  reduce 44 (src line 387)
 
 
 state 69
@@ -806,7 +806,7 @@ state 69
 	tokLESSEQUAL  shift 58
 	tokLESSTHAN  shift 59
 	tokMATCH  shift 65
-	.  reduce 30 (src line 257)
+	.  reduce 30 (src line 260)
 
 
 state 70
@@ -829,7 +829,7 @@ state 70
 	tokLESSEQUAL  shift 58
 	tokLESSTHAN  shift 59
 	tokMATCH  shift 65
-	.  reduce 31 (src line 264)
+	.  reduce 31 (src line 267)
 
 
 state 71
@@ -842,10 +842,10 @@ state 71
 	tokLBRACE  shift 39
 	tokSUPER  shift 37
 	tokNEW  shift 38
-	tokNULL  shift 41
 	tokTRUE  shift 44
 	tokFALSE  shift 45
 	tokTHIS  shift 46
+	tokNULL  shift 41
 	tokNEGATE  shift 33
 	tokMINUS  shift 34
 	tokIF  shift 35
@@ -865,10 +865,10 @@ state 72
 	tokLBRACE  shift 39
 	tokSUPER  shift 37
 	tokNEW  shift 38
-	tokNULL  shift 41
 	tokTRUE  shift 44
 	tokFALSE  shift 45
 	tokTHIS  shift 46
+	tokNULL  shift 41
 	tokNEGATE  shift 33
 	tokMINUS  shift 34
 	tokIF  shift 35
@@ -928,7 +928,7 @@ state 76
 state 77
 	primary:  tokLPAREN tokRPAREN.    (49)
 
-	.  reduce 49 (src line 409)
+	.  reduce 49 (src line 414)
 
 
 state 78
@@ -981,10 +981,10 @@ state 83
 	tokLBRACE  shift 39
 	tokSUPER  shift 37
 	tokNEW  shift 38
-	tokNULL  shift 41
 	tokTRUE  shift 44
 	tokFALSE  shift 45
 	tokTHIS  shift 46
+	tokNULL  shift 41
 	tokNEGATE  shift 33
 	tokMINUS  shift 34
 	tokIF  shift 35
@@ -1030,7 +1030,7 @@ state 86
 	tokLESSEQUAL  shift 58
 	tokLESSTHAN  shift 59
 	tokMATCH  shift 65
-	.  reduce 22 (src line 201)
+	.  reduce 22 (src line 204)
 
 
 state 87
@@ -1046,7 +1046,7 @@ state 87
 	expr:  expr.tokDOT tokID actuals 
 
 	tokMATCH  shift 65
-	.  reduce 34 (src line 287)
+	.  reduce 34 (src line 292)
 
 
 state 88
@@ -1062,7 +1062,7 @@ state 88
 	expr:  expr.tokDOT tokID actuals 
 
 	tokMATCH  shift 65
-	.  reduce 35 (src line 297)
+	.  reduce 35 (src line 302)
 
 
 state 89
@@ -1080,7 +1080,7 @@ state 89
 	tokLESSEQUAL  shift 58
 	tokLESSTHAN  shift 59
 	tokMATCH  shift 65
-	.  reduce 36 (src line 307)
+	.  reduce 36 (src line 312)
 
 
 state 90
@@ -1101,7 +1101,7 @@ state 90
 	tokLESSEQUAL  shift 58
 	tokLESSTHAN  shift 59
 	tokMATCH  shift 65
-	.  reduce 37 (src line 317)
+	.  reduce 37 (src line 322)
 
 
 state 91
@@ -1122,7 +1122,7 @@ state 91
 	tokLESSEQUAL  shift 58
 	tokLESSTHAN  shift 59
 	tokMATCH  shift 65
-	.  reduce 38 (src line 327)
+	.  reduce 38 (src line 332)
 
 
 state 92
@@ -1141,7 +1141,7 @@ state 92
 	tokLESSEQUAL  shift 58
 	tokLESSTHAN  shift 59
 	tokMATCH  shift 65
-	.  reduce 39 (src line 337)
+	.  reduce 39 (src line 342)
 
 
 state 93
@@ -1160,7 +1160,7 @@ state 93
 	tokLESSEQUAL  shift 58
 	tokLESSTHAN  shift 59
 	tokMATCH  shift 65
-	.  reduce 40 (src line 347)
+	.  reduce 40 (src line 352)
 
 
 state 94
@@ -1192,7 +1192,7 @@ state 96
 	expr:  expr.tokMATCH tokLBRACE cases tokRBRACE 
 	expr:  expr.tokDOT tokID actuals 
 
-	.  reduce 29 (src line 250)
+	.  reduce 29 (src line 253)
 
 
 state 97
@@ -1256,19 +1256,19 @@ state 99
 state 100
 	primary:  tokNEW tokTYPE actuals.    (45)
 
-	.  reduce 45 (src line 390)
+	.  reduce 45 (src line 395)
 
 
 state 101
 	primary:  tokLBRACE block tokRBRACE.    (46)
 
-	.  reduce 46 (src line 397)
+	.  reduce 46 (src line 402)
 
 
 state 102
 	primary:  tokLPAREN expr tokRPAREN.    (47)
 
-	.  reduce 47 (src line 401)
+	.  reduce 47 (src line 406)
 
 
 state 103
@@ -1288,7 +1288,7 @@ state 104
 state 105
 	formals:  tokLPAREN tokRPAREN.    (15)
 
-	.  reduce 15 (src line 157)
+	.  reduce 15 (src line 160)
 
 
 state 106
@@ -1317,13 +1317,13 @@ state 108
 state 109
 	features:  features tokLBRACE block tokRBRACE tokSEMICOLON.    (14)
 
-	.  reduce 14 (src line 149)
+	.  reduce 14 (src line 152)
 
 
 state 110
 	block0:  expr tokSEMICOLON block0.    (26)
 
-	.  reduce 26 (src line 223)
+	.  reduce 26 (src line 226)
 
 
 state 111
@@ -1336,7 +1336,7 @@ state 111
 state 112
 	varformals0:  varformals0 tokCOMMA tokVAR tokID tokCOLON tokTYPE.    (8)
 
-	.  reduce 8 (src line 99)
+	.  reduce 8 (src line 102)
 
 
 state 113
@@ -1352,7 +1352,7 @@ state 113
 state 114
 	cases:  case.    (56)
 
-	.  reduce 56 (src line 449)
+	.  reduce 56 (src line 454)
 
 
 state 115
@@ -1367,7 +1367,7 @@ state 115
 state 116
 	expr:  expr tokDOT tokID actuals.    (42)
 
-	.  reduce 42 (src line 364)
+	.  reduce 42 (src line 369)
 
 
 state 117
@@ -1380,10 +1380,10 @@ state 117
 	tokLBRACE  shift 39
 	tokSUPER  shift 37
 	tokNEW  shift 38
-	tokNULL  shift 41
 	tokTRUE  shift 44
 	tokFALSE  shift 45
 	tokTHIS  shift 46
+	tokNULL  shift 41
 	tokNEGATE  shift 33
 	tokMINUS  shift 34
 	tokIF  shift 35
@@ -1403,10 +1403,10 @@ state 118
 	tokLBRACE  shift 39
 	tokSUPER  shift 37
 	tokNEW  shift 38
-	tokNULL  shift 41
 	tokTRUE  shift 44
 	tokFALSE  shift 45
 	tokTHIS  shift 46
+	tokNULL  shift 41
 	tokNEGATE  shift 33
 	tokMINUS  shift 34
 	tokIF  shift 35
@@ -1419,7 +1419,7 @@ state 118
 state 119
 	primary:  tokSUPER tokDOT tokID actuals.    (43)
 
-	.  reduce 43 (src line 374)
+	.  reduce 43 (src line 379)
 
 
 state 120
@@ -1439,7 +1439,7 @@ state 121
 state 122
 	formals:  tokLPAREN formals0 tokRPAREN.    (16)
 
-	.  reduce 16 (src line 162)
+	.  reduce 16 (src line 165)
 
 
 state 123
@@ -1466,10 +1466,10 @@ state 125
 	tokLBRACE  shift 39
 	tokSUPER  shift 37
 	tokNEW  shift 38
-	tokNULL  shift 41
 	tokTRUE  shift 44
 	tokFALSE  shift 45
 	tokTHIS  shift 46
+	tokNULL  shift 41
 	tokNEGATE  shift 33
 	tokMINUS  shift 34
 	tokIF  shift 35
@@ -1489,13 +1489,13 @@ state 126
 state 127
 	expr:  expr tokMATCH tokLBRACE cases tokRBRACE.    (41)
 
-	.  reduce 41 (src line 357)
+	.  reduce 41 (src line 362)
 
 
 state 128
 	cases:  cases case.    (57)
 
-	.  reduce 57 (src line 454)
+	.  reduce 57 (src line 459)
 
 
 state 129
@@ -1549,7 +1549,7 @@ state 132
 	expr:  expr.tokMATCH tokLBRACE cases tokRBRACE 
 	expr:  expr.tokDOT tokID actuals 
 
-	.  reduce 33 (src line 280)
+	.  reduce 33 (src line 284)
 
 
 state 133
@@ -1569,10 +1569,10 @@ state 134
 	tokLBRACE  shift 39
 	tokSUPER  shift 37
 	tokNEW  shift 38
-	tokNULL  shift 41
 	tokTRUE  shift 44
 	tokFALSE  shift 45
 	tokTHIS  shift 46
+	tokNULL  shift 41
 	tokNEGATE  shift 33
 	tokMINUS  shift 34
 	tokIF  shift 35
@@ -1592,7 +1592,7 @@ state 135
 state 136
 	formals0:  tokID tokCOLON tokTYPE.    (17)
 
-	.  reduce 17 (src line 168)
+	.  reduce 17 (src line 171)
 
 
 state 137
@@ -1630,10 +1630,10 @@ state 138
 	tokLBRACE  shift 39
 	tokSUPER  shift 37
 	tokNEW  shift 38
-	tokNULL  shift 41
 	tokTRUE  shift 44
 	tokFALSE  shift 45
 	tokTHIS  shift 46
+	tokNULL  shift 41
 	tokNEGATE  shift 33
 	tokMINUS  shift 34
 	tokIF  shift 35
@@ -1662,15 +1662,15 @@ state 140
 	tokLBRACE  shift 39
 	tokSUPER  shift 37
 	tokNEW  shift 38
-	tokNULL  shift 41
 	tokTRUE  shift 44
 	tokFALSE  shift 45
 	tokTHIS  shift 46
+	tokNULL  shift 41
 	tokNEGATE  shift 33
 	tokMINUS  shift 34
 	tokIF  shift 35
 	tokWHILE  shift 36
-	.  reduce 23 (src line 207)
+	.  reduce 23 (src line 210)
 
 	block  goto 148
 	block0  goto 51
@@ -1687,10 +1687,10 @@ state 141
 	tokLBRACE  shift 39
 	tokSUPER  shift 37
 	tokNEW  shift 38
-	tokNULL  shift 41
 	tokTRUE  shift 44
 	tokFALSE  shift 45
 	tokTHIS  shift 46
+	tokNULL  shift 41
 	tokNEGATE  shift 33
 	tokMINUS  shift 34
 	tokIF  shift 35
@@ -1710,10 +1710,10 @@ state 142
 	tokLBRACE  shift 39
 	tokSUPER  shift 37
 	tokNEW  shift 38
-	tokNULL  shift 41
 	tokTRUE  shift 44
 	tokFALSE  shift 45
 	tokTHIS  shift 46
+	tokNULL  shift 41
 	tokNEGATE  shift 33
 	tokMINUS  shift 34
 	tokIF  shift 35
@@ -1758,7 +1758,7 @@ state 144
 state 145
 	features:  features tokVAR tokID tokCOLON tokTYPE tokASSIGN expr tokSEMICOLON.    (13)
 
-	.  reduce 13 (src line 139)
+	.  reduce 13 (src line 142)
 
 
 state 146
@@ -1796,7 +1796,7 @@ state 147
 state 148
 	case:  tokCASE tokNULL tokARROW block.    (59)
 
-	.  reduce 59 (src line 481)
+	.  reduce 59 (src line 474)
 
 
 state 149
@@ -1811,7 +1811,7 @@ state 149
 	expr:  expr.tokMATCH tokLBRACE cases tokRBRACE 
 	expr:  expr.tokDOT tokID actuals 
 
-	.  reduce 32 (src line 272)
+	.  reduce 32 (src line 275)
 
 
 state 150
@@ -1842,13 +1842,13 @@ state 150
 state 151
 	features:  features tokDEF tokID formals tokCOLON tokTYPE tokASSIGN expr tokSEMICOLON.    (12)
 
-	.  reduce 12 (src line 130)
+	.  reduce 12 (src line 133)
 
 
 state 152
 	formals0:  formals0 tokCOMMA tokID tokCOLON tokTYPE.    (18)
 
-	.  reduce 18 (src line 176)
+	.  reduce 18 (src line 179)
 
 
 state 153
@@ -1862,10 +1862,10 @@ state 153
 	tokLBRACE  shift 39
 	tokSUPER  shift 37
 	tokNEW  shift 38
-	tokNULL  shift 41
 	tokTRUE  shift 44
 	tokFALSE  shift 45
 	tokTHIS  shift 46
+	tokNULL  shift 41
 	tokNEGATE  shift 33
 	tokMINUS  shift 34
 	tokIF  shift 35
@@ -1888,15 +1888,15 @@ state 154
 	tokLBRACE  shift 39
 	tokSUPER  shift 37
 	tokNEW  shift 38
-	tokNULL  shift 41
 	tokTRUE  shift 44
 	tokFALSE  shift 45
 	tokTHIS  shift 46
+	tokNULL  shift 41
 	tokNEGATE  shift 33
 	tokMINUS  shift 34
 	tokIF  shift 35
 	tokWHILE  shift 36
-	.  reduce 23 (src line 207)
+	.  reduce 23 (src line 210)
 
 	block  goto 157
 	block0  goto 51
@@ -1906,19 +1906,19 @@ state 154
 state 155
 	features:  features tokOVERRIDE tokDEF tokID formals tokCOLON tokTYPE tokASSIGN expr tokSEMICOLON.    (11)
 
-	.  reduce 11 (src line 120)
+	.  reduce 11 (src line 123)
 
 
 state 156
 	block0:  tokVAR tokID tokCOLON tokTYPE tokASSIGN expr tokSEMICOLON block0.    (27)
 
-	.  reduce 27 (src line 230)
+	.  reduce 27 (src line 233)
 
 
 state 157
 	case:  tokCASE tokID tokCOLON tokTYPE tokARROW block.    (58)
 
-	.  reduce 58 (src line 468)
+	.  reduce 58 (src line 465)
 
 
 42 terminals, 17 nonterminals
@@ -1930,6 +1930,6 @@ memory: parser 84/30000
 655 shift entries, 1 exceptions
 50 goto entries
 35 entries saved by goto default
-Optimizer space used: output 321/30000
-321 table entries, 13 zero
+Optimizer space used: output 320/30000
+320 table entries, 12 zero
 maximum spread: 42, maximum offset: 154
