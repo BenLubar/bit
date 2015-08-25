@@ -313,10 +313,10 @@ var basicIO = &ClassDecl{
 				start = next
 
 				next = w.ReserveLine()
-				w.Copy(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[1].Ptr, 32}}, 32}, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[2].Ptr, 32}}, 32}, next)
+				w.Copy(start, w.IntValue(w.General[1].Ptr), w.IntValue(w.General[2].Ptr), next)
 				start = next
 
-				w.Increment(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[1].Ptr, 32}}, 32}, done, 0)
+				w.Increment(start, w.IntValue(w.General[1].Ptr), done, 0)
 
 				next = w.ReserveLine()
 				w.Copy(done, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[0].Ptr, basicSymbolName.offset * 8}}, 32}, w.StackOffset(w.Arg(0)), next)
@@ -431,7 +431,7 @@ var basicInt = &ClassDecl{
 				w.CmpReg(start, bitgen.Integer{bitgen.ValueAt{w.This.Ptr}, 32}, bitgen.Integer{bitgen.ValueAt{w.General[0].Ptr}, 32}, next, different)
 				start = next
 
-				w.CmpReg(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.This.Ptr, 32}}, 32}, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[0].Ptr, 32}}, 32}, same, different)
+				w.CmpReg(start, w.IntValue(w.This.Ptr), w.IntValue(w.General[0].Ptr), same, different)
 
 				next = w.ReserveLine()
 				w.CopyReg(same, w.Return, w.True, next)
@@ -466,7 +466,7 @@ var basicInt = &ClassDecl{
 				}
 
 				next = w.ReserveLine()
-				w.Increment(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.Return.Ptr, 32}}, 32}, next, next)
+				w.Increment(start, w.IntValue(w.Return.Ptr), next, next)
 				start = next
 
 				w.PopStack(start, end)
@@ -497,7 +497,7 @@ var basicInt = &ClassDecl{
 				start = next
 
 				next = w.ReserveLine()
-				w.Copy(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.Return.Ptr, 32}}, 32}, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.This.Ptr, 32}}, 32}, next)
+				w.Copy(start, w.IntValue(w.Return.Ptr), w.IntValue(w.This.Ptr), next)
 				start = next
 
 				next = w.ReserveLine()
@@ -505,7 +505,7 @@ var basicInt = &ClassDecl{
 				start = next
 
 				next = w.ReserveLine()
-				w.AddReg(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.Return.Ptr, 32}}, 32}, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[0].Ptr, 32}}, 32}, next)
+				w.AddReg(start, w.IntValue(w.Return.Ptr), w.IntValue(w.General[0].Ptr), next)
 				start = next
 
 				w.PopStack(start, end)
@@ -550,11 +550,11 @@ var basicInt = &ClassDecl{
 				}
 
 				next = w.ReserveLine()
-				w.Increment(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.Return.Ptr, 32}}, 32}, next, next)
+				w.Increment(start, w.IntValue(w.Return.Ptr), next, next)
 				start = next
 
 				next = w.ReserveLine()
-				w.AddReg(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.Return.Ptr, 32}}, 32}, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.This.Ptr, 32}}, 32}, next)
+				w.AddReg(start, w.IntValue(w.Return.Ptr), w.IntValue(w.This.Ptr), next)
 				start = next
 
 				w.PopStack(start, end)
@@ -636,7 +636,7 @@ var basicInt = &ClassDecl{
 				w.Jump(pos, bitgen.ValueAt{bitgen.Offset{w.General[0].Ptr, 32 + 32 - 1}}, yes, next)
 				start = next
 
-				w.LessThanUnsigned(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.This.Ptr, 32}}, 32}, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[0].Ptr, 32}}, 32}, yes, no, no)
+				w.LessThanUnsigned(start, w.IntValue(w.This.Ptr), w.IntValue(w.General[0].Ptr), yes, no, no)
 
 				next = w.ReserveLine()
 				w.CopyReg(yes, w.Return, w.True, next)
@@ -680,7 +680,7 @@ var basicInt = &ClassDecl{
 				w.Jump(pos, bitgen.ValueAt{bitgen.Offset{w.General[0].Ptr, 32 + 32 - 1}}, yes, next)
 				start = next
 
-				w.LessThanUnsigned(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.This.Ptr, 32}}, 32}, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[0].Ptr, 32}}, 32}, yes, yes, no)
+				w.LessThanUnsigned(start, w.IntValue(w.This.Ptr), w.IntValue(w.General[0].Ptr), yes, yes, no)
 
 				next = w.ReserveLine()
 				w.CopyReg(yes, w.Return, w.True, next)
@@ -795,11 +795,11 @@ var basicStringEquals = &MethodFeature{
 		start = next
 
 		next = w.ReserveLine()
-		w.CmpReg(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[1].Ptr, 32}}, 32}, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[2].Ptr, 32}}, 32}, next, different)
+		w.CmpReg(start, w.IntValue(w.General[1].Ptr), w.IntValue(w.General[2].Ptr), next, different)
 		start = next
 
 		next = w.ReserveLine()
-		w.Copy(start, w.General[1].Num, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[1].Ptr, 32}}, 32}, next)
+		w.Copy(start, w.General[1].Num, w.IntValue(w.General[1].Ptr), next)
 		start = next
 
 		loop := start
@@ -936,11 +936,11 @@ var basicString = &ClassDecl{
 				start = next
 
 				next = w.ReserveLine()
-				w.LessThanUnsigned(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[0].Ptr, 32}}, 32}, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[1].Ptr, 32}}, 32}, next, w.IndexRange, w.IndexRange)
+				w.LessThanUnsigned(start, w.IntValue(w.General[0].Ptr), w.IntValue(w.General[1].Ptr), next, w.IndexRange, w.IndexRange)
 				start = next
 
 				next = w.ReserveLine()
-				w.Copy(start, w.General[0].Num, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[0].Ptr, 32}}, 32}, next)
+				w.Copy(start, w.General[0].Num, w.IntValue(w.General[0].Ptr), next)
 				start = next
 
 				next = w.ReserveLine()
@@ -1356,7 +1356,7 @@ var basicArrayAny = &ClassDecl{
 				start = next
 
 				next = w.ReserveLine()
-				w.Copy(start, w.General[0].Num, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[0].Ptr, 32}}, 32}, next)
+				w.Copy(start, w.General[0].Num, w.IntValue(w.General[0].Ptr), next)
 				start = next
 
 				next = w.ReserveLine()
@@ -1364,7 +1364,7 @@ var basicArrayAny = &ClassDecl{
 				start = next
 
 				next = w.ReserveLine()
-				w.LessThanUnsigned(start, w.General[0].Num, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[1].Ptr, 32}}, 32}, next, w.IndexRange, w.IndexRange)
+				w.LessThanUnsigned(start, w.General[0].Num, w.IntValue(w.General[1].Ptr), next, w.IndexRange, w.IndexRange)
 				start = next
 
 				next = w.ReserveLine()
@@ -1424,7 +1424,7 @@ var basicArrayAny = &ClassDecl{
 				start = next
 
 				next = w.ReserveLine()
-				w.Copy(start, w.General[0].Num, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[0].Ptr, 32}}, 32}, next)
+				w.Copy(start, w.General[0].Num, w.IntValue(w.General[0].Ptr), next)
 				start = next
 
 				next = w.ReserveLine()
@@ -1432,7 +1432,7 @@ var basicArrayAny = &ClassDecl{
 				start = next
 
 				next = w.ReserveLine()
-				w.Copy(start, w.General[1].Num, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[1].Ptr, 32}}, 32}, next)
+				w.Copy(start, w.General[1].Num, w.IntValue(w.General[1].Ptr), next)
 				start = next
 
 				next = w.ReserveLine()

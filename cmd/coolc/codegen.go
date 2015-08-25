@@ -527,6 +527,10 @@ func (w *writer) LessThanUnsigned(start bitgen.Line, left, right bitgen.Integer,
 	}
 }
 
+func (w *writer) IntValue(ptr bitgen.Value) bitgen.Integer {
+	return bitgen.Integer{bitgen.ValueAt{bitgen.Offset{ptr, 32}}, 32}
+}
+
 func (w *writer) AddReg(start bitgen.Line, left, right bitgen.Integer, end bitgen.Line) {
 	if left.Width != right.Width {
 		panic("non-equal widths for AddReg")
