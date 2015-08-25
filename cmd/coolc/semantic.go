@@ -32,6 +32,10 @@ func (ast *AST) Semantic() (err error) {
 		}
 		if c.Name.Name == "Main" {
 			ast.main = c
+			if len(c.Args) != 0 {
+				cp := ast.FileSet.Position(c.Name.Pos)
+				return fmt.Errorf("class Main cannot have constructor arguments at %v", cp)
+			}
 		}
 	}
 
@@ -141,6 +145,12 @@ func (ast *AST) recurse(classes map[string]*ClassDecl, ns []*ID, value interface
 
 	case *CallExpr:
 		recurse(v.Left)
+		for _, a := range v.Args {
+			recurse(a)
+		}
+
+	case *NewExpr:
+		recurse(&v.Type)
 		for _, a := range v.Args {
 			recurse(a)
 		}
