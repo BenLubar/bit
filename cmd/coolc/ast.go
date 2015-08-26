@@ -33,6 +33,7 @@ type ClassDecl struct {
 
 	methods map[string]*MethodFeature
 	size    uint
+	depth   uint
 }
 
 type VarDecl struct {
@@ -55,6 +56,8 @@ type MethodFeature struct {
 	Args     []*VarDecl
 	Return   TYPE
 	Body     Expr
+
+	offset uint
 }
 
 type VarFeature struct {

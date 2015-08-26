@@ -171,7 +171,7 @@ func (w *writer) ClassDecl(start bitgen.Line, c *ClassDecl, end bitgen.Line) {
 	start = next
 
 	next = w.ReserveLine()
-	w.StaticAlloc(start, w.Classes[c], 32, next)
+	w.StaticAlloc(start, w.Classes[c], (1+uint(len(c.methods)))+32/8, next)
 	start = next
 
 	w.Copy(start, bitgen.Integer{bitgen.ValueAt{w.Classes[c].Ptr}, 32}, w.General[0].Num, end)

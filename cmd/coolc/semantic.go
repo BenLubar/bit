@@ -120,7 +120,8 @@ func (ast *AST) recurse(classes map[string]*ClassDecl, ns []*ID, value interface
 
 	case *ClassDecl:
 		recurse(&v.Name)
-		for _, a := range v.Args {
+		for i, a := range v.Args {
+			a.offset = uint(i)
 			addNS(a, &a.Name)
 			recurse(&a.Type)
 		}
@@ -152,7 +153,8 @@ func (ast *AST) recurse(classes map[string]*ClassDecl, ns []*ID, value interface
 
 	case *MethodFeature:
 		recurse(&v.Return)
-		for _, a := range v.Args {
+		for i, a := range v.Args {
+			a.offset = uint(i)
 			addNS(a, &a.Name)
 			recurse(&a.Type)
 		}
@@ -276,6 +278,9 @@ func (ast *AST) typecheck(this *ClassDecl, value interface{}) {
 
 func (ast *AST) checkExtends(path []*ClassDecl, parent *ClassDecl) {
 	if parent == basicAny {
+		for i, c := range path {
+			c.depth = uint(len(path) - i)
+		}
 		return
 	}
 
@@ -344,6 +349,9 @@ func (ast *AST) buildMethodTable(methods map[string]*MethodFeature, c *ClassDecl
 					}
 				}
 				ast.checkType(m.Return.target, p.Return.target, m.Return.Pos)
+				m.offset = p.offset
+			} else {
+				m.offset = uint(len(methods))
 			}
 			methods[m.Name.Name] = m
 		}
@@ -545,12 +553,23 @@ func (ast *AST) leastUpperBound(classes ...*ClassDecl) *ClassDecl {
 			left = right
 			continue
 		}
-		// G-Commute + G-Compare
+
+		// G-Commute
 		if ast.lessThan(right, left) {
 			continue
 		}
 
-		panic(fmt.Sprintf("can't compare %s with %s", left.Name.Name, right.Name.Name))
+		// G-Extends
+		for left.depth > right.depth {
+			left = left.Extends.Type.target
+		}
+		for right.depth > left.depth {
+			right = right.Extends.Type.target
+		}
+		for left != right {
+			left = left.Extends.Type.target
+			right = right.Extends.Type.target
+		}
 	}
 	return left
 }
