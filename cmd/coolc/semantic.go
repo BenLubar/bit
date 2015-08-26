@@ -431,6 +431,29 @@ func (ast *AST) checkExpr(this *ClassDecl, value Expr) *ClassDecl {
 		left := ast.checkExpr(this, v.Left)
 		return ast.checkCall(this, left, &v.Name, v.Args)
 
+	case *NewExpr:
+		if v.Type.target == basicDummyNull ||
+			v.Type.target == basicDummyNothing ||
+			v.Type.target == basicBoolean ||
+			v.Type.target == basicInt ||
+			v.Type.target == basicString ||
+			v.Type.target == basicSymbol ||
+			v.Type.target == basicUnit {
+			pos := ast.FileSet.Position(v.Type.Pos)
+			panic(fmt.Errorf("cannot instantiate type %s at %v", v.Type.Name, pos))
+		}
+
+		if len(v.Args) != len(v.Type.target.Args) {
+			pos := ast.FileSet.Position(v.Type.Pos)
+			panic(fmt.Errorf("argument count mismatch (%d != %d) at %v", len(v.Args), len(v.Type.target.Args), pos))
+		}
+
+		for i := range v.Args {
+			ast.checkType(ast.checkExpr(this, v.Args[i]), v.Type.target.Args[i].Type.target, v.Type.Pos)
+		}
+
+		return v.Type.target
+
 	case *AssignExpr:
 		switch t := v.Left.target.(type) {
 		case *VarDecl:

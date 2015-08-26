@@ -1397,9 +1397,145 @@ var basicArrayAny = &ClassDecl{
 			Return: TYPE{
 				Name: "ArrayAny",
 			},
-			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
-				panic("unimplemented")
-			}),
+			Body: &VarExpr{
+				VarFeature: VarFeature{
+					VarDecl: VarDecl{
+						Name: ID{
+							Name: "ret",
+						},
+						Type: TYPE{
+							Name: "ArrayAny",
+						},
+					},
+					Value: &NewExpr{
+						Type: TYPE{
+							Name: "ArrayAny",
+						},
+						Args: []Expr{
+							&NameExpr{
+								Name: ID{
+									Name: "s",
+								},
+							},
+						},
+					},
+				},
+				Expr: &VarExpr{
+					VarFeature: VarFeature{
+						VarDecl: VarDecl{
+							Name: ID{
+								Name: "i",
+							},
+							Type: TYPE{
+								Name: "Int",
+							},
+						},
+						Value: &IntegerExpr{
+							N: 0,
+						},
+					},
+					Expr: &ChainExpr{
+						Pre: &WhileExpr{
+							Condition: &IfExpr{
+								Condition: &CallExpr{
+									Left: &NameExpr{
+										Name: ID{
+											Name: "i",
+										},
+									},
+									Name: ID{
+										Name: "_less",
+									},
+									Args: []Expr{
+										&NameExpr{
+											Name: ID{
+												Name: "length",
+											},
+										},
+									},
+								},
+								Then: &CallExpr{
+									Left: &NameExpr{
+										Name: ID{
+											Name: "i",
+										},
+									},
+									Name: ID{
+										Name: "_less",
+									},
+									Args: []Expr{
+										&NameExpr{
+											Name: ID{
+												Name: "length",
+											},
+										},
+									},
+								},
+								Else: &BooleanExpr{
+									B: false,
+								},
+							},
+							Do: &ChainExpr{
+								Pre: &CallExpr{
+									Left: &NameExpr{
+										Name: ID{
+											Name: "ret",
+										},
+									},
+									Name: ID{
+										Name: "set",
+									},
+									Args: []Expr{
+										&NameExpr{
+											Name: ID{
+												Name: "i",
+											},
+										},
+										&CallExpr{
+											Left: &ThisExpr{},
+											Name: ID{
+												Name: "get",
+											},
+											Args: []Expr{
+												&NameExpr{
+													Name: ID{
+														Name: "i",
+													},
+												},
+											},
+										},
+									},
+								},
+								Expr: &AssignExpr{
+									Left: ID{
+										Name: "i",
+									},
+									Right: &CallExpr{
+										Left: &NameExpr{
+											Name: ID{
+												Name: "i",
+											},
+										},
+										Name: ID{
+											Name: "_add",
+										},
+										Args: []Expr{
+											&IntegerExpr{
+												N: 1,
+											},
+										},
+									},
+								},
+							},
+						},
+						Expr: &NameExpr{
+							Name: ID{
+								Name: "ret",
+							},
+						},
+					},
+				},
+			},
 		},
 		&MethodFeature{
 			Name: ID{
@@ -1565,3 +1701,5 @@ func init() {
 		panic(err)
 	}
 }
+
+// vim: set ts=2 sw=2:

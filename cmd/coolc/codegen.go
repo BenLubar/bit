@@ -45,8 +45,9 @@ type writer struct {
 
 	Classes map[*ClassDecl]register // class definition pointers, internal
 
-	basicInt    *ClassDecl // the same as the global basicInt
-	basicString *ClassDecl // the same as the global basicString
+	basicInt      *ClassDecl // the same as the global basicInt
+	basicString   *ClassDecl // the same as the global basicString
+	basicArrayAny *ClassDecl // the same as the global basicArrayAny
 
 	Null       bitgen.Line // null pointer dereference
 	IndexRange bitgen.Line // ArrayAny index out of range
@@ -60,6 +61,7 @@ type register struct {
 func (w *writer) Init() (start bitgen.Line) {
 	w.basicInt = basicInt
 	w.basicString = basicString
+	w.basicArrayAny = basicArrayAny
 
 	var registers []register
 	reg := func(r *register) {
