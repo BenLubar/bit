@@ -881,7 +881,71 @@ var basicString = &ClassDecl{
 				Name: "String",
 			},
 			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
-				panic("unimplemented")
+				w.EndStack()
+
+				next := w.ReserveLine()
+				w.Load(start, w.General[0], w.Stack, w.Arg(0), next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Load(start, w.General[1], w.General[0], basicStringLength.offset, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Load(start, w.General[2], w.This, basicStringLength.offset, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.NewInt(start, w.General[3], 0, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Copy(start, w.IntValue(w.General[3].Ptr), w.IntValue(w.General[1].Ptr), next)
+				start = next
+
+				next = w.ReserveLine()
+				w.AddReg(start, w.IntValue(w.General[3].Ptr), w.IntValue(w.General[2].Ptr), next)
+				start = next
+
+				next = w.ReserveLine()
+				w.NewNativeDynamic(start, w.Return, w.basicString, w.IntValue(w.General[3].Ptr), next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Copy(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.Return.Ptr, basicStringLength.offset * 8}}, 32}, w.General[3].Num, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.CopyReg(start, w.General[3], w.Return, next)
+				start = next
+
+				appendString := func(str, length register) {
+					next = w.ReserveLine()
+					w.Copy(start, length.Num, w.IntValue(length.Ptr), next)
+					start = next
+
+					loop, done := start, w.ReserveLine()
+					next = w.ReserveLine()
+					w.Decrement(start, length.Num, next, done)
+					start = next
+
+					next = w.ReserveLine()
+					w.Copy(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[3].Ptr, basicStringLength.offset*8 + 32}}, 8}, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{str.Ptr, basicStringLength.offset*8 + 32}}, 8}, next)
+					start = next
+
+					next = w.ReserveLine()
+					w.Assign(start, str.Ptr, bitgen.Offset{str.Ptr, 8}, next)
+					start = next
+
+					w.Assign(start, w.General[3].Ptr, bitgen.Offset{w.General[3].Ptr, 8}, loop)
+
+					start = done
+				}
+
+				appendString(w.This, w.General[2])
+				appendString(w.General[0], w.General[1])
+
+				w.PopStack(start, end)
 			}),
 		},
 		&MethodFeature{

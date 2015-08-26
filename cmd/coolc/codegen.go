@@ -43,8 +43,10 @@ type writer struct {
 	General [4]register      // general purpose registers, saved
 	Heap    bitgen.AddressOf // heap start (also null pointer), internal
 
-	Classes  map[*ClassDecl]register // class definition pointers, internal
-	basicInt *ClassDecl              // the same as the global basicInt
+	Classes map[*ClassDecl]register // class definition pointers, internal
+
+	basicInt    *ClassDecl // the same as the global basicInt
+	basicString *ClassDecl // the same as the global basicString
 
 	Null       bitgen.Line // null pointer dereference
 	IndexRange bitgen.Line // ArrayAny index out of range
@@ -56,6 +58,9 @@ type register struct {
 }
 
 func (w *writer) Init() (start bitgen.Line) {
+	w.basicInt = basicInt
+	w.basicString = basicString
+
 	var registers []register
 	reg := func(r *register) {
 		r.Ptr = w.ReserveVariable()
@@ -77,7 +82,6 @@ func (w *writer) Init() (start bitgen.Line) {
 		reg(&w.General[i])
 	}
 	w.Classes = make(map[*ClassDecl]register)
-	w.basicInt = basicInt
 	for _, c := range basicClasses {
 		var r register
 		reg(&r)
