@@ -34,6 +34,7 @@ type writer struct {
 	Unit    register         // points at the constant "()", internal
 	True    register         // points at the constant "true", internal
 	False   register         // points at the constant "false", internal
+	Zero    register         // points at the constant "0", internal
 	Symbol  register         // points at the last symbol created, internal
 	Return  register         // points at return value, not saved
 	This    register         // points at "this" value, saved
@@ -75,6 +76,7 @@ func (w *writer) Init() (start bitgen.Line) {
 	reg(&w.Unit)
 	reg(&w.True)
 	reg(&w.False)
+	reg(&w.Zero)
 	reg(&w.Symbol)
 	reg(&w.Return)
 	reg(&w.This)
@@ -154,6 +156,10 @@ func (w *writer) Init() (start bitgen.Line) {
 
 	next = w.ReserveLine()
 	w.NewNative(start, w.False, basicBoolean, 0, next)
+	start = next
+
+	next = w.ReserveLine()
+	w.NewInt(start, w.Zero, 0, next)
 	start = next
 
 	return
@@ -399,15 +405,15 @@ func (w *writer) DynamicAlloc(start bitgen.Line, reg register, size bitgen.Integ
 	}
 
 	next := w.ReserveLine()
+	w.Copy(start, w.Ptr, size, next)
+	start = next
+
+	next = w.ReserveLine()
 	w.Copy(start, reg.Num, w.Alloc.Num, next)
 	start = next
 
 	next = w.ReserveLine()
 	w.Assign(start, reg.Ptr, w.Alloc.Ptr, next)
-	start = next
-
-	next = w.ReserveLine()
-	w.Copy(start, w.Ptr, size, next)
 	start = next
 
 	loop := start
@@ -429,7 +435,28 @@ func (w *writer) New(start bitgen.Line, reg register, c *ClassDecl, end bitgen.L
 		}
 	}
 
-	w.NewNative(start, reg, c, 0, end)
+	next := end
+
+	for _, f := range c.Body {
+		if v, ok := f.(*VarFeature); ok {
+			var val bitgen.Integer
+			switch v.Type.target {
+			case basicBoolean:
+				val = w.False.Num
+			case w.basicInt:
+				val = w.Zero.Num
+			case basicUnit:
+				val = w.Unit.Num
+			default:
+				continue
+			}
+			prev := w.ReserveLine()
+			w.Copy(prev, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{reg.Ptr, v.offset * 8}}, 32}, val, next)
+			next = prev
+		}
+	}
+
+	w.NewNative(start, reg, c, 0, next)
 }
 
 func (w *writer) NewNative(start bitgen.Line, reg register, c *ClassDecl, additional uint, end bitgen.Line) {
@@ -441,21 +468,61 @@ func (w *writer) NewNative(start bitgen.Line, reg register, c *ClassDecl, additi
 }
 
 func (w *writer) NewNativeDynamic(start bitgen.Line, reg register, c *ClassDecl, additional bitgen.Integer, end bitgen.Line) {
-	next := w.ReserveLine()
-	w.Copy(start, reg.Num, additional, next)
-	start = next
+	if reg.Num != additional {
+		next := w.ReserveLine()
+		w.Copy(start, reg.Num, additional, next)
+		start = next
+	}
 
 	for i := uint(0); i < c.size; i++ {
-		next = w.ReserveLine()
+		next := w.ReserveLine()
 		w.Increment(start, reg.Num, next, 0)
 		start = next
 	}
 
-	next = w.ReserveLine()
+	next := w.ReserveLine()
 	w.DynamicAlloc(start, reg, reg.Num, next)
 	start = next
 
 	w.Copy(start, bitgen.Integer{bitgen.ValueAt{reg.Ptr}, 32}, w.Classes[c].Num, end)
+}
+
+func (w *writer) NewArrayAny(start bitgen.Line, end bitgen.Line) {
+	w.EndStack()
+
+	next := w.ReserveLine()
+	w.Load(start, w.General[0], w.Stack, w.Arg(0), next)
+	start = next
+
+	// 1<<2 == 32/8
+
+	for i := uint(0); i <= 2; i++ {
+		next = w.ReserveLine()
+		w.Jump(start, bitgen.ValueAt{bitgen.Offset{w.General[0].Ptr, 32 + 32 - 1 - i}}, next, w.IndexRange)
+		start = next
+	}
+
+	// multiply array size by 32/8 (elements -> bytes)
+	next = w.ReserveLine()
+	w.Copy(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{w.Return.Num.Start}, 2}}, w.Return.Num.Width - 2}, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[0].Ptr, 32}}, 32 - 2}, next)
+	start = next
+
+	// clear the bottom 2 bits
+	for i := uint(0); i < 2; i++ {
+		next = w.ReserveLine()
+		w.Assign(start, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{w.Return.Num.Start}, i}}, bitgen.Bit(false), next)
+		start = next
+	}
+
+	next = w.ReserveLine()
+	w.NewNativeDynamic(start, w.Return, w.basicArrayAny, w.Return.Num, next)
+	start = next
+
+	next = w.ReserveLine()
+	w.Copy(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.Return.Ptr, basicArrayAnyLength.offset * 8}}, 32}, w.General[0].Num, next)
+	start = next
+
+	w.PopStack(start, end)
 }
 
 // Load puts the pointer [offset] bytes after [right] in [left]. If [right] is
