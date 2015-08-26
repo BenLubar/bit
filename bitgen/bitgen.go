@@ -329,6 +329,35 @@ func (w *Writer) InputBit(start Line, value Value, end Line) {
 	w.Assign(n2, value, Bit(true), end)
 }
 
+// InputEOF reads value, most significant bit first.
+func (w *Writer) InputEOF(start Line, value Integer, end, eof Line) {
+	n1 := make([]Line, value.Width)
+	for i := range n1[1:] {
+		n1[i+1] = w.ReserveLine()
+	}
+	n1[0] = end
+
+	for i := value.Width - 1; i < value.Width; i-- {
+		cur := ValueAt{Offset{AddressOf{value.Start}, i}}
+		if i == value.Width-1 {
+			w.InputBitEOF(start, cur, n1[i], eof)
+		} else {
+			w.InputBit(start, cur, n1[i])
+		}
+		start = n1[i]
+	}
+}
+
+// InputBitEOF reads value from the standard input.
+func (w *Writer) InputBitEOF(start Line, value Value, end, eof Line) {
+	n1 := w.ReserveLine()
+	n2 := w.ReserveLine()
+
+	w.line(start, "READ "+number(uint64(eof)), n1, n2)
+	w.Assign(n1, value, Bit(false), end)
+	w.Assign(n2, value, Bit(true), end)
+}
+
 // Cmp jumps to same if value == base or different otherwise.
 func (w *Writer) Cmp(start Line, value Integer, base uint64, same, different Line) {
 	n1 := make([]Line, value.Width)

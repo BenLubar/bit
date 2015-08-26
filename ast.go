@@ -90,6 +90,13 @@ func (p Program) Run(in bitio.BitReader, out bitio.BitWriter) error {
 		} else {
 			err := line.stmt.run(in, out, ctx)
 			if err != nil {
+				if r, ok := line.stmt.(ReadStmt); ok && r.pc != nil {
+					if l, ok := p[*r.pc]; ok {
+						pc = r.pc
+						line = l
+						continue
+					}
+				}
 				return &ProgramError{Err: err, Line: *pc}
 			}
 			if !ctx.jump {
@@ -229,7 +236,9 @@ func (stmt PrintStmt) run(in bitio.BitReader, out bitio.BitWriter, ctx *context)
 	return out.WriteBit(bool(stmt))
 }
 
-type ReadStmt struct{}
+type ReadStmt struct {
+	pc *uint64
+}
 
 func (stmt ReadStmt) simplify() Stmt {
 	return stmt

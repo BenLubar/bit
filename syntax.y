@@ -173,6 +173,14 @@ stmt
 	{
 		$$ = ReadStmt{}
 	}
+| READ number /* non-standard */
+	{
+		pc := new(uint64)
+		*pc = $2.number
+		$$ = ReadStmt{
+			pc: pc,
+		}
+	}
 ;
 
 line
