@@ -231,14 +231,12 @@ func (ast *AST) typecheck(this *ClassDecl, value interface{}) {
 	case *ClassDecl:
 		v.size = 32 / 8
 		for _, a := range v.Args {
-			ast.typecheck(this, a)
 			a.offset = v.size
 			v.size += 32 / 8
 		}
 		ast.typecheck(this, v.Extends)
 		for _, f := range v.Body {
 			if a, ok := f.(*VarFeature); ok {
-				ast.typecheck(this, &a.VarDecl)
 				a.offset = v.size
 				v.size += 32 / 8
 			}
@@ -258,23 +256,18 @@ func (ast *AST) typecheck(this *ClassDecl, value interface{}) {
 
 	case *VarFeature:
 		ast.checkType(ast.checkExpr(this, v.Value), v.Type.target, v.Type.Pos)
+		if v.Type.target == basicDummyNothing {
+			pos := ast.FileSet.Position(v.Type.Pos)
+			panic(fmt.Errorf("cannot use Nothing as the type of a variable at %v", pos))
+		}
 
 	case *MethodFeature:
-		for _, a := range v.Args {
-			ast.typecheck(this, a)
-		}
 		ast.checkType(ast.checkExpr(this, v.Body), v.Return.target, v.Return.Pos)
 
 	case *BlockFeature:
 		ast.checkExpr(this, v.Expr)
 
 	case *NativeFeature:
-
-	case *VarDecl:
-		if v.Type.target == basicDummyNothing {
-			pos := ast.FileSet.Position(v.Type.Pos)
-			panic(fmt.Errorf("cannot use Nothing as the type of a variable at %v", pos))
-		}
 
 	default:
 		panic(v)
