@@ -41,6 +41,7 @@ type VarDecl struct {
 	Type TYPE
 
 	offset uint
+	arg    uint
 }
 
 type ExtendsDecl struct {
