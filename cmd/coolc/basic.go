@@ -232,7 +232,61 @@ var basicIO = &ClassDecl{
 				Name: "String",
 			},
 			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
-				panic("unimplemented")
+				w.EndStack()
+
+				next := w.ReserveLine()
+				w.NewInt(start, w.General[0], 0, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.CopyReg(start, w.Return, w.Alloc, next)
+				start = next
+
+				for i := uint(0); i < basicString.size; i++ {
+					next = w.ReserveLine()
+					w.Increment(start, w.Alloc.Num, next, 0)
+					start = next
+				}
+
+				next = w.ReserveLine()
+				w.Assign(start, w.Alloc.Ptr, bitgen.Offset{w.Alloc.Ptr, basicString.size * 8}, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Copy(start, bitgen.Integer{bitgen.ValueAt{w.Return.Ptr}, 32}, w.Classes[basicString].Num, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Copy(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.Return.Ptr, basicStringLength.offset * 8}}, 32}, w.General[0].Num, next)
+				start = next
+
+				loop, done := start, w.ReserveLine()
+				next = w.ReserveLine()
+				w.InputEOF(loop, bitgen.Integer{bitgen.ValueAt{w.Alloc.Ptr}, 8}, next, done)
+				start = next
+
+				newline := w.ReserveLine()
+				next = w.ReserveLine()
+				w.Cmp(start, bitgen.Integer{bitgen.ValueAt{w.Alloc.Ptr}, 8}, '\n', newline, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Increment(start, w.IntValue(w.General[0].Ptr), next, 0)
+				start = next
+
+				next = w.ReserveLine()
+				w.Increment(start, w.Alloc.Num, next, 0)
+				start = next
+
+				w.Assign(start, w.Alloc.Ptr, bitgen.Offset{w.Alloc.Ptr, 8}, loop)
+
+				next = w.ReserveLine()
+				w.Increment(newline, w.Alloc.Num, next, 0)
+				start = next
+
+				w.Assign(start, w.Alloc.Ptr, bitgen.Offset{w.Alloc.Ptr, 8}, done)
+
+				w.PopStack(done, end)
 			}),
 		},
 		&MethodFeature{
