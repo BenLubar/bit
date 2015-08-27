@@ -640,7 +640,51 @@ var basicInt = &ClassDecl{
 				Name: "Int",
 			},
 			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
-				panic("unimplemented")
+				w.EndStack()
+
+				next := w.ReserveLine()
+				w.NewInt(start, w.Return, 0, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Load(start, w.General[0], w.Stack, w.Arg(0), next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Copy(start, w.This.Num, w.IntValue(w.This.Ptr), next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Copy(start, w.General[0].Num, w.IntValue(w.General[0].Ptr), next)
+				start = next
+
+				loop, done := start, w.ReserveLine()
+				next = w.ReserveLine()
+				w.Cmp(loop, w.General[0].Num, 0, next, done)
+				start = next
+
+				next = w.ReserveLine()
+				add := w.ReserveLine()
+				w.Jump(start, w.General[0].Num.Start, add, next)
+
+				w.AddReg(add, w.IntValue(w.Return.Ptr), w.This.Num, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Copy(start, bitgen.Integer{w.This.Num.Start, w.This.Num.Width - 1}, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{w.This.Num.Start}, 1}}, w.This.Num.Width - 1}, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Assign(start, w.This.Num.Start, bitgen.Bit(false), next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Copy(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{w.General[0].Num.Start}, 1}}, w.General[0].Num.Width - 1}, bitgen.Integer{w.General[0].Num.Start, w.General[0].Num.Width - 1}, next)
+				start = next
+
+				w.Assign(start, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{w.General[0].Num.Start}, w.General[0].Num.Width - 1}}, bitgen.Bit(false), loop)
+
+				w.PopStack(done, end)
 			}),
 		},
 		&MethodFeature{
