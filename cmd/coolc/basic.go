@@ -438,6 +438,56 @@ var basicUnit = &ClassDecl{
 	},
 }
 
+var basicIntSubtract = &MethodFeature{
+	Name: ID{
+		Name: "_subtract",
+	},
+	Args: []*VarDecl{
+		{
+			Name: ID{
+				Name: "x",
+			},
+			Type: TYPE{
+				Name: "Int",
+			},
+		},
+	},
+	Return: TYPE{
+		Name: "Int",
+	},
+	Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
+		w.EndStack()
+
+		next := w.ReserveLine()
+		w.NewInt(start, w.Return, 0, next)
+		start = next
+
+		next = w.ReserveLine()
+		w.Load(start, w.General[0], w.Stack, w.Arg(0), next)
+		start = next
+
+		for i := uint(0); i < 32; i++ {
+			zero, one := w.ReserveLine(), w.ReserveLine()
+			w.Jump(start, bitgen.ValueAt{bitgen.Offset{w.General[0].Ptr, 32 + i}}, zero, one)
+
+			next = w.ReserveLine()
+			w.Assign(zero, bitgen.ValueAt{bitgen.Offset{w.Return.Ptr, 32 + i}}, bitgen.Bit(true), next)
+			w.Assign(one, bitgen.ValueAt{bitgen.Offset{w.Return.Ptr, 32 + i}}, bitgen.Bit(false), next)
+			start = next
+		}
+
+		next = w.ReserveLine()
+		w.Increment(start, w.IntValue(w.Return.Ptr), next, next)
+		start = next
+
+		next = w.ReserveLine()
+		w.AddReg(start, w.IntValue(w.Return.Ptr), w.IntValue(w.This.Ptr), next)
+		start = next
+
+		w.PopStack(start, end)
+	}),
+}
+
 var basicInt = &ClassDecl{
 	Name: TYPE{
 		Name: "Int",
@@ -571,55 +621,7 @@ var basicInt = &ClassDecl{
 				w.PopStack(start, end)
 			}),
 		},
-		&MethodFeature{
-			Name: ID{
-				Name: "_subtract",
-			},
-			Args: []*VarDecl{
-				{
-					Name: ID{
-						Name: "x",
-					},
-					Type: TYPE{
-						Name: "Int",
-					},
-				},
-			},
-			Return: TYPE{
-				Name: "Int",
-			},
-			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
-				w.EndStack()
-
-				next := w.ReserveLine()
-				w.NewInt(start, w.Return, 0, next)
-				start = next
-
-				next = w.ReserveLine()
-				w.Load(start, w.General[0], w.Stack, w.Arg(0), next)
-				start = next
-
-				for i := uint(0); i < 32; i++ {
-					zero, one := w.ReserveLine(), w.ReserveLine()
-					w.Jump(start, bitgen.ValueAt{bitgen.Offset{w.General[0].Ptr, 32 + i}}, zero, one)
-
-					next = w.ReserveLine()
-					w.Assign(zero, bitgen.ValueAt{bitgen.Offset{w.Return.Ptr, 32 + i}}, bitgen.Bit(true), next)
-					w.Assign(one, bitgen.ValueAt{bitgen.Offset{w.Return.Ptr, 32 + i}}, bitgen.Bit(false), next)
-					start = next
-				}
-
-				next = w.ReserveLine()
-				w.Increment(start, w.IntValue(w.Return.Ptr), next, next)
-				start = next
-
-				next = w.ReserveLine()
-				w.AddReg(start, w.IntValue(w.Return.Ptr), w.IntValue(w.This.Ptr), next)
-				start = next
-
-				w.PopStack(start, end)
-			}),
-		},
+		basicIntSubtract,
 		&MethodFeature{
 			Name: ID{
 				Name: "_multiply",
@@ -1028,7 +1030,96 @@ var basicString = &ClassDecl{
 				Name: "String",
 			},
 			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
-				panic("unimplemented")
+				w.EndStack()
+
+				next := w.ReserveLine()
+				w.Load(start, w.General[0], w.Stack, w.Arg(0), next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Load(start, w.General[1], w.Stack, w.Arg(1), next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Load(start, w.General[2], w.This, basicStringLength.offset, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.LessThanUnsigned(start, w.IntValue(w.General[0].Ptr), w.IntValue(w.General[1].Ptr), next, next, w.IndexRange)
+				start = next
+
+				next = w.ReserveLine()
+				w.LessThanUnsigned(start, w.IntValue(w.General[1].Ptr), w.IntValue(w.General[2].Ptr), next, w.IndexRange, w.IndexRange)
+				start = next
+
+				next = w.ReserveLine()
+				w.BeginStack(start, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Copy(start, w.This.Num, w.PrevStackOffset(w.Arg(1)), next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Pointer(start, w.This.Ptr, w.This.Num, next)
+				start = next
+
+				arg0, _ := w.StackAlloc(start, next)
+				next = w.ReserveLine()
+				w.Copy(start, arg0, w.PrevStackOffset(w.Arg(0)), next)
+				start = next
+
+				next = w.ReserveLine()
+				w.StaticCall(start, basicIntSubtract, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.CopyReg(start, w.General[2], w.Return, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.NewNativeDynamic(start, w.Return, w.basicString, w.IntValue(w.General[2].Ptr), next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Copy(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.Return.Ptr, basicStringLength.offset * 8}}, 32}, w.General[2].Num, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Copy(start, w.General[0].Num, w.IntValue(w.General[0].Ptr), next)
+				start = next
+
+				loop, done := start, w.ReserveLine()
+				next = w.ReserveLine()
+				w.Decrement(loop, w.General[0].Num, next, done)
+				start = next
+
+				w.Assign(start, w.This.Ptr, bitgen.Offset{w.This.Ptr, 8}, loop)
+
+				next = w.ReserveLine()
+				w.Assign(done, w.General[0].Ptr, w.Return.Ptr, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Copy(start, w.General[2].Num, w.IntValue(w.General[2].Ptr), next)
+				start = next
+
+				loop, done = start, w.ReserveLine()
+				next = w.ReserveLine()
+				w.Decrement(loop, w.General[2].Num, next, done)
+				start = next
+
+				next = w.ReserveLine()
+				w.Copy(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[0].Ptr, basicStringLength.offset*8 + 32}}, 8}, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.This.Ptr, basicStringLength.offset*8 + 32}}, 8}, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Assign(start, w.This.Ptr, bitgen.Offset{w.This.Ptr, 8}, next)
+				start = next
+
+				w.Assign(start, w.General[0].Ptr, bitgen.Offset{w.General[0].Ptr, 8}, loop)
+
+				w.PopStack(done, end)
 			}),
 		},
 		&MethodFeature{
