@@ -2,6 +2,7 @@ package bitgen
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"io"
 	"strings"
@@ -157,9 +158,14 @@ func (w *Writer) Close() error {
 	return w.w.Flush()
 }
 
+var flagCrashOnLine = flag.Uint64("crash-on-line", 0, "debugging tool: crash when this line number is reserved")
+
 // ReserveLine returns a line number that has not yet been used.
 func (w *Writer) ReserveLine() Line {
 	w.n++
+	if w.n == Line(*flagCrashOnLine) {
+		panic("DEBUG")
+	}
 	return w.n
 }
 
