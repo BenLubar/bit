@@ -152,6 +152,8 @@ func (l *lexer) Lex(lvalue *yySymType) (tok int) {
 					r, _, err = l.r.ReadRune()
 					check(err)
 					if r == '\n' {
+						r, _, err = l.r.ReadRune()
+						check(err)
 						break
 					}
 				}
@@ -164,6 +166,8 @@ func (l *lexer) Lex(lvalue *yySymType) (tok int) {
 						r, _, err = l.r.ReadRune()
 						check(err)
 						if r == '/' {
+							r, _, err = l.r.ReadRune()
+							check(err)
 							break
 						}
 						check(l.r.UnreadRune())
