@@ -158,14 +158,9 @@ func (w *Writer) Close() error {
 	return w.w.Flush()
 }
 
-var flagCrashOnLine = flag.Uint64("crash-on-line", 0, "debugging tool: crash when this line number is reserved")
-
 // ReserveLine returns a line number that has not yet been used.
 func (w *Writer) ReserveLine() Line {
 	w.n++
-	if w.n == Line(*flagCrashOnLine) {
-		panic("DEBUG")
-	}
 	return w.n
 }
 
@@ -204,11 +199,16 @@ func (w *Writer) ReserveHeap() Variable {
 	return w.v
 }
 
+var flagCrashOnLine = flag.Uint64("crash-on-line", ^uint64(0), "debugging tool: crash when this line number is reserved")
+
 func (w *Writer) line(n Line, line string, goto0, goto1 Line) {
 	if w.taken[n] {
 		panic("bitgen: duplicate line number")
 	}
 	w.taken[n] = true
+	if n == Line(*flagCrashOnLine) {
+		panic("DEBUG")
+	}
 	w.w.WriteString("LINE NUMBER ")
 	w.w.WriteString(number(uint64(n)))
 	w.w.WriteString(" CODE ")
