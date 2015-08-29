@@ -671,18 +671,12 @@ var basicInt = &ClassDecl{
 				start = next
 
 				next = w.ReserveLine()
-				w.Copy(start, bitgen.Integer{w.This.Num.Start, w.This.Num.Width - 1}, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{w.This.Num.Start}, 1}}, w.This.Num.Width - 1}, next)
+				w.Lsh(start, w.This.Num, 1, next)
 				start = next
 
 				next = w.ReserveLine()
-				w.Assign(start, w.This.Num.Start, bitgen.Bit(false), next)
+				w.Rsh(start, w.General[0].Num, 1, next)
 				start = next
-
-				next = w.ReserveLine()
-				w.Copy(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{w.General[0].Num.Start}, 1}}, w.General[0].Num.Width - 1}, bitgen.Integer{w.General[0].Num.Start, w.General[0].Num.Width - 1}, next)
-				start = next
-
-				w.Assign(start, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{w.General[0].Num.Start}, w.General[0].Num.Width - 1}}, bitgen.Bit(false), loop)
 
 				w.PopStack(done, end)
 			}),
@@ -704,8 +698,228 @@ var basicInt = &ClassDecl{
 			Return: TYPE{
 				Name: "Int",
 			},
+			Body: &IfExpr{
+				Condition: &CallExpr{
+					Left: &ThisExpr{},
+					Name: ID{
+						Name: "_less",
+					},
+					Args: []Expr{
+						&IntegerExpr{
+							N: 0,
+						},
+					},
+				},
+				Then: &IfExpr{
+					Condition: &CallExpr{
+						Left: &NameExpr{
+							Name: ID{
+								Name: "x",
+							},
+						},
+						Name: ID{
+							Name: "_less",
+						},
+						Args: []Expr{
+							&IntegerExpr{
+								N: 0,
+							},
+						},
+					},
+					Then: &CallExpr{
+						Left: &CallExpr{
+							Left: &ThisExpr{},
+							Name: ID{
+								Name: "_negative",
+							},
+						},
+						Name: ID{
+							Name: "_divide_unsigned",
+						},
+						Args: []Expr{
+							&CallExpr{
+								Left: &NameExpr{
+									Name: ID{
+										Name: "x",
+									},
+								},
+								Name: ID{
+									Name: "_negative",
+								},
+							},
+						},
+					},
+					Else: &CallExpr{
+						Left: &CallExpr{
+							Left: &CallExpr{
+								Left: &ThisExpr{},
+								Name: ID{
+									Name: "_negative",
+								},
+							},
+							Name: ID{
+								Name: "_divide_unsigned",
+							},
+							Args: []Expr{
+								&NameExpr{
+									Name: ID{
+										Name: "x",
+									},
+								},
+							},
+						},
+						Name: ID{
+							Name: "_negative",
+						},
+					},
+				},
+				Else: &IfExpr{
+					Condition: &CallExpr{
+						Left: &NameExpr{
+							Name: ID{
+								Name: "x",
+							},
+						},
+						Name: ID{
+							Name: "_less",
+						},
+						Args: []Expr{
+							&IntegerExpr{
+								N: 0,
+							},
+						},
+					},
+					Then: &CallExpr{
+						Left: &CallExpr{
+							Left: &ThisExpr{},
+							Name: ID{
+								Name: "_divide_unsigned",
+							},
+							Args: []Expr{
+								&CallExpr{
+									Left: &NameExpr{
+										Name: ID{
+											Name: "x",
+										},
+									},
+									Name: ID{
+										Name: "_negative",
+									},
+								},
+							},
+						},
+						Name: ID{
+							Name: "_negative",
+						},
+					},
+					Else: &CallExpr{
+						Left: &ThisExpr{},
+						Name: ID{
+							Name: "_divide_unsigned",
+						},
+						Args: []Expr{
+							&NameExpr{
+								Name: ID{
+									Name: "x",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		&MethodFeature{
+			Name: ID{
+				Name: "_divide_unsigned",
+			},
+			Args: []*VarDecl{
+				{
+					Name: ID{
+						Name: "x",
+					},
+					Type: TYPE{
+						Name: "Int",
+					},
+				},
+			},
+			Return: TYPE{
+				Name: "Int",
+			},
 			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
-				panic("unimplemented")
+				w.EndStack()
+
+				next := w.ReserveLine()
+				w.Load(start, w.General[1], w.Stack, w.Arg(0), next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Cmp(start, w.IntValue(w.General[1].Ptr), 0, w.DivZero, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.NewInt(start, w.Return, 0, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Copy(start, w.General[0].Num, w.IntValue(w.This.Ptr), next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Copy(start, w.General[1].Num, w.IntValue(w.General[1].Ptr), next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Assign(start, bitgen.ValueAt{w.General[2].Num.Start}, bitgen.Bit(true), next)
+				start = next
+
+				loop, done := start, w.ReserveLine()
+				next = w.ReserveLine()
+				w.LessThanUnsigned(start, w.General[1].Num, w.General[0].Num, next, done, done)
+				start = next
+
+				next = w.ReserveLine()
+				w.Lsh(start, w.General[1].Num, 1, next)
+				start = next
+
+				w.Lsh(start, w.General[2].Num, 1, loop)
+
+				n0, n1 := w.ReserveLine(), w.ReserveLine()
+				w.LessThanUnsigned(done, w.General[0].Num, w.General[1].Num, n0, n1, n1)
+				start = n1
+
+				for i := uint(0); i < 32; i++ {
+					zero, one := w.ReserveLine(), w.ReserveLine()
+					w.Jump(start, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{w.General[1].Num.Start}, i}}, zero, one)
+
+					next = w.ReserveLine()
+					w.Assign(zero, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{w.General[3].Num.Start}, i}}, bitgen.Bit(true), next)
+					w.Assign(one, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{w.General[3].Num.Start}, i}}, bitgen.Bit(false), next)
+					start = next
+				}
+
+				next = w.ReserveLine()
+				w.Increment(start, w.General[3].Num, next, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.AddReg(start, w.General[0].Num, w.General[3].Num, next)
+				start = next
+
+				w.AddReg(start, w.IntValue(w.Return.Ptr), w.General[2].Num, n0)
+
+				next = w.ReserveLine()
+				w.Rsh(n0, w.General[1].Num, 1, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Rsh(start, w.General[2].Num, 1, next)
+				start = next
+
+				next = w.ReserveLine()
+				w.Cmp(start, w.General[2].Num, 0, next, done)
+				start = next
+
+				w.PopStack(start, end)
 			}),
 		},
 		&MethodFeature{
@@ -1224,7 +1438,7 @@ var basicString = &ClassDecl{
 				w.Assign(start, w.This.Ptr, bitgen.Offset{w.This.Ptr, 8}, loop)
 
 				next = w.ReserveLine()
-				w.Copy(done, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.Return.Ptr, 32 + 32 - 8}}, 32}, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.This.Ptr, 32 + 32}}, 32}, next)
+				w.Copy(done, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.Return.Ptr, 32 + 32 - 8}}, 8}, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.This.Ptr, 32 + 32}}, 8}, next)
 				start = next
 
 				w.PopStack(start, end)
