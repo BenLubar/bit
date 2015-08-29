@@ -502,9 +502,334 @@ var basicInt = &ClassDecl{
 			Return: TYPE{
 				Name: "String",
 			},
-			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
-				panic("unimplemented")
-			}),
+			Body: &IfExpr{
+				Condition: &CallExpr{
+					Left: &ThisExpr{},
+					Name: ID{
+						Name: "_less",
+					},
+					Args: []Expr{
+						&IntegerExpr{
+							N: 0,
+						},
+					},
+				},
+				Then: &CallExpr{
+					Left: &StringExpr{
+						S: "-",
+					},
+					Name: ID{
+						Name: "concat",
+					},
+					Args: []Expr{
+						&VarExpr{
+							VarFeature: VarFeature{
+								VarDecl: VarDecl{
+									Name: ID{
+										Name: "n",
+									},
+									Type: TYPE{
+										Name: "Int",
+									},
+								},
+								Value: &CallExpr{
+									Left: &ThisExpr{},
+									Name: ID{
+										Name: "_negative",
+									},
+								},
+							},
+							Expr: &IfExpr{
+								Condition: &CallExpr{
+									Left: &NameExpr{
+										Name: ID{
+											Name: "n",
+										},
+									},
+									Name: ID{
+										Name: "_less",
+									},
+									Args: []Expr{
+										&IntegerExpr{
+											N: 0,
+										},
+									},
+								},
+								Then: &StringExpr{
+									S: "2147483648",
+								},
+								Else: &CallExpr{
+									Left: &NameExpr{
+										Name: ID{
+											Name: "n",
+										},
+									},
+									Name: ID{
+										Name: "toString",
+									},
+								},
+							},
+						},
+					},
+				},
+				Else: &VarExpr{
+					VarFeature: VarFeature{
+						VarDecl: VarDecl{
+							Name: ID{
+								Name: "digits",
+							},
+							Type: TYPE{
+								Name: "String",
+							},
+						},
+						Value: &StringExpr{
+							S: "0123456789",
+						},
+					},
+					Expr: &VarExpr{
+						VarFeature: VarFeature{
+							VarDecl: VarDecl{
+								Name: ID{
+									Name: "s",
+								},
+								Type: TYPE{
+									Name: "String",
+								},
+							},
+							Value: &StringExpr{
+								S: "",
+							},
+						},
+						Expr: &VarExpr{
+							VarFeature: VarFeature{
+								VarDecl: VarDecl{
+									Name: ID{
+										Name: "n",
+									},
+									Type: TYPE{
+										Name: "Int",
+									},
+								},
+								Value: &ThisExpr{},
+							},
+							Expr: &VarExpr{
+								VarFeature: VarFeature{
+									VarDecl: VarDecl{
+										Name: ID{
+											Name: "ten",
+										},
+										Type: TYPE{
+											Name: "Int",
+										},
+									},
+									Value: &IntegerExpr{
+										N: 10,
+									},
+								},
+								Expr: &VarExpr{
+									VarFeature: VarFeature{
+										VarDecl: VarDecl{
+											Name: ID{
+												Name: "one",
+											},
+											Type: TYPE{
+												Name: "Int",
+											},
+										},
+										Value: &IntegerExpr{
+											N: 1,
+										},
+									},
+									Expr: &ChainExpr{
+										Pre: &WhileExpr{
+											Condition: &CallExpr{
+												Left: &IntegerExpr{
+													N: 0,
+												},
+												Name: ID{
+													Name: "_less",
+												},
+												Args: []Expr{
+													&NameExpr{
+														Name: ID{
+															Name: "n",
+														},
+													},
+												},
+											},
+											Do: &VarExpr{
+												VarFeature: VarFeature{
+													VarDecl: VarDecl{
+														Name: ID{
+															Name: "n10",
+														},
+														Type: TYPE{
+															Name: "Int",
+														},
+													},
+													Value: &CallExpr{
+														Left: &NameExpr{
+															Name: ID{
+																Name: "n",
+															},
+														},
+														Name: ID{
+															Name: "_divide_unsigned",
+														},
+														Args: []Expr{
+															&NameExpr{
+																Name: ID{
+																	Name: "ten",
+																},
+															},
+														},
+													},
+												},
+												Expr: &VarExpr{
+													VarFeature: VarFeature{
+														VarDecl: VarDecl{
+															Name: ID{
+																Name: "d",
+															},
+															Type: TYPE{
+																Name: "Int",
+															},
+														},
+														Value: &CallExpr{
+															Left: &NameExpr{
+																Name: ID{
+																	Name: "n",
+																},
+															},
+															Name: ID{
+																Name: "_subtract",
+															},
+															Args: []Expr{
+																&CallExpr{
+																	Left: &NameExpr{
+																		Name: ID{
+																			Name: "n10",
+																		},
+																	},
+																	Name: ID{
+																		Name: "_multiply",
+																	},
+																	Args: []Expr{
+																		&NameExpr{
+																			Name: ID{
+																				Name: "ten",
+																			},
+																		},
+																	},
+																},
+															},
+														},
+													},
+													Expr: &ChainExpr{
+														Pre: &AssignExpr{
+															Left: ID{
+																Name: "s",
+															},
+															Right: &CallExpr{
+																Left: &CallExpr{
+																	Left: &NameExpr{
+																		Name: ID{
+																			Name: "digits",
+																		},
+																	},
+																	Name: ID{
+																		Name: "substring",
+																	},
+																	Args: []Expr{
+																		&NameExpr{
+																			Name: ID{
+																				Name: "n10",
+																			},
+																		},
+																		&CallExpr{
+																			Left: &NameExpr{
+																				Name: ID{
+																					Name: "n10",
+																				},
+																			},
+																			Name: ID{
+																				Name: "_add",
+																			},
+																			Args: []Expr{
+																				&NameExpr{
+																					Name: ID{
+																						Name: "one",
+																					},
+																				},
+																			},
+																		},
+																	},
+																},
+																Name: ID{
+																	Name: "concat",
+																},
+																Args: []Expr{
+																	&NameExpr{
+																		Name: ID{
+																			Name: "s",
+																		},
+																	},
+																},
+															},
+														},
+														Expr: &AssignExpr{
+															Left: ID{
+																Name: "n",
+															},
+															Right: &NameExpr{
+																Name: ID{
+																	Name: "n10",
+																},
+															},
+														},
+													},
+												},
+											},
+										},
+										Expr: &IfExpr{
+											Condition: &CallExpr{
+												Left: &CallExpr{
+													Left: &NameExpr{
+														Name: ID{
+															Name: "s",
+														},
+													},
+													Name: ID{
+														Name: "length",
+													},
+												},
+												Name: ID{
+													Name: "equals",
+												},
+												Args: []Expr{
+													&NameExpr{
+														Name: ID{
+															Name: "n",
+														},
+													},
+												},
+											},
+											Then: &StringExpr{
+												S: "0",
+											},
+											Else: &NameExpr{
+												Name: ID{
+													Name: "s",
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 		},
 		&MethodFeature{
 			Override: true,
