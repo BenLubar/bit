@@ -156,37 +156,19 @@ var basicIO = &ClassDecl{
 			Return: TYPE{
 				Name: "Boolean",
 			},
-			Body: &MatchExpr{
-				Left: &NameExpr{
-					Name: ID{
-						Name: "arg",
-					},
-				},
-				Cases: []*Case{
-					{
-						Name: ID{
-							Name: "_null",
-						},
-						Type: TYPE{
-							Name: "Null",
-						},
-						Body: &BooleanExpr{
-							B: true,
-						},
-					},
-					{
-						Name: ID{
-							Name: "x",
-						},
-						Type: TYPE{
-							Name: "Any",
-						},
-						Body: &BooleanExpr{
-							B: false,
-						},
-					},
-				},
-			},
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
+				w.EndStack()
+
+				n0, n1 := w.ReserveLine(), w.ReserveLine()
+				w.Cmp(start, w.StackOffset(w.Arg(0)), 0, n1, n0)
+
+				next := w.ReserveLine()
+				w.CopyReg(n0, w.Return, w.False, next)
+				w.CopyReg(n1, w.Return, w.True, next)
+				start = next
+
+				w.PopStack(start, end)
+			}),
 		},
 		&MethodFeature{
 			Name: ID{
@@ -801,7 +783,7 @@ var basicInt = &ClassDecl{
 
 				next = w.ReserveLine()
 				w.Jump(pos, bitgen.ValueAt{bitgen.Offset{w.General[0].Ptr, 32 + 32 - 1}}, next, no)
-				w.Jump(pos, bitgen.ValueAt{bitgen.Offset{w.General[0].Ptr, 32 + 32 - 1}}, yes, next)
+				w.Jump(neg, bitgen.ValueAt{bitgen.Offset{w.General[0].Ptr, 32 + 32 - 1}}, yes, next)
 				start = next
 
 				w.LessThanUnsigned(start, w.IntValue(w.This.Ptr), w.IntValue(w.General[0].Ptr), yes, yes, no)
@@ -1133,7 +1115,10 @@ var basicString = &ClassDecl{
 				w.Pointer(start, w.This.Ptr, w.This.Num, next)
 				start = next
 
+				next = w.ReserveLine()
 				arg0, _ := w.StackAlloc(start, next)
+				start = next
+
 				next = w.ReserveLine()
 				w.Copy(start, arg0, w.PrevStackOffset(w.Arg(0)), next)
 				start = next

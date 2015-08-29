@@ -481,7 +481,7 @@ case
 	{
 		$$ = &Case{
 			Name: ID{
-				Name: "_null_" + yylex.(*lexer).ast.FileSet.Position($2.Pos).String(),
+				Name: "null",
 				Pos:  $2.Pos,
 			},
 			Type: $2,

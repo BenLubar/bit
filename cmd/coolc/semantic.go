@@ -90,6 +90,10 @@ func (ast *AST) recurse(classes map[string]*ClassDecl, ns []*ID, value interface
 	recurse := func(v interface{}) {
 		ast.recurse(classes, ns, v)
 	}
+	addNSAllowShadow := func(target interface{}, name *ID) {
+		ns = append(ns, name)
+		name.target = target
+	}
 	addNS := func(target interface{}, name *ID) {
 		for _, n := range ns {
 			if n.Name == name.Name {
@@ -98,12 +102,12 @@ func (ast *AST) recurse(classes map[string]*ClassDecl, ns []*ID, value interface
 				panic(fmt.Errorf("shadowing is not allowed (%s) at %v, %v", name.Name, nPos, namePos))
 			}
 		}
-		ns = append(ns, name)
-		name.target = target
+		addNSAllowShadow(target, name)
 	}
 	switch v := value.(type) {
 	case *ID:
-		for _, n := range ns {
+		for i := len(ns) - 1; i >= 0; i-- {
+			n := ns[i]
 			if n.Name == v.Name {
 				v.target = n.target
 				return
@@ -208,11 +212,12 @@ func (ast *AST) recurse(classes map[string]*ClassDecl, ns []*ID, value interface
 	case *MatchExpr:
 		recurse(v.Left)
 		for _, c := range v.Cases {
+			c.match = v
 			recurse(c)
 		}
 
 	case *Case:
-		addNS(v, &v.Name)
+		addNSAllowShadow(v, &v.Name)
 		recurse(&v.Type)
 		recurse(v.Body)
 
@@ -449,11 +454,10 @@ func (ast *AST) checkExpr(this *ClassDecl, value Expr) *ClassDecl {
 		left := ast.checkExpr(this, v.Left)
 
 		var results []*ClassDecl
+		handled := make(map[*ClassDecl]*Case)
 
-		for i, c := range v.Cases {
-			for j := 0; j < i; j++ {
-				ast.checkCase(c.Type, v.Cases[j].Type)
-			}
+		for _, c := range v.Cases {
+			ast.checkCase(c, handled)
 			ast.checkType(c.Type.target, left, c.Type.Pos)
 			results = append(results, ast.checkExpr(this, c.Body))
 		}
@@ -570,11 +574,27 @@ func (ast *AST) checkType(left, right *ClassDecl, p token.Pos) {
 	}
 }
 
-func (ast *AST) checkCase(lt, rt TYPE) {
-	if ast.lessThan(lt.target, rt.target) {
-		lpos := ast.FileSet.Position(lt.Pos)
-		rpos := ast.FileSet.Position(rt.Pos)
-		panic(fmt.Errorf("cannot declare case for type %s (already handled by case for %s at %v) at %v", lt.Name, rt.Name, rpos, lpos))
+func (ast *AST) checkCase(c *Case, handled map[*ClassDecl]*Case) {
+	any := false
+	check := func(h *ClassDecl) {
+		if _, ok := handled[h]; !ok && ast.lessThan(h, c.Type.target) {
+			c.classes = append(c.classes, h)
+			handled[h] = c
+			any = true
+		}
+	}
+	check(basicDummyNothing)
+	check(basicDummyNull)
+	for _, h := range basicClasses {
+		check(h)
+	}
+	for _, h := range ast.Classes {
+		check(h)
+	}
+
+	if !any {
+		pos := ast.FileSet.Position(c.Type.Pos)
+		panic(fmt.Errorf("inaccessible case for type %s at %v", c.Type.Name, pos))
 	}
 }
 

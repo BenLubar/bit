@@ -1098,7 +1098,7 @@ yydefault:
 		{
 			yyVAL.cas = &Case{
 				Name: ID{
-					Name: "_null_" + yylex.(*lexer).ast.FileSet.Position(yyDollar[2].typ.Pos).String(),
+					Name: "null",
 					Pos:  yyDollar[2].typ.Pos,
 				},
 				Type: yyDollar[2].typ,

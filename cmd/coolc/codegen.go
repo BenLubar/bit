@@ -78,6 +78,8 @@ type writer struct {
 	Panic      bitgen.Line // AAAAAAAAAAAAAAAAAA
 	Null       bitgen.Line // null pointer dereference
 	IndexRange bitgen.Line // ArrayAny index out of range
+	CaseNull   bitgen.Line // special case of NoCase for Null
+	NoCase     bitgen.Line // missing case in match expression
 
 	JumpTableEntry bitgen.Line
 	MethodStarts   map[*MethodFeature]uint32
@@ -161,6 +163,24 @@ func (w *writer) Init() (start bitgen.Line) {
 
 	w.IndexRange = w.ReserveLine()
 	w.PrintString(w.IndexRange, "runtime error: index out of range\n", w.Panic)
+
+	w.CaseNull = w.ReserveLine()
+	w.PrintString(w.CaseNull, "runtime error: missing case for Null\n", 0)
+
+	w.NoCase = w.ReserveLine()
+	noCaseB := w.ReserveLine()
+	w.PrintString(w.NoCase, "runtime error: missing case for ", noCaseB)
+	noCaseA := noCaseB
+
+	noCaseB = w.ReserveLine()
+	w.Copy(noCaseA, w.StackOffset(w.Arg(0)), bitgen.Integer{bitgen.ValueAt{w.Return.Ptr}, 32}, noCaseB)
+	noCaseA = noCaseB
+
+	noCaseB = w.ReserveLine()
+	w.PrintStringArg(noCaseA, 0, noCaseB)
+	noCaseA = noCaseB
+
+	w.Print(noCaseA, '\n', 0)
 
 	for _, c := range basicClasses {
 		next = w.ReserveLine()
@@ -977,10 +997,14 @@ func (w *writer) gotoNext(start bitgen.Line, nextVal uint32, end bitgen.Line) {
 		start = next
 	}
 
-	w.Jump(w.Jumps[nextVal], bitgen.Bit(false), end, w.Panic)
+	if w.Jumps[nextVal] != 0 || end != 0 {
+		w.Jump(w.Jumps[nextVal], bitgen.Bit(false), end, w.Panic)
+	}
 }
 
 func (w *writer) StaticCall(start bitgen.Line, m *StaticCallExpr, end bitgen.Line) {
+	w.EndStack()
+
 	nextVal := w.StaticCalls[m]
 	gotoVal := w.MethodStarts[m.Name.target.(*MethodFeature)]
 
@@ -994,6 +1018,8 @@ func (w *writer) StaticCall(start bitgen.Line, m *StaticCallExpr, end bitgen.Lin
 }
 
 func (w *writer) DynamicCall(start bitgen.Line, m *CallExpr, end bitgen.Line) {
+	w.EndStack()
+
 	nextVal := w.DynamicCalls[m]
 
 	next := w.ReserveLine()

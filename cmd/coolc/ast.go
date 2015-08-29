@@ -122,7 +122,10 @@ func (e *AssignExpr) write(w *writer, start, end bitgen.Line) {
 		w.Copy(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.This.Ptr, v.offset * 8}}, 32}, w.Return.Num, end)
 
 	case *VarExpr:
-		w.Copy(start, v.slot, w.Return.Num, next)
+		w.Copy(start, v.slot, w.Return.Num, end)
+
+	case *Case:
+		w.Copy(start, v.match.slot, w.Return.Num, end)
 
 	default:
 		panic(v)
@@ -187,14 +190,72 @@ func (e *WhileExpr) alloc(w *writer, start bitgen.Line) (next bitgen.Line) {
 type MatchExpr struct {
 	Left  Expr
 	Cases []*Case
+
+	slot bitgen.Integer
 }
 
 func (e *MatchExpr) write(w *writer, start, end bitgen.Line) {
-	panic("unimplemented")
+	next := w.ReserveLine()
+	e.Left.write(w, start, next)
+	start = next
+
+	next = w.ReserveLine()
+	w.Copy(start, e.slot, w.Return.Num, next)
+	start = next
+
+	null := w.CaseNull
+findNull:
+	for _, c := range e.Cases {
+		for _, h := range c.classes {
+			if h == basicDummyNull {
+				null = w.ReserveLine()
+				break findNull
+			}
+		}
+	}
+
+	next = w.ReserveLine()
+	w.Cmp(start, w.Return.Num, 0, null, next)
+	start = next
+
+	for _, c := range e.Cases {
+		hasNull := false
+		for _, h := range c.classes {
+			if h == basicDummyNull {
+				hasNull = true
+				break
+			}
+		}
+		target := null
+		if !hasNull {
+			target = w.ReserveLine()
+		}
+
+		for _, h := range c.classes {
+			if h == basicDummyNull || h == basicDummyNothing {
+				continue
+			}
+
+			next = w.ReserveLine()
+			w.CmpReg(start, bitgen.Integer{bitgen.ValueAt{w.Return.Ptr}, 32}, w.Classes[h].Num, target, next)
+			start = next
+		}
+
+		c.Body.write(w, target, end)
+	}
+
+	w.Jump(start, bitgen.Bit(false), w.NoCase, w.Panic)
 }
 
 func (e *MatchExpr) alloc(w *writer, start bitgen.Line) (next bitgen.Line) {
-	panic("unimplemented")
+	next = w.ReserveLine()
+	e.slot, _ = w.StackAlloc(start, next)
+
+	next = e.Left.alloc(w, next)
+	for _, c := range e.Cases {
+		next = c.Body.alloc(w, next)
+	}
+	return next
 }
 
 type CallExpr struct {
@@ -453,6 +514,13 @@ func (e *NameExpr) write(w *writer, start, end bitgen.Line) {
 
 		w.Pointer(start, w.Return.Ptr, w.Return.Num, end)
 
+	case *Case:
+		next := w.ReserveLine()
+		w.Copy(start, w.Return.Num, v.match.slot, next)
+		start = next
+
+		w.Pointer(start, w.Return.Ptr, w.Return.Num, end)
+
 	default:
 		panic(v)
 	}
@@ -535,6 +603,9 @@ type Case struct {
 	Name ID
 	Type TYPE
 	Body Expr
+
+	match   *MatchExpr
+	classes []*ClassDecl
 }
 
 type NativeExpr func(w *writer, start, end bitgen.Line)
