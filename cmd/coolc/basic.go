@@ -369,7 +369,7 @@ var basicIO = &ClassDecl{
 				start = next
 
 				next = w.ReserveLine()
-				w.StaticCall(start, basicStringEquals, next)
+				w.StaticCall(start, basicSymbolCallStringEquals, next)
 				start = next
 
 				w.CmpReg(start, w.True.Num, w.Return.Num, found, loop)
@@ -950,6 +950,13 @@ var basicStringEquals = &MethodFeature{
 	}),
 }
 
+var basicStringCallIntSubtract = &StaticCallExpr{
+	Name: ID{
+		Name:   "_subtract",
+		target: basicIntSubtract,
+	},
+}
+
 var basicString = &ClassDecl{
 	Name: TYPE{
 		Name: "String",
@@ -1132,7 +1139,7 @@ var basicString = &ClassDecl{
 				start = next
 
 				next = w.ReserveLine()
-				w.StaticCall(start, basicIntSubtract, next)
+				w.StaticCall(start, basicStringCallIntSubtract, next)
 				start = next
 
 				next = w.ReserveLine()
@@ -1505,6 +1512,13 @@ var basicSymbolNext = &VarFeature{
 		},
 	},
 	Value: &NullExpr{},
+}
+
+var basicSymbolCallStringEquals = &StaticCallExpr{
+	Name: ID{
+		Name:   "equals",
+		target: basicStringEquals,
+	},
 }
 
 var basicSymbol = &ClassDecl{
@@ -1898,6 +1912,11 @@ var basicArrayAny = &ClassDecl{
 			}),
 		},
 	},
+}
+
+var basicDummyCalls = []*StaticCallExpr{
+	basicStringCallIntSubtract,
+	basicSymbolCallStringEquals,
 }
 
 var basicClasses = []*ClassDecl{

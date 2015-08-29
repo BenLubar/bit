@@ -249,7 +249,7 @@ func (e *CallExpr) write(w *writer, start, end bitgen.Line) {
 		start = next
 	}
 
-	w.DynamicCall(start, e.Name.target.(*MethodFeature), end)
+	w.DynamicCall(start, e, end)
 }
 
 func (e *CallExpr) alloc(w *writer, start bitgen.Line) (next bitgen.Line) {
@@ -322,7 +322,7 @@ func (e *StaticCallExpr) write(w *writer, start, end bitgen.Line) {
 		start = next
 	}
 
-	w.StaticCall(start, e.Name.target.(*MethodFeature), end)
+	w.StaticCall(start, e, end)
 }
 
 func (e *StaticCallExpr) alloc(w *writer, start bitgen.Line) (next bitgen.Line) {
