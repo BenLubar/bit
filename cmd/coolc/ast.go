@@ -106,11 +106,31 @@ type AssignExpr struct {
 }
 
 func (e *AssignExpr) write(w *writer, start, end bitgen.Line) {
-	panic("unimplemented")
+	next := w.ReserveLine()
+	e.Right.write(w, start, next)
+	start = next
+
+	switch v := e.Left.target.(type) {
+	case *VarDecl:
+		if v.offset != 0 {
+			w.Copy(start, w.StackOffset(w.Arg(v.arg)), w.Return.Num, end)
+		} else {
+			w.Copy(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.This.Ptr, v.offset * 8}}, 32}, w.Return.Num, end)
+		}
+
+	case *VarFeature:
+		w.Copy(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.This.Ptr, v.offset * 8}}, 32}, w.Return.Num, end)
+
+	case *VarExpr:
+		w.Copy(start, v.slot, w.Return.Num, next)
+
+	default:
+		panic(v)
+	}
 }
 
 func (e *AssignExpr) alloc(w *writer, start bitgen.Line) (next bitgen.Line) {
-	panic("unimplemented")
+	return e.Right.alloc(w, start)
 }
 
 type IfExpr struct {
@@ -121,11 +141,21 @@ type IfExpr struct {
 }
 
 func (e *IfExpr) write(w *writer, start, end bitgen.Line) {
-	panic("unimplemented")
+	next := w.ReserveLine()
+	e.Condition.write(w, start, next)
+	start = next
+
+	n0, n1 := w.ReserveLine(), w.ReserveLine()
+	w.CmpReg(start, w.Return.Num, w.True.Num, n1, n0)
+
+	e.Then.write(w, n1, end)
+	e.Else.write(w, n0, end)
 }
 
 func (e *IfExpr) alloc(w *writer, start bitgen.Line) (next bitgen.Line) {
-	panic("unimplemented")
+	next = e.Condition.alloc(w, start)
+	next = e.Then.alloc(w, next)
+	return e.Else.alloc(w, next)
 }
 
 type WhileExpr struct {
@@ -135,11 +165,23 @@ type WhileExpr struct {
 }
 
 func (e *WhileExpr) write(w *writer, start, end bitgen.Line) {
-	panic("unimplemented")
+	loop, done := start, w.ReserveLine()
+	next := w.ReserveLine()
+	e.Condition.write(w, loop, next)
+	start = next
+
+	next = w.ReserveLine()
+	w.CmpReg(start, w.Return.Num, w.True.Num, next, done)
+	start = next
+
+	e.Do.write(w, start, loop)
+
+	w.CopyReg(done, w.Return, w.Unit, end)
 }
 
 func (e *WhileExpr) alloc(w *writer, start bitgen.Line) (next bitgen.Line) {
-	panic("unimplemented")
+	next = e.Condition.alloc(w, start)
+	return e.Do.alloc(w, next)
 }
 
 type MatchExpr struct {
@@ -309,24 +351,38 @@ type NewExpr struct {
 }
 
 func (e *NewExpr) write(w *writer, start, end bitgen.Line) {
-	panic("unimplemented")
+	w.New(start, w.Return, e.Type.target, end)
 }
 
 func (e *NewExpr) alloc(w *writer, start bitgen.Line) (next bitgen.Line) {
-	panic("unimplemented")
+	return start
 }
 
 type VarExpr struct {
 	VarFeature
 	Expr Expr
+
+	slot bitgen.Integer
 }
 
 func (e *VarExpr) write(w *writer, start, end bitgen.Line) {
-	panic("unimplemented")
+	next := w.ReserveLine()
+	e.Value.write(w, start, next)
+	start = next
+
+	next = w.ReserveLine()
+	w.Copy(start, e.slot, w.Return.Num, next)
+	start = next
+
+	e.Expr.write(w, start, end)
 }
 
 func (e *VarExpr) alloc(w *writer, start bitgen.Line) (next bitgen.Line) {
-	panic("unimplemented")
+	next = w.ReserveLine()
+	e.slot, _ = w.StackAlloc(start, next)
+
+	next = e.Value.alloc(w, next)
+	return e.Expr.alloc(w, next)
 }
 
 type ChainExpr struct {
@@ -351,22 +407,27 @@ type NullExpr struct {
 }
 
 func (e *NullExpr) write(w *writer, start, end bitgen.Line) {
-	panic("unimplemented")
+	for i := uint(0); i < w.Return.Num.Width; i++ {
+		next := w.ReserveLine()
+		w.Assign(start, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{w.Return.Num.Start}, i}}, bitgen.Bit(false), next)
+		start = next
+	}
+	w.Assign(start, w.Return.Ptr, w.Heap, end)
 }
 
 func (e *NullExpr) alloc(w *writer, start bitgen.Line) (next bitgen.Line) {
-	panic("unimplemented")
+	return start
 }
 
 type UnitExpr struct {
 }
 
 func (e *UnitExpr) write(w *writer, start, end bitgen.Line) {
-	panic("unimplemented")
+	w.CopyReg(start, w.Return, w.Unit, end)
 }
 
 func (e *UnitExpr) alloc(w *writer, start bitgen.Line) (next bitgen.Line) {
-	panic("unimplemented")
+	return start
 }
 
 type NameExpr struct {
@@ -374,11 +435,31 @@ type NameExpr struct {
 }
 
 func (e *NameExpr) write(w *writer, start, end bitgen.Line) {
-	panic("unimplemented")
+	switch v := e.Name.target.(type) {
+	case *VarDecl:
+		if v.offset != 0 {
+			w.Load(start, w.Return, w.Stack, w.Arg(v.arg), end)
+		} else {
+			w.Load(start, w.Return, w.This, v.offset, end)
+		}
+
+	case *VarFeature:
+		w.Load(start, w.Return, w.This, v.offset, end)
+
+	case *VarExpr:
+		next := w.ReserveLine()
+		w.Copy(start, w.Return.Num, v.slot, next)
+		start = next
+
+		w.Pointer(start, w.Return.Ptr, w.Return.Num, end)
+
+	default:
+		panic(v)
+	}
 }
 
 func (e *NameExpr) alloc(w *writer, start bitgen.Line) (next bitgen.Line) {
-	panic("unimplemented")
+	return start
 }
 
 type IntegerExpr struct {
@@ -386,11 +467,11 @@ type IntegerExpr struct {
 }
 
 func (e *IntegerExpr) write(w *writer, start, end bitgen.Line) {
-	panic("unimplemented")
+	w.NewInt(start, w.Return, e.N, end)
 }
 
 func (e *IntegerExpr) alloc(w *writer, start bitgen.Line) (next bitgen.Line) {
-	panic("unimplemented")
+	return start
 }
 
 type StringExpr struct {
@@ -428,11 +509,15 @@ type BooleanExpr struct {
 }
 
 func (e *BooleanExpr) write(w *writer, start, end bitgen.Line) {
-	panic("unimplemented")
+	if e.B {
+		w.CopyReg(start, w.Return, w.True, end)
+	} else {
+		w.CopyReg(start, w.Return, w.False, end)
+	}
 }
 
 func (e *BooleanExpr) alloc(w *writer, start bitgen.Line) (next bitgen.Line) {
-	panic("unimplemented")
+	return start
 }
 
 type ThisExpr struct {
