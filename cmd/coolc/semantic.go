@@ -16,7 +16,7 @@ var extendsAny = &ExtendsDecl{
 var basicDummyNull = &ClassDecl{Name: TYPE{Name: "Null"}}
 var basicDummyNothing = &ClassDecl{Name: TYPE{Name: "Nothing"}}
 
-func (ast *AST) Semantic() (err error) {
+func (ast *AST) Semantic(basic bool) (err error) {
 	classes := make(map[string]*ClassDecl)
 
 	for _, c := range basicClasses {
@@ -64,9 +64,19 @@ func (ast *AST) Semantic() (err error) {
 		ast.checkExtends([]*ClassDecl{c}, c.Extends.Type.target)
 	}
 
+	if !basic {
+		for _, c := range ast.Classes {
+			ast.buildConstructor(c)
+		}
+	}
+
 	for _, c := range ast.Classes {
 		c.methods = make(map[string]*MethodFeature)
 		ast.buildMethodTable(c.methods, c)
+	}
+
+	for _, c := range ast.Classes {
+		ast.offset(c)
 	}
 
 	for _, c := range ast.Classes {
@@ -228,21 +238,32 @@ func (ast *AST) recurse(classes map[string]*ClassDecl, ns []*ID, value interface
 	}
 }
 
+func (ast *AST) offset(c *ClassDecl) {
+	if c.size != 0 {
+		return
+	}
+	if c == basicAny {
+		c.size = 32 / 8
+	} else {
+		ast.offset(c.Extends.Type.target)
+		c.size = c.Extends.Type.target.size
+	}
+	for _, a := range c.Args {
+		a.offset = c.size
+		c.size += 32 / 8
+	}
+	for _, f := range c.Body {
+		if a, ok := f.(*VarFeature); ok {
+			a.offset = c.size
+			c.size += 32 / 8
+		}
+	}
+}
+
 func (ast *AST) typecheck(this *ClassDecl, value interface{}) {
 	switch v := value.(type) {
 	case *ClassDecl:
-		v.size = 32 / 8
-		for _, a := range v.Args {
-			a.offset = v.size
-			v.size += 32 / 8
-		}
 		ast.typecheck(this, v.Extends)
-		for _, f := range v.Body {
-			if a, ok := f.(*VarFeature); ok {
-				a.offset = v.size
-				v.size += 32 / 8
-			}
-		}
 		for _, f := range v.Body {
 			ast.typecheck(this, f)
 		}
@@ -321,6 +342,49 @@ func (ast *AST) checkExtends(path []*ClassDecl, parent *ClassDecl) {
 	ast.checkExtends(append(path, parent), parent.Extends.Type.target)
 }
 
+func (ast *AST) buildConstructor(c *ClassDecl) {
+	var expr Expr
+	expr = &StaticCallExpr{
+		Name: ID{
+			Name: c.Extends.Type.Name,
+			Pos:  c.Extends.Type.Pos,
+		},
+		Args: c.Extends.Args,
+	}
+
+	for _, f := range c.Body {
+		switch v := f.(type) {
+		case *VarFeature:
+			expr = &ChainExpr{
+				Pre: expr,
+				Expr: &AssignExpr{
+					Left:  v.Name,
+					Right: v.Value,
+				},
+			}
+
+		case *BlockFeature:
+			expr = &ChainExpr{
+				Pre:  expr,
+				Expr: v.Expr,
+			}
+		}
+	}
+
+	c.Body = append(c.Body, &MethodFeature{
+		Name: ID{
+			Name: c.Name.Name,
+			Pos:  c.Name.Pos,
+		},
+		Args:   c.Args,
+		Return: c.Name,
+		Body: &ConstructorExpr{
+			Args: c.Args,
+			Expr: expr,
+		},
+	})
+}
+
 func (ast *AST) buildMethodTable(methods map[string]*MethodFeature, c *ClassDecl) {
 	if c != basicAny {
 		ast.buildMethodTable(methods, c.Extends.Type.target)
@@ -362,6 +426,10 @@ func (ast *AST) checkExpr(this *ClassDecl, value Expr) *ClassDecl {
 	switch v := value.(type) {
 	case NativeExpr:
 		return basicDummyNothing
+
+	case *ConstructorExpr:
+		ast.checkExpr(this, v.Expr)
+		return this
 
 	case *IfExpr:
 		if cond := ast.checkExpr(this, v.Condition); cond != basicBoolean {

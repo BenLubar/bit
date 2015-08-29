@@ -35,7 +35,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := ast.Semantic(); err != nil {
+	if err := ast.Semantic(false); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}

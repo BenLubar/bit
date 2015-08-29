@@ -9,6 +9,15 @@ var basicAny = &ClassDecl{
 	Body: []Feature{
 		&MethodFeature{
 			Name: ID{
+				Name: "Any",
+			},
+			Return: TYPE{
+				Name: "Any",
+			},
+			Body: &ThisExpr{},
+		},
+		&MethodFeature{
+			Name: ID{
 				Name: "toString",
 			},
 			Return: TYPE{
@@ -22,7 +31,7 @@ var basicAny = &ClassDecl{
 				start = next
 
 				next = w.ReserveLine()
-				w.Load(start, w.Return, w.This, 32/8, next)
+				w.Load(start, w.Return, w.This, 0, next)
 				start = next
 
 				w.PopStack(start, end)
@@ -67,6 +76,15 @@ var basicIO = &ClassDecl{
 		Name: "IO",
 	},
 	Body: []Feature{
+		&MethodFeature{
+			Name: ID{
+				Name: "IO",
+			},
+			Return: TYPE{
+				Name: "IO",
+			},
+			Body: &ThisExpr{},
+		},
 		&MethodFeature{
 			Name: ID{
 				Name: "abort",
@@ -1886,7 +1904,7 @@ func init() {
 			},
 		}, basicClasses...),
 	}
-	if err := basicAST.Semantic(); err != nil {
+	if err := basicAST.Semantic(true); err != nil {
 		panic(err)
 	}
 }

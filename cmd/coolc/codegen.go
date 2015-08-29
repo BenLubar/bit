@@ -17,11 +17,21 @@ func (ast *AST) WriteTo(out io.Writer) (err error) {
 
 	start := w.Init()
 
-	methods := w.MethodTable()
+	next := w.ReserveLine()
+	w.New(start, w.Return, ast.main, next)
+	start = next
 
-	_, _ = start, methods
+	next = w.ReserveLine()
+	w.BeginStack(start, next)
+	start = next
 
-	panic("unimplemented")
+	next = w.ReserveLine()
+	w.CopyReg(start, w.This, w.Return, next)
+	start = next
+
+	w.StaticCall(start, ast.main.methods["Main"], 0)
+
+	return nil
 }
 
 type writer struct {
@@ -46,10 +56,12 @@ type writer struct {
 
 	Classes map[*ClassDecl]register // class definition pointers, internal
 
-	basicInt      *ClassDecl // the same as the global basicInt
-	basicString   *ClassDecl // the same as the global basicString
-	basicArrayAny *ClassDecl // the same as the global basicArrayAny
+	basicInt      *ClassDecl   // the same as the global basicInt
+	basicString   *ClassDecl   // the same as the global basicString
+	basicArrayAny *ClassDecl   // the same as the global basicArrayAny
+	basicClasses  []*ClassDecl // the same as the global basicClasses
 
+	Panic      bitgen.Line // AAAAAAAAAAAAAAAAAA
 	Null       bitgen.Line // null pointer dereference
 	IndexRange bitgen.Line // ArrayAny index out of range
 }
@@ -63,6 +75,7 @@ func (w *writer) Init() (start bitgen.Line) {
 	w.basicInt = basicInt
 	w.basicString = basicString
 	w.basicArrayAny = basicArrayAny
+	w.basicClasses = basicClasses
 
 	var registers []register
 	reg := func(r *register) {
@@ -118,11 +131,14 @@ func (w *writer) Init() (start bitgen.Line) {
 	w.Assign(start, w.Alloc.Ptr, bitgen.Offset{w.Alloc.Ptr, 8}, next)
 	start = next
 
+	w.Panic = w.ReserveLine()
+	w.Dump(w.Panic, 0)
+
 	w.Null = w.ReserveLine()
-	w.Abort(w.Null, "runtime error: null pointer dereference")
+	w.Abort(w.Null, "runtime error: null pointer dereference\n")
 
 	w.IndexRange = w.ReserveLine()
-	w.Abort(w.IndexRange, "runtime error: index out of range")
+	w.Abort(w.IndexRange, "runtime error: index out of range\n")
 
 	for _, c := range basicClasses {
 		next = w.ReserveLine()
@@ -162,6 +178,14 @@ func (w *writer) Init() (start bitgen.Line) {
 	w.NewInt(start, w.Zero, 0, next)
 	start = next
 
+	next = w.ReserveLine()
+	w.CopyReg(start, w.General[0], w.General[2], next)
+	start = next
+
+	next = w.ReserveLine()
+	w.CopyReg(start, w.General[1], w.General[2], next)
+	start = next
+
 	return
 }
 
@@ -171,7 +195,7 @@ func (w *writer) ClassDecl(start bitgen.Line, c *ClassDecl, end bitgen.Line) {
 	start = next
 
 	next = w.ReserveLine()
-	w.StaticAlloc(start, w.Classes[c], (1+uint(len(c.methods)))+32/8, next)
+	w.StaticAlloc(start, w.Classes[c], (1+uint(len(c.methods)))*32/8, next)
 	start = next
 
 	w.Copy(start, bitgen.Integer{bitgen.ValueAt{w.Classes[c].Ptr}, 32}, w.General[0].Num, end)
@@ -179,30 +203,26 @@ func (w *writer) ClassDecl(start bitgen.Line, c *ClassDecl, end bitgen.Line) {
 
 func (w *writer) ClassDeclFixup(start bitgen.Line, c *ClassDecl, end bitgen.Line) {
 	next := w.ReserveLine()
-	w.Load(start, w.This, w.Classes[c], 0, next)
+	w.Load(start, w.General[0], w.Classes[c], 0, next)
 	start = next
 
 	next = w.ReserveLine()
-	w.Copy(start, bitgen.Integer{bitgen.ValueAt{w.This.Ptr}, 32}, w.Classes[basicString].Num, next)
+	w.Copy(start, bitgen.Integer{bitgen.ValueAt{w.General[0].Ptr}, 32}, w.Classes[basicString].Num, next)
 	start = next
 
 	next = w.ReserveLine()
-	w.Load(start, w.This, w.This, basicStringLength.offset, next)
+	w.Load(start, w.General[0], w.General[0], basicStringLength.offset, next)
 	start = next
 
-	w.Copy(start, bitgen.Integer{bitgen.ValueAt{w.This.Ptr}, 32}, w.Classes[basicInt].Num, end)
-}
-
-func (w *writer) MethodTable() (entry bitgen.Line) {
-	entry = w.ReserveLine()
-
-	panic("unimplemented")
-
-	return
+	w.Copy(start, bitgen.Integer{bitgen.ValueAt{w.General[0].Ptr}, 32}, w.Classes[basicInt].Num, end)
 }
 
 func (w *writer) Pointer(start bitgen.Line, ptr bitgen.Variable, num bitgen.Integer, end bitgen.Line) {
 	next := w.ReserveLine()
+	w.LessThanUnsigned(start, num, w.Alloc.Num, next, w.Panic, w.Panic)
+	start = next
+
+	next = w.ReserveLine()
 	w.Copy(start, w.Ptr, num, next)
 	start = next
 
@@ -251,18 +271,18 @@ func (w *writer) BeginStack(start, end bitgen.Line) {
 	}
 
 	next = w.ReserveLine()
+	w.Assign(start, w.Alloc.Ptr, bitgen.Offset{w.Alloc.Ptr, w.Offset * 32}, next)
+	start = next
+
+	next = w.ReserveLine()
 	w.Copy(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.Stack.Ptr, 32}}, 32}, w.This.Num, next)
 	start = next
 
 	for i := 0; i < 32; i++ {
 		next = w.ReserveLine()
-		w.Assign(start, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{w.This.Num.Start}, uint(32 + i)}}, bitgen.Bit(false), next)
+		w.Assign(start, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{w.This.Num.Start}, uint(i)}}, bitgen.Bit(false), next)
 		start = next
 	}
-
-	next = w.ReserveLine()
-	w.Assign(start, w.This.Ptr, w.Heap, next)
-	start = next
 
 	for i := range w.General {
 		next = w.ReserveLine()
@@ -271,7 +291,7 @@ func (w *writer) BeginStack(start, end bitgen.Line) {
 
 		for j := 0; j < 32; j++ {
 			next = w.ReserveLine()
-			w.Assign(start, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{w.General[i].Num.Start}, uint(2*32 + i*32 + j)}}, bitgen.Bit(false), next)
+			w.Assign(start, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{w.General[i].Num.Start}, uint(j)}}, bitgen.Bit(false), next)
 			start = next
 		}
 
@@ -280,7 +300,7 @@ func (w *writer) BeginStack(start, end bitgen.Line) {
 		start = next
 	}
 
-	w.Assign(start, w.Alloc.Ptr, bitgen.Offset{w.Alloc.Ptr, w.Offset * 32}, end)
+	w.Assign(start, w.This.Ptr, w.Heap, end)
 }
 
 func (w *writer) StackAlloc(start, end bitgen.Line) (cur, prev bitgen.Integer) {
@@ -288,7 +308,7 @@ func (w *writer) StackAlloc(start, end bitgen.Line) (cur, prev bitgen.Integer) {
 		panic("StackAlloc while not in stack")
 	}
 
-	cur, prev = w.StackOffset(w.Offset), w.PrevStackOffset(w.Offset)
+	cur, prev = w.StackOffset(w.Offset*32/8), w.PrevStackOffset(w.Offset*32/8)
 
 	w.Offset++
 
@@ -318,27 +338,15 @@ func (w *writer) PopStack(start, end bitgen.Line) {
 
 	for i := range w.General {
 		next := w.ReserveLine()
-		w.Copy(start, w.General[i].Num, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.Stack.Ptr, uint(2*32 + i*32)}}, 32}, next)
-		start = next
-
-		next = w.ReserveLine()
-		w.Pointer(start, w.General[i].Ptr, w.General[i].Num, next)
+		w.Load(start, w.General[i], w.Stack, 32/8+32/8+uint(i)*32/8, next)
 		start = next
 	}
 
 	next := w.ReserveLine()
-	w.Copy(start, w.This.Num, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.Stack.Ptr, 32}}, 32}, next)
+	w.Load(start, w.This, w.Stack, 32/8, next)
 	start = next
 
-	next = w.ReserveLine()
-	w.Pointer(start, w.This.Ptr, w.This.Num, end)
-	start = next
-
-	next = w.ReserveLine()
-	w.Copy(start, w.Stack.Num, bitgen.Integer{bitgen.ValueAt{w.Stack.Ptr}, 32}, next)
-	start = next
-
-	w.Pointer(start, w.Stack.Ptr, w.Stack.Num, end)
+	w.Load(start, w.Stack, w.Stack, 0, end)
 }
 
 func (w *writer) StaticAlloc(start bitgen.Line, reg register, size uint, end bitgen.Line) {
@@ -374,7 +382,7 @@ func (w *writer) NewInt(start bitgen.Line, reg register, value int32, end bitgen
 		} else {
 			next = w.ReserveLine()
 		}
-		w.Assign(start, bitgen.ValueAt{bitgen.Offset{reg.Ptr, 32 + i}}, bitgen.Bit((uint32(value)<<uint(i))&0x80000000 == 0x80000000), next)
+		w.Assign(start, bitgen.ValueAt{bitgen.Offset{reg.Ptr, 32 + i}}, bitgen.Bit((uint32(value)>>uint(i))&1 == 1), next)
 		start = next
 	}
 }
@@ -391,7 +399,7 @@ func (w *writer) NewString(start bitgen.Line, reg, length register, value string
 	for i := range value {
 		for j := 0; j < 8; j++ {
 			next = w.ReserveLine()
-			w.Assign(start, bitgen.ValueAt{bitgen.Offset{reg.Ptr, uint(32 + 32 + i*8 + j)}}, bitgen.Bit((value[i]<<uint(j))&0x80 == 0x80), next)
+			w.Assign(start, bitgen.ValueAt{bitgen.Offset{reg.Ptr, basicStringLength.offset*8 + 32 + uint(i*8+j)}}, bitgen.Bit((value[i]>>uint(j))&1 == 1), next)
 			start = next
 		}
 	}
@@ -533,7 +541,7 @@ func (w *writer) Load(start bitgen.Line, left, right register, offset uint, end 
 	start = next
 
 	next = w.ReserveLine()
-	w.Copy(start, left.Num, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{right.Ptr}, 8 * offset}}, 32}, next)
+	w.Copy(start, left.Num, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{right.Ptr, 8 * offset}}, 32}, next)
 	start = next
 
 	w.Pointer(start, left.Ptr, left.Num, end)
@@ -579,7 +587,7 @@ func (w *writer) CmpReg(start bitgen.Line, left, right bitgen.Integer, same, dif
 
 func (w *writer) LessThanUnsigned(start bitgen.Line, left, right bitgen.Integer, less, equal, greater bitgen.Line) {
 	if left.Width != right.Width {
-		panic("non-equal widths for CmpReg")
+		panic("non-equal widths for LessThanUnsigned")
 	}
 
 	for i := left.Width - 1; i < left.Width; i-- {
@@ -593,8 +601,8 @@ func (w *writer) LessThanUnsigned(start bitgen.Line, left, right bitgen.Integer,
 			next = w.ReserveLine()
 		}
 
-		w.Jump(zero, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{right.Start}, i}}, next, greater)
-		w.Jump(one, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{right.Start}, i}}, less, next)
+		w.Jump(zero, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{right.Start}, i}}, next, less)
+		w.Jump(one, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{right.Start}, i}}, greater, next)
 
 		start = next
 	}
@@ -656,11 +664,7 @@ func (w *writer) PrintStringArg(start bitgen.Line, arg uint, end bitgen.Line) {
 	start = next
 
 	next = w.ReserveLine()
-	w.Copy(start, w.General[1].Num, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[1].Ptr, 32}}, 32}, next)
-	start = next
-
-	next = w.ReserveLine()
-	w.Assign(start, w.General[0].Ptr, bitgen.Offset{w.General[0].Ptr, basicStringLength.offset*8 + 32}, next)
+	w.Copy(start, w.General[1].Num, w.IntValue(w.General[1].Ptr), next)
 	start = next
 
 	loop := start
@@ -669,16 +673,200 @@ func (w *writer) PrintStringArg(start bitgen.Line, arg uint, end bitgen.Line) {
 	start = next
 
 	next = w.ReserveLine()
-	w.Output(start, bitgen.Integer{bitgen.ValueAt{w.General[0].Ptr}, 8}, next)
+	w.Output(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[0].Ptr, basicStringLength.offset*8 + 32}}, 8}, next)
 	start = next
 
 	w.Assign(start, w.General[0].Ptr, bitgen.Offset{w.General[0].Ptr, 8}, loop)
 }
 
 func (w *writer) StaticCall(start bitgen.Line, m *MethodFeature, end bitgen.Line) {
-	panic("unimplemented")
+	if _, ok := m.Body.(NativeExpr); ok {
+		m.Body.write(w, start, end)
+		return
+	}
+
+	start = m.Body.alloc(w, start)
+	w.EndStack()
+
+	next := w.ReserveLine()
+	m.Body.write(w, start, next)
+	start = next
+
+	w.PopStack(start, end)
+
+	//panic("unimplemented")
 }
 
 func (w *writer) DynamicCall(start bitgen.Line, m *MethodFeature, end bitgen.Line) {
-	panic("unimplemented")
+	w.StaticCall(start, m, end)
+
+	//panic("unimplemented")
+}
+
+func (w *writer) hexDigit(start bitgen.Line, ptr bitgen.Value, end bitgen.Line) {
+	n0, n1 := w.ReserveLine(), w.ReserveLine()
+	w.Jump(start, bitgen.ValueAt{bitgen.Offset{ptr, 3}}, n0, n1)
+
+	n00, n01 := w.ReserveLine(), w.ReserveLine()
+	w.Jump(n0, bitgen.ValueAt{bitgen.Offset{ptr, 2}}, n00, n01)
+
+	n10, n11 := w.ReserveLine(), w.ReserveLine()
+	w.Jump(n1, bitgen.ValueAt{bitgen.Offset{ptr, 2}}, n10, n11)
+
+	n000, n001 := w.ReserveLine(), w.ReserveLine()
+	w.Jump(n00, bitgen.ValueAt{bitgen.Offset{ptr, 1}}, n000, n001)
+
+	n010, n011 := w.ReserveLine(), w.ReserveLine()
+	w.Jump(n01, bitgen.ValueAt{bitgen.Offset{ptr, 1}}, n010, n011)
+
+	n100, n101 := w.ReserveLine(), w.ReserveLine()
+	w.Jump(n10, bitgen.ValueAt{bitgen.Offset{ptr, 1}}, n100, n101)
+
+	n110, n111 := w.ReserveLine(), w.ReserveLine()
+	w.Jump(n11, bitgen.ValueAt{bitgen.Offset{ptr, 1}}, n110, n111)
+
+	n0000, n0001 := w.ReserveLine(), w.ReserveLine()
+	w.Jump(n000, bitgen.ValueAt{ptr}, n0000, n0001)
+
+	n0010, n0011 := w.ReserveLine(), w.ReserveLine()
+	w.Jump(n001, bitgen.ValueAt{ptr}, n0010, n0011)
+
+	n0100, n0101 := w.ReserveLine(), w.ReserveLine()
+	w.Jump(n010, bitgen.ValueAt{ptr}, n0100, n0101)
+
+	n0110, n0111 := w.ReserveLine(), w.ReserveLine()
+	w.Jump(n011, bitgen.ValueAt{ptr}, n0110, n0111)
+
+	n1000, n1001 := w.ReserveLine(), w.ReserveLine()
+	w.Jump(n100, bitgen.ValueAt{ptr}, n1000, n1001)
+
+	n1010, n1011 := w.ReserveLine(), w.ReserveLine()
+	w.Jump(n101, bitgen.ValueAt{ptr}, n1010, n1011)
+
+	n1100, n1101 := w.ReserveLine(), w.ReserveLine()
+	w.Jump(n110, bitgen.ValueAt{ptr}, n1100, n1101)
+
+	n1110, n1111 := w.ReserveLine(), w.ReserveLine()
+	w.Jump(n111, bitgen.ValueAt{ptr}, n1110, n1111)
+
+	w.Print(n0000, '0', end)
+	w.Print(n0001, '1', end)
+	w.Print(n0010, '2', end)
+	w.Print(n0011, '3', end)
+	w.Print(n0100, '4', end)
+	w.Print(n0101, '5', end)
+	w.Print(n0110, '6', end)
+	w.Print(n0111, '7', end)
+	w.Print(n1000, '8', end)
+	w.Print(n1001, '9', end)
+	w.Print(n1010, 'A', end)
+	w.Print(n1011, 'B', end)
+	w.Print(n1100, 'C', end)
+	w.Print(n1101, 'D', end)
+	w.Print(n1110, 'E', end)
+	w.Print(n1111, 'F', end)
+}
+
+func (w *writer) hex(start bitgen.Line, n bitgen.Integer, end bitgen.Line) {
+	if n.Width&(4-1) != 0 {
+		panic(fmt.Sprintf("invalid hex width: %d", n.Width))
+	}
+
+	for i := n.Width - 4; i < n.Width; i -= 4 {
+		var next bitgen.Line
+		if i == 0 {
+			next = end
+		} else {
+			next = w.ReserveLine()
+		}
+
+		w.hexDigit(start, bitgen.Offset{bitgen.AddressOf{n.Start}, i}, next)
+
+		start = next
+	}
+}
+
+func (w *writer) Dump(start, end bitgen.Line) {
+	for _, r := range [...]struct {
+		name string
+		reg  register
+	}{
+		{"Alloc", w.Alloc},
+		{"Unit", w.Unit},
+		{"True", w.True},
+		{"False", w.False},
+		{"Zero", w.Zero},
+		{"Symbol", w.Symbol},
+		{"Return", w.Return},
+		{"This", w.This},
+		{"Stack", w.Stack},
+		{"Gen-0", w.General[0]},
+		{"Gen-1", w.General[1]},
+		{"Gen-2", w.General[2]},
+		{"Gen-3", w.General[3]},
+	} {
+		next := w.ReserveLine()
+		w.PrintString(start, "\n"+r.name+"\t", next)
+		start = next
+
+		next = w.ReserveLine()
+		w.hex(start, r.reg.Num, next)
+		start = next
+	}
+
+	next := w.ReserveLine()
+	w.PrintString(start, "\n\nClasses:", next)
+	start = next
+
+	for _, c := range w.basicClasses {
+		next = w.ReserveLine()
+		w.PrintString(start, "\n"+c.Name.Name+"\t", next)
+		start = next
+
+		next = w.ReserveLine()
+		w.hex(start, w.Classes[c].Num, next)
+		start = next
+	}
+	for _, c := range w.AST.Classes {
+		next = w.ReserveLine()
+		w.PrintString(start, "\n"+c.Name.Name+"\t", next)
+		start = next
+
+		next = w.ReserveLine()
+		w.hex(start, w.Classes[c].Num, next)
+		start = next
+	}
+
+	next = w.ReserveLine()
+	w.PrintString(start, "\nthis:\t", next)
+	start = next
+
+	next = w.ReserveLine()
+	w.hex(start, bitgen.Integer{bitgen.ValueAt{w.This.Ptr}, 32}, next)
+	start = next
+
+	next = w.ReserveLine()
+	w.PrintString(start, "\n\nHeap:\n", next)
+	start = next
+
+	next = w.ReserveLine()
+	w.Assign(start, w.Alloc.Ptr, w.Heap, next)
+	start = next
+
+	next = w.ReserveLine()
+	w.Copy(start, w.Ptr, w.Alloc.Num, next)
+	start = next
+
+	loop, done := start, w.ReserveLine()
+	next = w.ReserveLine()
+	w.Decrement(loop, w.Ptr, next, done)
+	start = next
+
+	next = w.ReserveLine()
+	w.hex(start, bitgen.Integer{bitgen.ValueAt{w.Alloc.Ptr}, 8}, next)
+	start = next
+
+	w.Assign(start, w.Alloc.Ptr, bitgen.Offset{w.Alloc.Ptr, 8}, loop)
+
+	w.PrintString(done, "\n", end)
 }
