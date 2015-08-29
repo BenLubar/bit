@@ -1614,8 +1614,13 @@ var basicArrayAny = &ClassDecl{
 							Name: "ArrayAny",
 						},
 					},
-					Value: &NewExpr{
-						Type: TYPE{
+					Value: &CallExpr{
+						Left: &NewExpr{
+							Type: TYPE{
+								Name: "ArrayAny",
+							},
+						},
+						Name: ID{
 							Name: "ArrayAny",
 						},
 						Args: []Expr{

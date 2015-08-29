@@ -989,38 +989,44 @@ yydefault:
 		yyDollar = yyS[yypt-3 : yypt+1]
 		//line syntax.y:396
 		{
-			yyVAL.exp = &NewExpr{
-				Type: yyDollar[2].typ,
+			yyVAL.exp = &CallExpr{
+				Left: &NewExpr{
+					Type: yyDollar[2].typ,
+				},
+				Name: ID{
+					Name: yyDollar[2].typ.Name,
+					Pos:  yyDollar[2].typ.Pos,
+				},
 				Args: yyDollar[3].act,
 			}
 		}
 	case 46:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line syntax.y:403
+		//line syntax.y:409
 		{
 			yyVAL.exp = yyDollar[2].exp
 		}
 	case 47:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line syntax.y:407
+		//line syntax.y:413
 		{
 			yyVAL.exp = yyDollar[2].exp
 		}
 	case 48:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line syntax.y:411
+		//line syntax.y:417
 		{
 			yyVAL.exp = &NullExpr{}
 		}
 	case 49:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line syntax.y:415
+		//line syntax.y:421
 		{
 			yyVAL.exp = &UnitExpr{}
 		}
 	case 50:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line syntax.y:419
+		//line syntax.y:425
 		{
 			yyVAL.exp = &NameExpr{
 				Name: yyDollar[1].id,
@@ -1028,7 +1034,7 @@ yydefault:
 		}
 	case 51:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line syntax.y:425
+		//line syntax.y:431
 		{
 			yyVAL.exp = &IntegerExpr{
 				N: yyDollar[1].n,
@@ -1036,7 +1042,7 @@ yydefault:
 		}
 	case 52:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line syntax.y:431
+		//line syntax.y:437
 		{
 			yyVAL.exp = &StringExpr{
 				S: yyDollar[1].s,
@@ -1044,7 +1050,7 @@ yydefault:
 		}
 	case 53:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line syntax.y:437
+		//line syntax.y:443
 		{
 			yyVAL.exp = &BooleanExpr{
 				B: true,
@@ -1052,7 +1058,7 @@ yydefault:
 		}
 	case 54:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line syntax.y:443
+		//line syntax.y:449
 		{
 			yyVAL.exp = &BooleanExpr{
 				B: false,
@@ -1060,25 +1066,25 @@ yydefault:
 		}
 	case 55:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line syntax.y:449
+		//line syntax.y:455
 		{
 			yyVAL.exp = &ThisExpr{}
 		}
 	case 56:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line syntax.y:456
+		//line syntax.y:462
 		{
 			yyVAL.css = []*Case{yyDollar[1].cas}
 		}
 	case 57:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line syntax.y:460
+		//line syntax.y:466
 		{
 			yyVAL.css = append(yyDollar[1].css, yyDollar[2].cas)
 		}
 	case 58:
 		yyDollar = yyS[yypt-6 : yypt+1]
-		//line syntax.y:467
+		//line syntax.y:473
 		{
 			yyVAL.cas = &Case{
 				Name: yyDollar[2].id,
@@ -1088,7 +1094,7 @@ yydefault:
 		}
 	case 59:
 		yyDollar = yyS[yypt-4 : yypt+1]
-		//line syntax.y:475
+		//line syntax.y:481
 		{
 			yyVAL.cas = &Case{
 				Name: ID{

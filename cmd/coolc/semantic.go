@@ -188,9 +188,6 @@ func (ast *AST) recurse(classes map[string]*ClassDecl, ns []*ID, value interface
 
 	case *NewExpr:
 		recurse(&v.Type)
-		for _, a := range v.Args {
-			recurse(a)
-		}
 
 	case *NameExpr:
 		recurse(&v.Name)
@@ -517,15 +514,6 @@ func (ast *AST) checkExpr(this *ClassDecl, value Expr) *ClassDecl {
 			v.Type.target == basicUnit {
 			pos := ast.FileSet.Position(v.Type.Pos)
 			panic(fmt.Errorf("cannot instantiate type %s at %v", v.Type.Name, pos))
-		}
-
-		if len(v.Args) != len(v.Type.target.Args) {
-			pos := ast.FileSet.Position(v.Type.Pos)
-			panic(fmt.Errorf("argument count mismatch (%d != %d) at %v", len(v.Args), len(v.Type.target.Args), pos))
-		}
-
-		for i := range v.Args {
-			ast.checkType(ast.checkExpr(this, v.Args[i]), v.Type.target.Args[i].Type.target, v.Type.Pos)
 		}
 
 		return v.Type.target

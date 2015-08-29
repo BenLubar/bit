@@ -306,7 +306,6 @@ func (e *StaticCallExpr) alloc(w *writer, start bitgen.Line) (next bitgen.Line) 
 
 type NewExpr struct {
 	Type TYPE
-	Args []Expr
 }
 
 func (e *NewExpr) write(w *writer, start, end bitgen.Line) {

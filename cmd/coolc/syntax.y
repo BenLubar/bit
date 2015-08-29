@@ -394,8 +394,14 @@ primary
 	}
 | tokNEW tokTYPE actuals
 	{
-		$$ = &NewExpr{
-			Type: $2,
+		$$ = &CallExpr{
+			Left: &NewExpr{
+				Type: $2,
+			},
+			Name: ID{
+				Name: $2.Name,
+				Pos:  $2.Pos,
+			},
 			Args: $3,
 		}
 	}

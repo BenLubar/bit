@@ -306,7 +306,7 @@ state 32
 
 	tokLPAREN  shift 19
 	tokASSIGN  shift 67
-	.  reduce 50 (src line 418)
+	.  reduce 50 (src line 424)
 
 	actuals  goto 68
 
@@ -439,37 +439,37 @@ state 40
 state 41
 	primary:  tokNULL.    (48)
 
-	.  reduce 48 (src line 410)
+	.  reduce 48 (src line 416)
 
 
 state 42
 	primary:  tokINTEGER.    (51)
 
-	.  reduce 51 (src line 424)
+	.  reduce 51 (src line 430)
 
 
 state 43
 	primary:  tokSTRING.    (52)
 
-	.  reduce 52 (src line 430)
+	.  reduce 52 (src line 436)
 
 
 state 44
 	primary:  tokTRUE.    (53)
 
-	.  reduce 53 (src line 436)
+	.  reduce 53 (src line 442)
 
 
 state 45
 	primary:  tokFALSE.    (54)
 
-	.  reduce 54 (src line 442)
+	.  reduce 54 (src line 448)
 
 
 state 46
 	primary:  tokTHIS.    (55)
 
-	.  reduce 55 (src line 448)
+	.  reduce 55 (src line 454)
 
 
 state 47
@@ -928,7 +928,7 @@ state 76
 state 77
 	primary:  tokLPAREN tokRPAREN.    (49)
 
-	.  reduce 49 (src line 414)
+	.  reduce 49 (src line 420)
 
 
 state 78
@@ -1262,13 +1262,13 @@ state 100
 state 101
 	primary:  tokLBRACE block tokRBRACE.    (46)
 
-	.  reduce 46 (src line 402)
+	.  reduce 46 (src line 408)
 
 
 state 102
 	primary:  tokLPAREN expr tokRPAREN.    (47)
 
-	.  reduce 47 (src line 406)
+	.  reduce 47 (src line 412)
 
 
 state 103
@@ -1352,7 +1352,7 @@ state 113
 state 114
 	cases:  case.    (56)
 
-	.  reduce 56 (src line 454)
+	.  reduce 56 (src line 460)
 
 
 state 115
@@ -1495,7 +1495,7 @@ state 127
 state 128
 	cases:  cases case.    (57)
 
-	.  reduce 57 (src line 459)
+	.  reduce 57 (src line 465)
 
 
 state 129
@@ -1796,7 +1796,7 @@ state 147
 state 148
 	case:  tokCASE tokNULL tokARROW block.    (59)
 
-	.  reduce 59 (src line 474)
+	.  reduce 59 (src line 480)
 
 
 state 149
@@ -1918,7 +1918,7 @@ state 156
 state 157
 	case:  tokCASE tokID tokCOLON tokTYPE tokARROW block.    (58)
 
-	.  reduce 58 (src line 465)
+	.  reduce 58 (src line 471)
 
 
 42 terminals, 17 nonterminals
