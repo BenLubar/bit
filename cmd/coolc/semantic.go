@@ -163,10 +163,12 @@ func (ast *AST) recurse(classes map[string]*ClassDecl, ns []*ID, value interface
 
 	case *MethodFeature:
 		recurse(&v.Return)
-		for i, a := range v.Args {
-			a.arg = uint(i)
-			addNS(a, &a.Name)
-			recurse(&a.Type)
+		if v.Return.Name != v.Name.Name {
+			for i, a := range v.Args {
+				a.arg = uint(i)
+				addNS(a, &a.Name)
+				recurse(&a.Type)
+			}
 		}
 		recurse(v.Body)
 

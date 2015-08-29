@@ -29,15 +29,15 @@ package main
 
 %token tokINVALID /* returned by the lexer when an error occurs */
 
-%left tokDOT
-%left<id> tokNEGATE
-%left<id> tokMULTIPLY tokDIVIDE
-%left<id> tokPLUS tokMINUS
-%left<id> tokEQUALEQUAL
-%left<id> tokLESSEQUAL tokLESSTHAN
-%left tokMATCH
-%left<typ> tokIF tokWHILE
 %left tokASSIGN
+%left<typ> tokIF tokWHILE
+%left tokMATCH
+%left<id> tokLESSEQUAL tokLESSTHAN
+%left<id> tokEQUALEQUAL
+%left<id> tokPLUS tokMINUS
+%left<id> tokMULTIPLY tokDIVIDE
+%left<id> tokNEGATE
+%left tokDOT
 
 %type<cls> classdecl
 %type<vd>  varformals varformals0 formals formals0
@@ -359,7 +359,7 @@ expr
 			},
 		}
 	}
-	| expr tokMATCH tokLBRACE cases tokRBRACE /* note: this slightly differs from the diagrams in cool-manual.pdf */
+| expr tokMATCH tokLBRACE cases tokRBRACE /* note: this slightly differs from the diagrams in cool-manual.pdf */
 		{
 			$$ = &MatchExpr{
 			Left:  $1,

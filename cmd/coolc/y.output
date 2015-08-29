@@ -170,10 +170,10 @@ state 19
 	tokFALSE  shift 45
 	tokTHIS  shift 46
 	tokNULL  shift 41
-	tokNEGATE  shift 33
-	tokMINUS  shift 34
 	tokIF  shift 35
 	tokWHILE  shift 36
+	tokMINUS  shift 34
+	tokNEGATE  shift 33
 	.  error
 
 	expr  goto 30
@@ -223,10 +223,10 @@ state 24
 	tokFALSE  shift 45
 	tokTHIS  shift 46
 	tokNULL  shift 41
-	tokNEGATE  shift 33
-	tokMINUS  shift 34
 	tokIF  shift 35
 	tokWHILE  shift 36
+	tokMINUS  shift 34
+	tokNEGATE  shift 33
 	.  reduce 23 (src line 210)
 
 	block  goto 50
@@ -281,15 +281,15 @@ state 30
 	expr:  expr.tokMATCH tokLBRACE cases tokRBRACE 
 	expr:  expr.tokDOT tokID actuals 
 
-	tokDOT  shift 66
-	tokMULTIPLY  shift 61
-	tokDIVIDE  shift 62
-	tokPLUS  shift 63
-	tokMINUS  shift 64
-	tokEQUALEQUAL  shift 60
+	tokMATCH  shift 65
 	tokLESSEQUAL  shift 58
 	tokLESSTHAN  shift 59
-	tokMATCH  shift 65
+	tokEQUALEQUAL  shift 60
+	tokPLUS  shift 63
+	tokMINUS  shift 64
+	tokMULTIPLY  shift 61
+	tokDIVIDE  shift 62
+	tokDOT  shift 66
 	.  reduce 21 (src line 199)
 
 
@@ -324,10 +324,10 @@ state 33
 	tokFALSE  shift 45
 	tokTHIS  shift 46
 	tokNULL  shift 41
-	tokNEGATE  shift 33
-	tokMINUS  shift 34
 	tokIF  shift 35
 	tokWHILE  shift 36
+	tokMINUS  shift 34
+	tokNEGATE  shift 33
 	.  error
 
 	expr  goto 69
@@ -347,10 +347,10 @@ state 34
 	tokFALSE  shift 45
 	tokTHIS  shift 46
 	tokNULL  shift 41
-	tokNEGATE  shift 33
-	tokMINUS  shift 34
 	tokIF  shift 35
 	tokWHILE  shift 36
+	tokMINUS  shift 34
+	tokNEGATE  shift 33
 	.  error
 
 	expr  goto 70
@@ -400,10 +400,10 @@ state 39
 	tokFALSE  shift 45
 	tokTHIS  shift 46
 	tokNULL  shift 41
-	tokNEGATE  shift 33
-	tokMINUS  shift 34
 	tokIF  shift 35
 	tokWHILE  shift 36
+	tokMINUS  shift 34
+	tokNEGATE  shift 33
 	.  reduce 23 (src line 210)
 
 	block  goto 75
@@ -427,10 +427,10 @@ state 40
 	tokFALSE  shift 45
 	tokTHIS  shift 46
 	tokNULL  shift 41
-	tokNEGATE  shift 33
-	tokMINUS  shift 34
 	tokIF  shift 35
 	tokWHILE  shift 36
+	tokMINUS  shift 34
+	tokNEGATE  shift 33
 	.  error
 
 	expr  goto 76
@@ -521,15 +521,15 @@ state 52
 	expr:  expr.tokDOT tokID actuals 
 
 	tokSEMICOLON  shift 83
-	tokDOT  shift 66
-	tokMULTIPLY  shift 61
-	tokDIVIDE  shift 62
-	tokPLUS  shift 63
-	tokMINUS  shift 64
-	tokEQUALEQUAL  shift 60
+	tokMATCH  shift 65
 	tokLESSEQUAL  shift 58
 	tokLESSTHAN  shift 59
-	tokMATCH  shift 65
+	tokEQUALEQUAL  shift 60
+	tokPLUS  shift 63
+	tokMINUS  shift 64
+	tokMULTIPLY  shift 61
+	tokDIVIDE  shift 62
+	tokDOT  shift 66
 	.  reduce 25 (src line 221)
 
 
@@ -573,10 +573,10 @@ state 57
 	tokFALSE  shift 45
 	tokTHIS  shift 46
 	tokNULL  shift 41
-	tokNEGATE  shift 33
-	tokMINUS  shift 34
 	tokIF  shift 35
 	tokWHILE  shift 36
+	tokMINUS  shift 34
+	tokNEGATE  shift 33
 	.  error
 
 	expr  goto 86
@@ -596,10 +596,10 @@ state 58
 	tokFALSE  shift 45
 	tokTHIS  shift 46
 	tokNULL  shift 41
-	tokNEGATE  shift 33
-	tokMINUS  shift 34
 	tokIF  shift 35
 	tokWHILE  shift 36
+	tokMINUS  shift 34
+	tokNEGATE  shift 33
 	.  error
 
 	expr  goto 87
@@ -619,10 +619,10 @@ state 59
 	tokFALSE  shift 45
 	tokTHIS  shift 46
 	tokNULL  shift 41
-	tokNEGATE  shift 33
-	tokMINUS  shift 34
 	tokIF  shift 35
 	tokWHILE  shift 36
+	tokMINUS  shift 34
+	tokNEGATE  shift 33
 	.  error
 
 	expr  goto 88
@@ -642,10 +642,10 @@ state 60
 	tokFALSE  shift 45
 	tokTHIS  shift 46
 	tokNULL  shift 41
-	tokNEGATE  shift 33
-	tokMINUS  shift 34
 	tokIF  shift 35
 	tokWHILE  shift 36
+	tokMINUS  shift 34
+	tokNEGATE  shift 33
 	.  error
 
 	expr  goto 89
@@ -665,10 +665,10 @@ state 61
 	tokFALSE  shift 45
 	tokTHIS  shift 46
 	tokNULL  shift 41
-	tokNEGATE  shift 33
-	tokMINUS  shift 34
 	tokIF  shift 35
 	tokWHILE  shift 36
+	tokMINUS  shift 34
+	tokNEGATE  shift 33
 	.  error
 
 	expr  goto 90
@@ -688,10 +688,10 @@ state 62
 	tokFALSE  shift 45
 	tokTHIS  shift 46
 	tokNULL  shift 41
-	tokNEGATE  shift 33
-	tokMINUS  shift 34
 	tokIF  shift 35
 	tokWHILE  shift 36
+	tokMINUS  shift 34
+	tokNEGATE  shift 33
 	.  error
 
 	expr  goto 91
@@ -711,10 +711,10 @@ state 63
 	tokFALSE  shift 45
 	tokTHIS  shift 46
 	tokNULL  shift 41
-	tokNEGATE  shift 33
-	tokMINUS  shift 34
 	tokIF  shift 35
 	tokWHILE  shift 36
+	tokMINUS  shift 34
+	tokNEGATE  shift 33
 	.  error
 
 	expr  goto 92
@@ -734,10 +734,10 @@ state 64
 	tokFALSE  shift 45
 	tokTHIS  shift 46
 	tokNULL  shift 41
-	tokNEGATE  shift 33
-	tokMINUS  shift 34
 	tokIF  shift 35
 	tokWHILE  shift 36
+	tokMINUS  shift 34
+	tokNEGATE  shift 33
 	.  error
 
 	expr  goto 93
@@ -771,10 +771,10 @@ state 67
 	tokFALSE  shift 45
 	tokTHIS  shift 46
 	tokNULL  shift 41
-	tokNEGATE  shift 33
-	tokMINUS  shift 34
 	tokIF  shift 35
 	tokWHILE  shift 36
+	tokMINUS  shift 34
+	tokNEGATE  shift 33
 	.  error
 
 	expr  goto 96
@@ -798,14 +798,7 @@ state 69
 	expr:  expr.tokMATCH tokLBRACE cases tokRBRACE 
 	expr:  expr.tokDOT tokID actuals 
 
-	tokMULTIPLY  shift 61
-	tokDIVIDE  shift 62
-	tokPLUS  shift 63
-	tokMINUS  shift 64
-	tokEQUALEQUAL  shift 60
-	tokLESSEQUAL  shift 58
-	tokLESSTHAN  shift 59
-	tokMATCH  shift 65
+	tokDOT  shift 66
 	.  reduce 30 (src line 260)
 
 
@@ -821,14 +814,7 @@ state 70
 	expr:  expr.tokMATCH tokLBRACE cases tokRBRACE 
 	expr:  expr.tokDOT tokID actuals 
 
-	tokMULTIPLY  shift 61
-	tokDIVIDE  shift 62
-	tokPLUS  shift 63
-	tokMINUS  shift 64
-	tokEQUALEQUAL  shift 60
-	tokLESSEQUAL  shift 58
-	tokLESSTHAN  shift 59
-	tokMATCH  shift 65
+	tokDOT  shift 66
 	.  reduce 31 (src line 267)
 
 
@@ -846,10 +832,10 @@ state 71
 	tokFALSE  shift 45
 	tokTHIS  shift 46
 	tokNULL  shift 41
-	tokNEGATE  shift 33
-	tokMINUS  shift 34
 	tokIF  shift 35
 	tokWHILE  shift 36
+	tokMINUS  shift 34
+	tokNEGATE  shift 33
 	.  error
 
 	expr  goto 97
@@ -869,10 +855,10 @@ state 72
 	tokFALSE  shift 45
 	tokTHIS  shift 46
 	tokNULL  shift 41
-	tokNEGATE  shift 33
-	tokMINUS  shift 34
 	tokIF  shift 35
 	tokWHILE  shift 36
+	tokMINUS  shift 34
+	tokNEGATE  shift 33
 	.  error
 
 	expr  goto 98
@@ -913,15 +899,15 @@ state 76
 	primary:  tokLPAREN expr.tokRPAREN 
 
 	tokRPAREN  shift 102
-	tokDOT  shift 66
-	tokMULTIPLY  shift 61
-	tokDIVIDE  shift 62
-	tokPLUS  shift 63
-	tokMINUS  shift 64
-	tokEQUALEQUAL  shift 60
+	tokMATCH  shift 65
 	tokLESSEQUAL  shift 58
 	tokLESSTHAN  shift 59
-	tokMATCH  shift 65
+	tokEQUALEQUAL  shift 60
+	tokPLUS  shift 63
+	tokMINUS  shift 64
+	tokMULTIPLY  shift 61
+	tokDIVIDE  shift 62
+	tokDOT  shift 66
 	.  error
 
 
@@ -985,10 +971,10 @@ state 83
 	tokFALSE  shift 45
 	tokTHIS  shift 46
 	tokNULL  shift 41
-	tokNEGATE  shift 33
-	tokMINUS  shift 34
 	tokIF  shift 35
 	tokWHILE  shift 36
+	tokMINUS  shift 34
+	tokNEGATE  shift 33
 	.  error
 
 	block0  goto 110
@@ -1021,15 +1007,15 @@ state 86
 	expr:  expr.tokMATCH tokLBRACE cases tokRBRACE 
 	expr:  expr.tokDOT tokID actuals 
 
-	tokDOT  shift 66
-	tokMULTIPLY  shift 61
-	tokDIVIDE  shift 62
-	tokPLUS  shift 63
-	tokMINUS  shift 64
-	tokEQUALEQUAL  shift 60
+	tokMATCH  shift 65
 	tokLESSEQUAL  shift 58
 	tokLESSTHAN  shift 59
-	tokMATCH  shift 65
+	tokEQUALEQUAL  shift 60
+	tokPLUS  shift 63
+	tokMINUS  shift 64
+	tokMULTIPLY  shift 61
+	tokDIVIDE  shift 62
+	tokDOT  shift 66
 	.  reduce 22 (src line 204)
 
 
@@ -1045,7 +1031,12 @@ state 87
 	expr:  expr.tokMATCH tokLBRACE cases tokRBRACE 
 	expr:  expr.tokDOT tokID actuals 
 
-	tokMATCH  shift 65
+	tokEQUALEQUAL  shift 60
+	tokPLUS  shift 63
+	tokMINUS  shift 64
+	tokMULTIPLY  shift 61
+	tokDIVIDE  shift 62
+	tokDOT  shift 66
 	.  reduce 34 (src line 292)
 
 
@@ -1061,7 +1052,12 @@ state 88
 	expr:  expr.tokMATCH tokLBRACE cases tokRBRACE 
 	expr:  expr.tokDOT tokID actuals 
 
-	tokMATCH  shift 65
+	tokEQUALEQUAL  shift 60
+	tokPLUS  shift 63
+	tokMINUS  shift 64
+	tokMULTIPLY  shift 61
+	tokDIVIDE  shift 62
+	tokDOT  shift 66
 	.  reduce 35 (src line 302)
 
 
@@ -1077,9 +1073,11 @@ state 89
 	expr:  expr.tokMATCH tokLBRACE cases tokRBRACE 
 	expr:  expr.tokDOT tokID actuals 
 
-	tokLESSEQUAL  shift 58
-	tokLESSTHAN  shift 59
-	tokMATCH  shift 65
+	tokPLUS  shift 63
+	tokMINUS  shift 64
+	tokMULTIPLY  shift 61
+	tokDIVIDE  shift 62
+	tokDOT  shift 66
 	.  reduce 36 (src line 312)
 
 
@@ -1095,12 +1093,7 @@ state 90
 	expr:  expr.tokMATCH tokLBRACE cases tokRBRACE 
 	expr:  expr.tokDOT tokID actuals 
 
-	tokPLUS  shift 63
-	tokMINUS  shift 64
-	tokEQUALEQUAL  shift 60
-	tokLESSEQUAL  shift 58
-	tokLESSTHAN  shift 59
-	tokMATCH  shift 65
+	tokDOT  shift 66
 	.  reduce 37 (src line 322)
 
 
@@ -1116,12 +1109,7 @@ state 91
 	expr:  expr.tokMATCH tokLBRACE cases tokRBRACE 
 	expr:  expr.tokDOT tokID actuals 
 
-	tokPLUS  shift 63
-	tokMINUS  shift 64
-	tokEQUALEQUAL  shift 60
-	tokLESSEQUAL  shift 58
-	tokLESSTHAN  shift 59
-	tokMATCH  shift 65
+	tokDOT  shift 66
 	.  reduce 38 (src line 332)
 
 
@@ -1137,10 +1125,9 @@ state 92
 	expr:  expr.tokMATCH tokLBRACE cases tokRBRACE 
 	expr:  expr.tokDOT tokID actuals 
 
-	tokEQUALEQUAL  shift 60
-	tokLESSEQUAL  shift 58
-	tokLESSTHAN  shift 59
-	tokMATCH  shift 65
+	tokMULTIPLY  shift 61
+	tokDIVIDE  shift 62
+	tokDOT  shift 66
 	.  reduce 39 (src line 342)
 
 
@@ -1156,10 +1143,9 @@ state 93
 	expr:  expr.tokMATCH tokLBRACE cases tokRBRACE 
 	expr:  expr.tokDOT tokID actuals 
 
-	tokEQUALEQUAL  shift 60
-	tokLESSEQUAL  shift 58
-	tokLESSTHAN  shift 59
-	tokMATCH  shift 65
+	tokMULTIPLY  shift 61
+	tokDIVIDE  shift 62
+	tokDOT  shift 66
 	.  reduce 40 (src line 352)
 
 
@@ -1192,6 +1178,15 @@ state 96
 	expr:  expr.tokMATCH tokLBRACE cases tokRBRACE 
 	expr:  expr.tokDOT tokID actuals 
 
+	tokMATCH  shift 65
+	tokLESSEQUAL  shift 58
+	tokLESSTHAN  shift 59
+	tokEQUALEQUAL  shift 60
+	tokPLUS  shift 63
+	tokMINUS  shift 64
+	tokMULTIPLY  shift 61
+	tokDIVIDE  shift 62
+	tokDOT  shift 66
 	.  reduce 29 (src line 253)
 
 
@@ -1208,15 +1203,15 @@ state 97
 	expr:  expr.tokDOT tokID actuals 
 
 	tokRPAREN  shift 117
-	tokDOT  shift 66
-	tokMULTIPLY  shift 61
-	tokDIVIDE  shift 62
-	tokPLUS  shift 63
-	tokMINUS  shift 64
-	tokEQUALEQUAL  shift 60
+	tokMATCH  shift 65
 	tokLESSEQUAL  shift 58
 	tokLESSTHAN  shift 59
-	tokMATCH  shift 65
+	tokEQUALEQUAL  shift 60
+	tokPLUS  shift 63
+	tokMINUS  shift 64
+	tokMULTIPLY  shift 61
+	tokDIVIDE  shift 62
+	tokDOT  shift 66
 	.  error
 
 
@@ -1233,15 +1228,15 @@ state 98
 	expr:  expr.tokDOT tokID actuals 
 
 	tokRPAREN  shift 118
-	tokDOT  shift 66
-	tokMULTIPLY  shift 61
-	tokDIVIDE  shift 62
-	tokPLUS  shift 63
-	tokMINUS  shift 64
-	tokEQUALEQUAL  shift 60
+	tokMATCH  shift 65
 	tokLESSEQUAL  shift 58
 	tokLESSTHAN  shift 59
-	tokMATCH  shift 65
+	tokEQUALEQUAL  shift 60
+	tokPLUS  shift 63
+	tokMINUS  shift 64
+	tokMULTIPLY  shift 61
+	tokDIVIDE  shift 62
+	tokDOT  shift 66
 	.  error
 
 
@@ -1384,10 +1379,10 @@ state 117
 	tokFALSE  shift 45
 	tokTHIS  shift 46
 	tokNULL  shift 41
-	tokNEGATE  shift 33
-	tokMINUS  shift 34
 	tokIF  shift 35
 	tokWHILE  shift 36
+	tokMINUS  shift 34
+	tokNEGATE  shift 33
 	.  error
 
 	expr  goto 131
@@ -1407,10 +1402,10 @@ state 118
 	tokFALSE  shift 45
 	tokTHIS  shift 46
 	tokNULL  shift 41
-	tokNEGATE  shift 33
-	tokMINUS  shift 34
 	tokIF  shift 35
 	tokWHILE  shift 36
+	tokMINUS  shift 34
+	tokNEGATE  shift 33
 	.  error
 
 	expr  goto 132
@@ -1470,10 +1465,10 @@ state 125
 	tokFALSE  shift 45
 	tokTHIS  shift 46
 	tokNULL  shift 41
-	tokNEGATE  shift 33
-	tokMINUS  shift 34
 	tokIF  shift 35
 	tokWHILE  shift 36
+	tokMINUS  shift 34
+	tokNEGATE  shift 33
 	.  error
 
 	expr  goto 137
@@ -1525,15 +1520,15 @@ state 131
 	expr:  expr.tokDOT tokID actuals 
 
 	tokELSE  shift 141
-	tokDOT  shift 66
-	tokMULTIPLY  shift 61
-	tokDIVIDE  shift 62
-	tokPLUS  shift 63
-	tokMINUS  shift 64
-	tokEQUALEQUAL  shift 60
+	tokMATCH  shift 65
 	tokLESSEQUAL  shift 58
 	tokLESSTHAN  shift 59
-	tokMATCH  shift 65
+	tokEQUALEQUAL  shift 60
+	tokPLUS  shift 63
+	tokMINUS  shift 64
+	tokMULTIPLY  shift 61
+	tokDIVIDE  shift 62
+	tokDOT  shift 66
 	.  error
 
 
@@ -1549,6 +1544,15 @@ state 132
 	expr:  expr.tokMATCH tokLBRACE cases tokRBRACE 
 	expr:  expr.tokDOT tokID actuals 
 
+	tokMATCH  shift 65
+	tokLESSEQUAL  shift 58
+	tokLESSTHAN  shift 59
+	tokEQUALEQUAL  shift 60
+	tokPLUS  shift 63
+	tokMINUS  shift 64
+	tokMULTIPLY  shift 61
+	tokDIVIDE  shift 62
+	tokDOT  shift 66
 	.  reduce 33 (src line 284)
 
 
@@ -1573,10 +1577,10 @@ state 134
 	tokFALSE  shift 45
 	tokTHIS  shift 46
 	tokNULL  shift 41
-	tokNEGATE  shift 33
-	tokMINUS  shift 34
 	tokIF  shift 35
 	tokWHILE  shift 36
+	tokMINUS  shift 34
+	tokNEGATE  shift 33
 	.  error
 
 	expr  goto 143
@@ -1608,15 +1612,15 @@ state 137
 	expr:  expr.tokDOT tokID actuals 
 
 	tokSEMICOLON  shift 145
-	tokDOT  shift 66
-	tokMULTIPLY  shift 61
-	tokDIVIDE  shift 62
-	tokPLUS  shift 63
-	tokMINUS  shift 64
-	tokEQUALEQUAL  shift 60
+	tokMATCH  shift 65
 	tokLESSEQUAL  shift 58
 	tokLESSTHAN  shift 59
-	tokMATCH  shift 65
+	tokEQUALEQUAL  shift 60
+	tokPLUS  shift 63
+	tokMINUS  shift 64
+	tokMULTIPLY  shift 61
+	tokDIVIDE  shift 62
+	tokDOT  shift 66
 	.  error
 
 
@@ -1634,10 +1638,10 @@ state 138
 	tokFALSE  shift 45
 	tokTHIS  shift 46
 	tokNULL  shift 41
-	tokNEGATE  shift 33
-	tokMINUS  shift 34
 	tokIF  shift 35
 	tokWHILE  shift 36
+	tokMINUS  shift 34
+	tokNEGATE  shift 33
 	.  error
 
 	expr  goto 146
@@ -1666,10 +1670,10 @@ state 140
 	tokFALSE  shift 45
 	tokTHIS  shift 46
 	tokNULL  shift 41
-	tokNEGATE  shift 33
-	tokMINUS  shift 34
 	tokIF  shift 35
 	tokWHILE  shift 36
+	tokMINUS  shift 34
+	tokNEGATE  shift 33
 	.  reduce 23 (src line 210)
 
 	block  goto 148
@@ -1691,10 +1695,10 @@ state 141
 	tokFALSE  shift 45
 	tokTHIS  shift 46
 	tokNULL  shift 41
-	tokNEGATE  shift 33
-	tokMINUS  shift 34
 	tokIF  shift 35
 	tokWHILE  shift 36
+	tokMINUS  shift 34
+	tokNEGATE  shift 33
 	.  error
 
 	expr  goto 149
@@ -1714,10 +1718,10 @@ state 142
 	tokFALSE  shift 45
 	tokTHIS  shift 46
 	tokNULL  shift 41
-	tokNEGATE  shift 33
-	tokMINUS  shift 34
 	tokIF  shift 35
 	tokWHILE  shift 36
+	tokMINUS  shift 34
+	tokNEGATE  shift 33
 	.  error
 
 	expr  goto 150
@@ -1736,15 +1740,15 @@ state 143
 	expr:  expr.tokDOT tokID actuals 
 
 	tokSEMICOLON  shift 151
-	tokDOT  shift 66
-	tokMULTIPLY  shift 61
-	tokDIVIDE  shift 62
-	tokPLUS  shift 63
-	tokMINUS  shift 64
-	tokEQUALEQUAL  shift 60
+	tokMATCH  shift 65
 	tokLESSEQUAL  shift 58
 	tokLESSTHAN  shift 59
-	tokMATCH  shift 65
+	tokEQUALEQUAL  shift 60
+	tokPLUS  shift 63
+	tokMINUS  shift 64
+	tokMULTIPLY  shift 61
+	tokDIVIDE  shift 62
+	tokDOT  shift 66
 	.  error
 
 
@@ -1774,15 +1778,15 @@ state 146
 	expr:  expr.tokDOT tokID actuals 
 
 	tokSEMICOLON  shift 153
-	tokDOT  shift 66
-	tokMULTIPLY  shift 61
-	tokDIVIDE  shift 62
-	tokPLUS  shift 63
-	tokMINUS  shift 64
-	tokEQUALEQUAL  shift 60
+	tokMATCH  shift 65
 	tokLESSEQUAL  shift 58
 	tokLESSTHAN  shift 59
-	tokMATCH  shift 65
+	tokEQUALEQUAL  shift 60
+	tokPLUS  shift 63
+	tokMINUS  shift 64
+	tokMULTIPLY  shift 61
+	tokDIVIDE  shift 62
+	tokDOT  shift 66
 	.  error
 
 
@@ -1811,6 +1815,15 @@ state 149
 	expr:  expr.tokMATCH tokLBRACE cases tokRBRACE 
 	expr:  expr.tokDOT tokID actuals 
 
+	tokMATCH  shift 65
+	tokLESSEQUAL  shift 58
+	tokLESSTHAN  shift 59
+	tokEQUALEQUAL  shift 60
+	tokPLUS  shift 63
+	tokMINUS  shift 64
+	tokMULTIPLY  shift 61
+	tokDIVIDE  shift 62
+	tokDOT  shift 66
 	.  reduce 32 (src line 275)
 
 
@@ -1827,15 +1840,15 @@ state 150
 	expr:  expr.tokDOT tokID actuals 
 
 	tokSEMICOLON  shift 155
-	tokDOT  shift 66
-	tokMULTIPLY  shift 61
-	tokDIVIDE  shift 62
-	tokPLUS  shift 63
-	tokMINUS  shift 64
-	tokEQUALEQUAL  shift 60
+	tokMATCH  shift 65
 	tokLESSEQUAL  shift 58
 	tokLESSTHAN  shift 59
-	tokMATCH  shift 65
+	tokEQUALEQUAL  shift 60
+	tokPLUS  shift 63
+	tokMINUS  shift 64
+	tokMULTIPLY  shift 61
+	tokDIVIDE  shift 62
+	tokDOT  shift 66
 	.  error
 
 
@@ -1866,10 +1879,10 @@ state 153
 	tokFALSE  shift 45
 	tokTHIS  shift 46
 	tokNULL  shift 41
-	tokNEGATE  shift 33
-	tokMINUS  shift 34
 	tokIF  shift 35
 	tokWHILE  shift 36
+	tokMINUS  shift 34
+	tokNEGATE  shift 33
 	.  error
 
 	block0  goto 156
@@ -1892,10 +1905,10 @@ state 154
 	tokFALSE  shift 45
 	tokTHIS  shift 46
 	tokNULL  shift 41
-	tokNEGATE  shift 33
-	tokMINUS  shift 34
 	tokIF  shift 35
 	tokWHILE  shift 36
+	tokMINUS  shift 34
+	tokNEGATE  shift 33
 	.  reduce 23 (src line 210)
 
 	block  goto 157
@@ -1927,9 +1940,9 @@ state 157
 66 working sets used
 memory: parser 84/30000
 82 extra closures
-655 shift entries, 1 exceptions
+668 shift entries, 1 exceptions
 50 goto entries
 35 entries saved by goto default
-Optimizer space used: output 320/30000
-320 table entries, 12 zero
+Optimizer space used: output 316/30000
+316 table entries, 15 zero
 maximum spread: 42, maximum offset: 154

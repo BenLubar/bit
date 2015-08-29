@@ -437,9 +437,11 @@ func (w *writer) DynamicAlloc(start bitgen.Line, reg register, size bitgen.Integ
 }
 
 func (w *writer) New(start bitgen.Line, reg register, c *ClassDecl, end bitgen.Line) {
-	for _, f := range c.Body {
-		if _, ok := f.(*NativeFeature); ok {
-			panic(fmt.Errorf("cannot construct native class %s", c.Name.Name))
+	if c != basicArrayAny {
+		for _, f := range c.Body {
+			if _, ok := f.(*NativeFeature); ok {
+				panic(fmt.Errorf("cannot construct native class %s", c.Name.Name))
+			}
 		}
 	}
 

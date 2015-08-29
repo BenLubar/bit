@@ -757,7 +757,7 @@ var basicInt = &ClassDecl{
 
 				next = w.ReserveLine()
 				w.Jump(pos, bitgen.ValueAt{bitgen.Offset{w.General[0].Ptr, 32 + 32 - 1}}, next, no)
-				w.Jump(pos, bitgen.ValueAt{bitgen.Offset{w.General[0].Ptr, 32 + 32 - 1}}, yes, next)
+				w.Jump(neg, bitgen.ValueAt{bitgen.Offset{w.General[0].Ptr, 32 + 32 - 1}}, yes, next)
 				start = next
 
 				w.LessThanUnsigned(start, w.IntValue(w.This.Ptr), w.IntValue(w.General[0].Ptr), yes, no, no)
@@ -1576,6 +1576,18 @@ var basicArrayAny = &ClassDecl{
 		&NativeFeature{},
 		&MethodFeature{
 			Name: ID{
+				Name: "ArrayAny",
+			},
+			Args: []*VarDecl{
+				basicArrayAnyLength,
+			},
+			Return: TYPE{
+				Name: "ArrayAny",
+			},
+			Body: NativeExpr((*writer).NewArrayAny),
+		},
+		&MethodFeature{
+			Name: ID{
 				Name: "length",
 			},
 			Return: TYPE{
@@ -1879,7 +1891,7 @@ var basicArrayAny = &ClassDecl{
 				start = next
 
 				next = w.ReserveLine()
-				w.Copy(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[1].Ptr, basicArrayAnyLength.offset + 32/8}}, 32}, w.StackOffset(w.Arg(1)), next)
+				w.Copy(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[1].Ptr, basicArrayAnyLength.offset*8 + 32}}, 32}, w.StackOffset(w.Arg(1)), next)
 				start = next
 
 				w.PopStack(start, end)
