@@ -113,9 +113,9 @@ func (e *AssignExpr) write(w *writer, start, end bitgen.Line) {
 	switch v := e.Left.target.(type) {
 	case *VarDecl:
 		if v.offset != 0 {
-			w.Copy(start, w.StackOffset(w.Arg(v.arg)), w.Return.Num, end)
-		} else {
 			w.Copy(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.This.Ptr, v.offset * 8}}, 32}, w.Return.Num, end)
+		} else {
+			w.Copy(start, w.StackOffset(w.Arg(v.arg)), w.Return.Num, end)
 		}
 
 	case *VarFeature:
@@ -499,9 +499,9 @@ func (e *NameExpr) write(w *writer, start, end bitgen.Line) {
 	switch v := e.Name.target.(type) {
 	case *VarDecl:
 		if v.offset != 0 {
-			w.Load(start, w.Return, w.Stack, w.Arg(v.arg), end)
-		} else {
 			w.Load(start, w.Return, w.This, v.offset, end)
+		} else {
+			w.Load(start, w.Return, w.Stack, w.Arg(v.arg), end)
 		}
 
 	case *VarFeature:
