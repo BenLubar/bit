@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io"
 
@@ -81,6 +82,7 @@ type writer struct {
 	CaseNull   bitgen.Line // special case of NoCase for Null
 	NoCase     bitgen.Line // missing case in match expression
 	DivZero    bitgen.Line // divide by zero
+	HeapRange  bitgen.Line // pointer outside of heap
 
 	JumpTableEntry bitgen.Line
 	MethodStarts   map[*MethodFeature]uint32
@@ -159,11 +161,9 @@ func (w *writer) Init() (start bitgen.Line) {
 	w.Panic = w.ReserveLine()
 	w.Dump(w.Panic, 0)
 
-	w.Null = w.ReserveLine()
-	w.PrintString(w.Null, "runtime error: null pointer dereference\n", w.Panic)
+	w.Null = w.Abort("runtime error: null pointer dereference\n")
 
-	w.IndexRange = w.ReserveLine()
-	w.PrintString(w.IndexRange, "runtime error: index out of range\n", w.Panic)
+	w.IndexRange = w.Abort("runtime error: index out of range\n")
 
 	w.CaseNull = w.ReserveLine()
 	w.PrintString(w.CaseNull, "runtime error: missing case for Null\n", 0)
@@ -183,8 +183,9 @@ func (w *writer) Init() (start bitgen.Line) {
 
 	w.Print(noCaseA, '\n', 0)
 
-	w.DivZero = w.ReserveLine()
-	w.PrintString(w.DivZero, "runtime error: division by zero\n", w.Panic)
+	w.DivZero = w.Abort("runtime error: division by zero\n")
+
+	w.HeapRange = w.Abort("runtime error: pointer outside of heap\n")
 
 	for _, c := range basicClasses {
 		next = w.ReserveLine()
@@ -235,6 +236,12 @@ func (w *writer) Init() (start bitgen.Line) {
 	return
 }
 
+func (w *writer) Abort(message string) bitgen.Line {
+	start := w.ReserveLine()
+	w.PrintString(start, message, w.Panic)
+	return start
+}
+
 func (w *writer) ClassDecl(start bitgen.Line, c *ClassDecl, end bitgen.Line) {
 	next := w.ReserveLine()
 	w.NewString(start, w.General[0], w.General[1], c.Name.Name, next)
@@ -262,6 +269,8 @@ func (w *writer) ClassDeclFixup(start bitgen.Line, c *ClassDecl, end bitgen.Line
 
 	w.Copy(start, bitgen.Integer{bitgen.ValueAt{w.General[0].Ptr}, 32}, w.Classes[basicInt].Num, end)
 }
+
+var flagPrintJumpTable = flag.Bool("print-jump-table", false, "debugging tool: print jump table")
 
 func (w *writer) InitJumpTable() {
 	w.MethodStarts = make(map[*MethodFeature]uint32)
@@ -300,8 +309,13 @@ func (w *writer) InitJumpTable() {
 			}
 
 			l := w.ReserveLine()
-			w.DynamicCalls[v] = uint32(len(w.Jumps))
+			j := uint32(len(w.Jumps))
+			w.DynamicCalls[v] = j
 			w.Jumps = append(w.Jumps, l)
+			if *flagPrintJumpTable {
+				pos := w.AST.FileSet.Position(v.Name.Pos)
+				fmt.Printf("%08X\t%d\t%v\n", j, l, pos)
+			}
 
 		case *StaticCallExpr:
 			for _, a := range v.Args {
@@ -309,8 +323,13 @@ func (w *writer) InitJumpTable() {
 			}
 
 			l := w.ReserveLine()
-			w.StaticCalls[v] = uint32(len(w.Jumps))
+			j := uint32(len(w.Jumps))
+			w.StaticCalls[v] = j
 			w.Jumps = append(w.Jumps, l)
+			if *flagPrintJumpTable {
+				pos := w.AST.FileSet.Position(v.Name.Pos)
+				fmt.Printf("%08X\t%d\t%v\n", j, l, pos)
+			}
 
 		case *NewExpr:
 
@@ -345,8 +364,13 @@ func (w *writer) InitJumpTable() {
 
 	method := func(m *MethodFeature) {
 		l := w.ReserveLine()
-		w.MethodStarts[m] = uint32(len(w.Jumps))
+		j := uint32(len(w.Jumps))
+		w.MethodStarts[m] = j
 		w.Jumps = append(w.Jumps, l)
+		if *flagPrintJumpTable {
+			pos := w.AST.FileSet.Position(m.Name.Pos)
+			fmt.Printf("%08X\t%d\t%v\n", j, l, pos)
+		}
 
 		recurse(m.Body)
 	}
@@ -414,7 +438,7 @@ func (w *writer) InitJumpTable() {
 	method = func(m *MethodFeature) {
 		start := w.Jumps[w.MethodStarts[m]]
 
-		w.Offset = 3
+		w.Offset = 3 + uint(len(m.Args))
 
 		if _, ok := m.Body.(NativeExpr); ok {
 			next := w.ReserveLine()
@@ -493,7 +517,7 @@ func (w *writer) MethodTables(start, end bitgen.Line) {
 
 func (w *writer) Pointer(start bitgen.Line, ptr bitgen.Variable, num bitgen.Integer, end bitgen.Line) {
 	next := w.ReserveLine()
-	w.LessThanUnsigned(start, num, w.Alloc.Num, next, w.Panic, w.Panic)
+	w.LessThanUnsigned(start, num, w.Alloc.Num, next, w.HeapRange, w.HeapRange)
 	start = next
 
 	next = w.ReserveLine()
@@ -545,11 +569,11 @@ func (w *writer) BeginStack(start, end bitgen.Line) {
 	start = next
 
 	next = w.ReserveLine()
-	w.Copy(start, w.StackOffset(1), w.This.Num, next)
+	w.Copy(start, w.StackOffset(32/8), w.This.Num, next)
 	start = next
 
 	next = w.ReserveLine()
-	w.Copy(start, w.StackOffset(2), w.Goto, next)
+	w.Copy(start, w.StackOffset(32/8+32/8), w.Goto, next)
 	start = next
 
 	for i := 0; i < 32; i++ {
@@ -629,7 +653,7 @@ func (w *writer) SimplePopStack(start, end bitgen.Line) {
 	}
 
 	next := w.ReserveLine()
-	w.Copy(start, w.Next, w.StackOffset(2), next)
+	w.Copy(start, w.Next, w.StackOffset(32/8+32/8), next)
 	start = next
 
 	next = w.ReserveLine()
@@ -1054,7 +1078,7 @@ func (w *writer) gotoNext(start bitgen.Line, nextVal uint32, end bitgen.Line) {
 	}
 
 	if w.Jumps[nextVal] != 0 || end != 0 {
-		w.Jump(w.Jumps[nextVal], bitgen.Bit(false), end, w.Panic)
+		w.Jump(w.Jumps[nextVal], bitgen.Bit(false), end, end)
 	}
 }
 

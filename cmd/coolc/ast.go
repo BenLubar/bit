@@ -244,7 +244,7 @@ findNull:
 		c.Body.write(w, target, end)
 	}
 
-	w.Jump(start, bitgen.Bit(false), w.NoCase, w.Panic)
+	w.Jump(start, bitgen.Bit(false), w.NoCase, w.NoCase)
 }
 
 func (e *MatchExpr) alloc(w *writer, start bitgen.Line) (next bitgen.Line) {

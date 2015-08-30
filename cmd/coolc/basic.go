@@ -999,9 +999,7 @@ var basicInt = &ClassDecl{
 				w.Lsh(start, w.This.Num, 1, next)
 				start = next
 
-				next = w.ReserveLine()
-				w.Rsh(start, w.General[0].Num, 1, next)
-				start = next
+				w.Rsh(start, w.General[0].Num, 1, loop)
 
 				w.PopStack(done, end)
 			}),
