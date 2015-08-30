@@ -455,37 +455,24 @@ var basicIntSubtract = &MethodFeature{
 	Return: TYPE{
 		Name: "Int",
 	},
-	Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
-		w.EndStack()
-
-		next := w.ReserveLine()
-		w.NewInt(start, w.Return, 0, next)
-		start = next
-
-		next = w.ReserveLine()
-		w.Load(start, w.General[0], w.Stack, w.Arg(0), next)
-		start = next
-
-		for i := uint(0); i < 32; i++ {
-			zero, one := w.ReserveLine(), w.ReserveLine()
-			w.Jump(start, bitgen.ValueAt{bitgen.Offset{w.General[0].Ptr, 32 + i}}, zero, one)
-
-			next = w.ReserveLine()
-			w.Assign(zero, bitgen.ValueAt{bitgen.Offset{w.Return.Ptr, 32 + i}}, bitgen.Bit(true), next)
-			w.Assign(one, bitgen.ValueAt{bitgen.Offset{w.Return.Ptr, 32 + i}}, bitgen.Bit(false), next)
-			start = next
-		}
-
-		next = w.ReserveLine()
-		w.Increment(start, w.IntValue(w.Return.Ptr), next, next)
-		start = next
-
-		next = w.ReserveLine()
-		w.AddReg(start, w.IntValue(w.Return.Ptr), w.IntValue(w.This.Ptr), next)
-		start = next
-
-		w.PopStack(start, end)
-	}),
+	Body: &CallExpr{
+		Left: &ThisExpr{},
+		Name: ID{
+			Name: "_add",
+		},
+		Args: []Expr{
+			&CallExpr{
+				Left: &NameExpr{
+					Name: ID{
+						Name: "x",
+					},
+				},
+				Name: ID{
+					Name: "_negative",
+				},
+			},
+		},
+	},
 }
 
 var basicInt = &ClassDecl{
@@ -949,6 +936,73 @@ var basicInt = &ClassDecl{
 		basicIntSubtract,
 		&MethodFeature{
 			Name: ID{
+				Name: "_lsh",
+			},
+			Return: TYPE{
+				Name: "Int",
+			},
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
+				w.EndStack()
+
+				next := w.ReserveLine()
+				w.NewInt(start, w.Return, 0, next)
+				start = next
+
+				for i := uint(0); i < 32-1; i++ {
+					next = w.ReserveLine()
+					w.Assign(start, w.IntValue(w.Return.Ptr).Bit(i+1), w.IntValue(w.This.Ptr).Bit(i), next)
+					start = next
+				}
+
+				w.PopStack(start, end)
+			}),
+		},
+		&MethodFeature{
+			Name: ID{
+				Name: "_rsh",
+			},
+			Return: TYPE{
+				Name: "Int",
+			},
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
+				w.EndStack()
+
+				next := w.ReserveLine()
+				w.NewInt(start, w.Return, 0, next)
+				start = next
+
+				for i := uint(0); i < 32-1; i++ {
+					next = w.ReserveLine()
+					w.Assign(start, w.IntValue(w.Return.Ptr).Bit(i), w.IntValue(w.This.Ptr).Bit(i+1), next)
+					start = next
+				}
+
+				w.PopStack(start, end)
+			}),
+		},
+		&MethodFeature{
+			Name: ID{
+				Name: "_lowest_bit",
+			},
+			Return: TYPE{
+				Name: "Boolean",
+			},
+			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
+				w.EndStack()
+
+				n0, n1 := w.ReserveLine(), w.ReserveLine()
+				w.Jump(start, w.IntValue(w.This.Ptr).Bit(0), n0, n1)
+
+				next := w.ReserveLine()
+				w.CopyReg(n0, w.Return, w.False, next)
+				w.CopyReg(n1, w.Return, w.True, next)
+				start = next
+
+				w.PopStack(start, end)
+			}),
+		},
+		&MethodFeature{
+			Name: ID{
 				Name: "_multiply",
 			},
 			Args: []*VarDecl{
@@ -964,44 +1018,165 @@ var basicInt = &ClassDecl{
 			Return: TYPE{
 				Name: "Int",
 			},
+			// http://bisqwit.iki.fi/story/howto/bitmath/#MulUnsignedMultiplication
+			Body: &VarExpr{
+				VarFeature: VarFeature{
+					VarDecl: VarDecl{
+						Name: ID{
+							Name: "a",
+						},
+						Type: TYPE{
+							Name: "Int",
+						},
+					},
+					Value: &ThisExpr{},
+				},
+				Expr: &VarExpr{
+					VarFeature: VarFeature{
+						VarDecl: VarDecl{
+							Name: ID{
+								Name: "b",
+							},
+							Type: TYPE{
+								Name: "Int",
+							},
+						},
+						Value: &NameExpr{
+							Name: ID{
+								Name: "x",
+							},
+						},
+					},
+					Expr: &VarExpr{
+						VarFeature: VarFeature{
+							VarDecl: VarDecl{
+								Name: ID{
+									Name: "result",
+								},
+								Type: TYPE{
+									Name: "Int",
+								},
+							},
+							Value: &IntegerExpr{
+								N: 0,
+							},
+						},
+						Expr: &ChainExpr{
+							Pre: &WhileExpr{
+								Condition: &CallExpr{
+									Left: &NameExpr{
+										Name: ID{
+											Name: "a",
+										},
+									},
+									Name: ID{
+										Name: "equals",
+									},
+									Args: []Expr{
+										&IntegerExpr{
+											N: 0,
+										},
+									},
+								},
+								Do: &ChainExpr{
+									Pre: &IfExpr{
+										Condition: &CallExpr{
+											Left: &NameExpr{
+												Name: ID{
+													Name: "a",
+												},
+											},
+											Name: ID{
+												Name: "_lowest_bit",
+											},
+										},
+										Then: &AssignExpr{
+											Left: ID{
+												Name: "result",
+											},
+											Right: &CallExpr{
+												Left: &NameExpr{
+													Name: ID{
+														Name: "result",
+													},
+												},
+												Name: ID{
+													Name: "_add",
+												},
+												Args: []Expr{
+													&NameExpr{
+														Name: ID{
+															Name: "b",
+														},
+													},
+												},
+											},
+										},
+										Else: &UnitExpr{},
+									},
+									Expr: &ChainExpr{
+										Pre: &AssignExpr{
+											Left: ID{
+												Name: "a",
+											},
+											Right: &CallExpr{
+												Left: &NameExpr{
+													Name: ID{
+														Name: "a",
+													},
+												},
+												Name: ID{
+													Name: "_rsh",
+												},
+											},
+										},
+										Expr: &AssignExpr{
+											Left: ID{
+												Name: "b",
+											},
+											Right: &CallExpr{
+												Left: &NameExpr{
+													Name: ID{
+														Name: "b",
+													},
+												},
+												Name: ID{
+													Name: "_lsh",
+												},
+											},
+										},
+									},
+								},
+							},
+							Expr: &NameExpr{
+								Name: ID{
+									Name: "result",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		&MethodFeature{
+			Name: ID{
+				Name: "_check_divide_by_zero",
+			},
+			Return: TYPE{
+				Name: "Unit",
+			},
 			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
 				w.EndStack()
 
 				next := w.ReserveLine()
-				w.NewInt(start, w.Return, 0, next)
+				w.Cmp(start, w.IntValue(w.This.Ptr), 0, w.DivZero, next)
 				start = next
 
 				next = w.ReserveLine()
-				w.Load(start, w.General[0], w.Stack, w.Arg(0), next)
+				w.CopyReg(start, w.Return, w.Unit, next)
 				start = next
 
-				next = w.ReserveLine()
-				w.Copy(start, w.This.Num, w.IntValue(w.This.Ptr), next)
-				start = next
-
-				next = w.ReserveLine()
-				w.Copy(start, w.General[0].Num, w.IntValue(w.General[0].Ptr), next)
-				start = next
-
-				loop, done := start, w.ReserveLine()
-				next = w.ReserveLine()
-				w.Cmp(loop, w.General[0].Num, 0, next, done)
-				start = next
-
-				next = w.ReserveLine()
-				add := w.ReserveLine()
-				w.Jump(start, w.General[0].Num.Start, add, next)
-
-				w.AddReg(add, w.IntValue(w.Return.Ptr), w.This.Num, next)
-				start = next
-
-				next = w.ReserveLine()
-				w.Lsh(start, w.This.Num, 1, next)
-				start = next
-
-				w.Rsh(start, w.General[0].Num, 1, loop)
-
-				w.PopStack(done, end)
+				w.PopStack(start, end)
 			}),
 		},
 		&MethodFeature{
@@ -1168,78 +1343,290 @@ var basicInt = &ClassDecl{
 			Return: TYPE{
 				Name: "Int",
 			},
+			// http://bisqwit.iki.fi/story/howto/bitmath/#DivAndModDivisionAndModulo
+			Body: &VarExpr{
+				VarFeature: VarFeature{
+					VarDecl: VarDecl{
+						Name: ID{
+							Name: "remain",
+						},
+						Type: TYPE{
+							Name: "Int",
+						},
+					},
+					Value: &ThisExpr{},
+				},
+				Expr: &VarExpr{
+					VarFeature: VarFeature{
+						VarDecl: VarDecl{
+							Name: ID{
+								Name: "part1",
+							},
+							Type: TYPE{
+								Name: "Int",
+							},
+						},
+						Value: &NameExpr{
+							Name: ID{
+								Name: "x",
+							},
+						},
+					},
+					Expr: &VarExpr{
+						VarFeature: VarFeature{
+							VarDecl: VarDecl{
+								Name: ID{
+									Name: "result",
+								},
+								Type: TYPE{
+									Name: "Int",
+								},
+							},
+							Value: &IntegerExpr{
+								N: 0,
+							},
+						},
+						Expr: &VarExpr{
+							VarFeature: VarFeature{
+								VarDecl: VarDecl{
+									Name: ID{
+										Name: "mask",
+									},
+									Type: TYPE{
+										Name: "Int",
+									},
+								},
+								Value: &IntegerExpr{
+									N: 1,
+								},
+							},
+							Expr: &ChainExpr{
+								Pre: &CallExpr{
+									Left: &NameExpr{
+										Name: ID{
+											Name: "part1",
+										},
+									},
+									Name: ID{
+										Name: "_check_divide_by_zero",
+									},
+								},
+								Expr: &ChainExpr{
+									Pre: &WhileExpr{
+										Condition: &CallExpr{
+											Left: &IntegerExpr{
+												N: 0,
+											},
+											Name: ID{
+												Name: "_less",
+											},
+											Args: []Expr{
+												&NameExpr{
+													Name: ID{
+														Name: "part1",
+													},
+												},
+											},
+										},
+										Do: &ChainExpr{
+											Pre: &AssignExpr{
+												Left: ID{
+													Name: "part1",
+												},
+												Right: &CallExpr{
+													Left: &NameExpr{
+														Name: ID{
+															Name: "part1",
+														},
+													},
+													Name: ID{
+														Name: "_lsh",
+													},
+												},
+											},
+											Expr: &AssignExpr{
+												Left: ID{
+													Name: "mask",
+												},
+												Right: &CallExpr{
+													Left: &NameExpr{
+														Name: ID{
+															Name: "mask",
+														},
+													},
+													Name: ID{
+														Name: "_lsh",
+													},
+												},
+											},
+										},
+									},
+									Expr: &ChainExpr{
+										Pre: &WhileExpr{
+											Condition: &CallExpr{
+												Left: &CallExpr{
+													Left: &NameExpr{
+														Name: ID{
+															Name: "mask",
+														},
+													},
+													Name: ID{
+														Name: "equals",
+													},
+													Args: []Expr{
+														&IntegerExpr{
+															N: 0,
+														},
+													},
+												},
+												Name: ID{
+													Name: "_not",
+												},
+											},
+											Do: &ChainExpr{
+												Pre: &IfExpr{
+													Condition: &CallExpr{
+														Left: &NameExpr{
+															Name: ID{
+																Name: "remain",
+															},
+														},
+														Name: ID{
+															Name: "_less_unsigned",
+														},
+														Args: []Expr{
+															&NameExpr{
+																Name: ID{
+																	Name: "part1",
+																},
+															},
+														},
+													},
+													Then: &UnitExpr{},
+													Else: &ChainExpr{
+														Pre: &AssignExpr{
+															Left: ID{
+																Name: "remain",
+															},
+															Right: &CallExpr{
+																Left: &NameExpr{
+																	Name: ID{
+																		Name: "remain",
+																	},
+																},
+																Name: ID{
+																	Name: "_subtract",
+																},
+																Args: []Expr{
+																	&NameExpr{
+																		Name: ID{
+																			Name: "part1",
+																		},
+																	},
+																},
+															},
+														},
+														Expr: &AssignExpr{
+															Left: ID{
+																Name: "result",
+															},
+															Right: &CallExpr{
+																Left: &NameExpr{
+																	Name: ID{
+																		Name: "result",
+																	},
+																},
+																Name: ID{
+																	Name: "_add",
+																},
+																Args: []Expr{
+																	&NameExpr{
+																		Name: ID{
+																			Name: "mask",
+																		},
+																	},
+																},
+															},
+														},
+													},
+												},
+												Expr: &ChainExpr{
+													Pre: &AssignExpr{
+														Left: ID{
+															Name: "part1",
+														},
+														Right: &CallExpr{
+															Left: &NameExpr{
+																Name: ID{
+																	Name: "part1",
+																},
+															},
+															Name: ID{
+																Name: "_rsh",
+															},
+														},
+													},
+													Expr: &AssignExpr{
+														Left: ID{
+															Name: "mask",
+														},
+														Right: &CallExpr{
+															Left: &NameExpr{
+																Name: ID{
+																	Name: "mask",
+																},
+															},
+															Name: ID{
+																Name: "_rsh",
+															},
+														},
+													},
+												},
+											},
+										},
+										Expr: &NameExpr{
+											Name: ID{
+												Name: "result",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		&MethodFeature{
+			Name: ID{
+				Name: "_less_unsigned",
+			},
+			Args: []*VarDecl{
+				{
+					Name: ID{
+						Name: "x",
+					},
+					Type: TYPE{
+						Name: "Int",
+					},
+				},
+			},
+			Return: TYPE{
+				Name: "Boolean",
+			},
 			Body: NativeExpr(func(w *writer, start, end bitgen.Line) {
 				w.EndStack()
 
 				next := w.ReserveLine()
-				w.Load(start, w.General[1], w.Stack, w.Arg(0), next)
+				w.Load(start, w.General[0], w.Stack, w.Arg(0), next)
 				start = next
-
-				next = w.ReserveLine()
-				w.Cmp(start, w.IntValue(w.General[1].Ptr), 0, w.DivZero, next)
-				start = next
-
-				next = w.ReserveLine()
-				w.NewInt(start, w.Return, 0, next)
-				start = next
-
-				next = w.ReserveLine()
-				w.Copy(start, w.General[0].Num, w.IntValue(w.This.Ptr), next)
-				start = next
-
-				next = w.ReserveLine()
-				w.Copy(start, w.General[1].Num, w.IntValue(w.General[1].Ptr), next)
-				start = next
-
-				next = w.ReserveLine()
-				w.Assign(start, bitgen.ValueAt{w.General[2].Num.Start}, bitgen.Bit(true), next)
-				start = next
-
-				loop, done := start, w.ReserveLine()
-				next = w.ReserveLine()
-				w.LessThanUnsigned(start, w.General[1].Num, w.General[0].Num, next, done, done)
-				start = next
-
-				next = w.ReserveLine()
-				w.Lsh(start, w.General[1].Num, 1, next)
-				start = next
-
-				w.Lsh(start, w.General[2].Num, 1, loop)
 
 				n0, n1 := w.ReserveLine(), w.ReserveLine()
-				w.LessThanUnsigned(done, w.General[0].Num, w.General[1].Num, n0, n1, n1)
-				start = n1
-
-				for i := uint(0); i < 32; i++ {
-					zero, one := w.ReserveLine(), w.ReserveLine()
-					w.Jump(start, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{w.General[1].Num.Start}, i}}, zero, one)
-
-					next = w.ReserveLine()
-					w.Assign(zero, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{w.General[3].Num.Start}, i}}, bitgen.Bit(true), next)
-					w.Assign(one, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{w.General[3].Num.Start}, i}}, bitgen.Bit(false), next)
-					start = next
-				}
+				w.LessThanUnsigned(start, w.IntValue(w.This.Ptr), w.IntValue(w.General[0].Ptr), n1, n0, n0)
 
 				next = w.ReserveLine()
-				w.Increment(start, w.General[3].Num, next, next)
-				start = next
-
-				next = w.ReserveLine()
-				w.AddReg(start, w.General[0].Num, w.General[3].Num, next)
-				start = next
-
-				w.AddReg(start, w.IntValue(w.Return.Ptr), w.General[2].Num, n0)
-
-				next = w.ReserveLine()
-				w.Rsh(n0, w.General[1].Num, 1, next)
-				start = next
-
-				next = w.ReserveLine()
-				w.Rsh(start, w.General[2].Num, 1, next)
-				start = next
-
-				next = w.ReserveLine()
-				w.Cmp(start, w.General[2].Num, 0, next, done)
+				w.CopyReg(n0, w.Return, w.False, next)
+				w.CopyReg(n1, w.Return, w.True, next)
 				start = next
 
 				w.PopStack(start, end)

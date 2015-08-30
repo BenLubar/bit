@@ -198,7 +198,7 @@ func (ast *AST) recurse(classes map[string]*ClassDecl, ns []*ID, value interface
 	case *NameExpr:
 		recurse(&v.Name)
 
-	case *ThisExpr, *StringExpr, *IntegerExpr, *BooleanExpr, *NullExpr:
+	case *ThisExpr, *StringExpr, *IntegerExpr, *BooleanExpr, *NullExpr, *UnitExpr:
 
 	case *IfExpr:
 		recurse(v.Condition)
@@ -501,6 +501,9 @@ func (ast *AST) checkExpr(this *ClassDecl, value Expr) *ClassDecl {
 
 	case *BooleanExpr:
 		return basicBoolean
+
+	case *UnitExpr:
+		return basicUnit
 
 	case *StaticCallExpr:
 		left := this.Extends.Type.target

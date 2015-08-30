@@ -980,58 +980,6 @@ func (w *writer) AddReg(start bitgen.Line, left, right bitgen.Integer, end bitge
 	}
 }
 
-func (w *writer) Lsh(start bitgen.Line, num bitgen.Integer, shift uint, end bitgen.Line) {
-	if shift == 0 {
-		panic("0-bit shift")
-	}
-
-	if shift > num.Width {
-		shift = num.Width
-	}
-	for i := uint(1); i <= num.Width-shift; i++ {
-		next := w.ReserveLine()
-		w.Assign(start, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{num.Start}, num.Width - shift - i}}, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{num.Start}, num.Width - i}}, next)
-		start = next
-	}
-
-	for i := uint(0); i < shift; i++ {
-		var next bitgen.Line
-		if i == shift-1 {
-			next = end
-		} else {
-			next = w.ReserveLine()
-		}
-		w.Assign(start, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{num.Start}, i}}, bitgen.Bit(false), next)
-		start = next
-	}
-}
-
-func (w *writer) Rsh(start bitgen.Line, num bitgen.Integer, shift uint, end bitgen.Line) {
-	if shift == 0 {
-		panic("0-bit shift")
-	}
-
-	if shift > num.Width {
-		shift = num.Width
-	}
-	for i := uint(0); i < num.Width-shift; i++ {
-		next := w.ReserveLine()
-		w.Assign(start, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{num.Start}, i}}, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{num.Start}, i + shift}}, next)
-		start = next
-	}
-
-	for i := uint(1); i <= shift; i++ {
-		var next bitgen.Line
-		if i == shift {
-			next = end
-		} else {
-			next = w.ReserveLine()
-		}
-		w.Assign(start, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{num.Start}, num.Width - i}}, bitgen.Bit(false), next)
-		start = next
-	}
-}
-
 func (w *writer) CopyReg(start bitgen.Line, left, right register, end bitgen.Line) {
 	next := w.ReserveLine()
 	w.Assign(start, left.Ptr, right.Ptr, next)

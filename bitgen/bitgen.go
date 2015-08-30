@@ -132,6 +132,13 @@ type Integer struct {
 	Width uint
 }
 
+func (i Integer) Bit(n uint) Value {
+	if i.Width <= n {
+		panic("bitgen: Integer.Bit out of range")
+	}
+	return ValueAt{Offset{AddressOf{i.Start}, n}}
+}
+
 // Line represents a line number. It should be treated as an opaque type, except
 // that 0 can be used as the first line number and the line number to exit on.
 type Line uint64
