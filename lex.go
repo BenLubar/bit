@@ -4,97 +4,36 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"unicode"
-	"unicode/utf8"
 )
 
-var tokens = map[int][]rune{
-	ZERO:        []rune("ZERO"),
-	ONE:         []rune("ONE"),
-	GOTO:        []rune("GOTO"),
-	LINE:        []rune("LINE"),
-	NUMBER:      []rune("NUMBER"),
-	CODE:        []rune("CODE"),
-	IF:          []rune("IF"),
-	THE:         []rune("THE"),
-	JUMP:        []rune("JUMP"),
-	REGISTER:    []rune("REGISTER"),
-	IS:          []rune("IS"),
-	VARIABLE:    []rune("VARIABLE"),
-	VALUE:       []rune("VALUE"),
-	AT:          []rune("AT"),
-	BEYOND:      []rune("BEYOND"),
-	ADDRESS:     []rune("ADDRESS"),
-	OF:          []rune("OF"),
-	NAND:        []rune("NAND"),
-	EQUALS:      []rune("EQUALS"),
-	OPEN:        []rune("OPEN"),
-	CLOSE:       []rune("CLOSE"),
-	PARENTHESIS: []rune("PARENTHESIS"),
-	PRINT:       []rune("PRINT"),
-	READ:        []rune("READ"),
-}
-
-var ErrInvalidUnicode = errors.New("bit: invalid unicode")
-
 type lex struct {
-	r    io.RuneReader
+	r    io.ByteReader
 	line int
 	col  int
 	off  int
-	buf  []rune
-	prog Program
+	prog *Program
 }
 
-func (l *lex) Lex(lcal *yySymType) int {
-	l.buf = l.buf[:0]
-
+func (l *lex) Lex(lval *yySymType) int {
 	for {
-		r, size, err := l.r.ReadRune()
-		if err == io.EOF {
-			if len(l.buf) == 0 {
+		b, err := l.r.ReadByte()
+		if err != nil {
+			if err == io.EOF {
 				return 0
 			}
-			panic(io.ErrUnexpectedEOF)
-		}
-		if err != nil {
 			panic(err)
 		}
-		l.off += size
+		l.off++
 		l.col++
-		if r == utf8.RuneError && size == 1 {
-			panic(ErrInvalidUnicode)
-		}
-
-		if unicode.IsSpace(r) {
-			if r == '\n' {
-				l.line++
-				l.col = 0
-			}
+		if b == '\n' {
+			l.col = 0
+			l.line++
 			continue
 		}
-
-		l.buf = append(l.buf, r)
-		any := false
-	tokenLoop:
-		for id, token := range tokens {
-			if len(token) < len(l.buf) {
-				continue
-			}
-			for i := range l.buf {
-				if token[i] != l.buf[i] {
-					continue tokenLoop
-				}
-			}
-			any = true
-			if len(token) == len(l.buf) {
-				return id
-			}
+		if b == ' ' || b == '\t' {
+			continue
 		}
-
-		if !any {
-			panic(fmt.Errorf("bit: unknown token %q", l.buf))
-		}
+		return int(b)
 	}
 }
 
@@ -113,7 +52,7 @@ func (err *ParseError) Error() string {
 	return fmt.Sprintf("bit: on line %d column %d (offset %d): %v", err.Line, err.Column, err.Offset, err.Err)
 }
 
-func Parse(r io.RuneReader) (prog Program, err error) {
+func Parse(r io.ByteReader) (prog Program, err error) {
 	l := &lex{r: r, line: 1}
 
 	defer func() {
@@ -130,5 +69,9 @@ func Parse(r io.RuneReader) (prog Program, err error) {
 
 	yyParse(l)
 
-	return l.prog.bake()
+	err = l.prog.Init()
+	if err != nil {
+		return
+	}
+	return *l.prog, nil
 }

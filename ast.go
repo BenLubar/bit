@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"sort"
 
 	"github.com/BenLubar/bit/bitio"
 )
@@ -28,6 +29,7 @@ type context struct {
 }
 
 type line struct {
+	num   uint64
 	stmt  Stmt
 	goto0 *uint64
 	goto1 *uint64
@@ -36,27 +38,48 @@ type line struct {
 	opt   optimized
 }
 
-type Program map[uint64]*line
+type Program []*line
 
-func (p Program) AddLine(n uint64, stmt Stmt, goto0, goto1 *uint64) error {
-	if _, ok := p[n]; ok {
-		return fmt.Errorf("bit: duplicate line number %v", n)
+func (p *Program) AddLine(n uint64, stmt Stmt, goto0, goto1 *uint64) {
+	*p = append(*p, &line{
+		num:   n,
+		stmt:  stmt.simplify(),
+		goto0: goto0,
+		goto1: goto1,
+	})
+}
+
+func (p Program) Init() error {
+	sort.Sort(p)
+	if len(p) != 1 {
+		last := ^uint64(0)
+		for _, l := range p {
+			if l.num == last {
+				return fmt.Errorf("bit: duplicate line number %v", l.num)
+			}
+			last = l.num
+		}
 	}
+	return p.bake()
+}
 
-	p[n] = &line{stmt: stmt.simplify(), goto0: goto0, goto1: goto1}
-
-	return nil
+func (p Program) Len() int           { return len(p) }
+func (p Program) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+func (p Program) Less(i, j int) bool { return p[i].num < p[j].num }
+func (p Program) findLine(n uint64) (l *line, ok bool) {
+	if i := sort.Search(len(p), func(i int) bool {
+		return p[i].num >= n
+	}); i < len(p) && p[i].num == n {
+		return p[i], true
+	}
+	return nil, false
 }
 
 func (p Program) Start() uint64 {
 	if len(p) == 0 {
 		return 0
 	}
-	for i := uint64(0); ; i++ {
-		if _, ok := p[i]; ok {
-			return i
-		}
-	}
+	return p[0].num
 }
 
 type ProgramError struct {
@@ -91,7 +114,7 @@ func (p Program) Run(in bitio.BitReader, out bitio.BitWriter) error {
 			err := line.stmt.run(in, out, ctx)
 			if err != nil {
 				if r, ok := line.stmt.(ReadStmt); ok && r.pc != nil {
-					if l, ok := p[*r.pc]; ok {
+					if l, ok := p.findLine(*r.pc); ok {
 						pc = r.pc
 						line = l
 						continue

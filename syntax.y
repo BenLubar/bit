@@ -7,7 +7,7 @@ import "fmt"
 %}
 
 %union {
-	program Program
+	program *Program
 	expr    Expr
 	stmt    Stmt
 	goto0   *uint64
@@ -25,8 +25,6 @@ import "fmt"
 	}
 }
 
-%token ZERO ONE GOTO LINE NUMBER CODE IF THE JUMP REGISTER IS VARIABLE THE VALUE AT BEYOND ADDRESS OF NAND EQUALS OPEN CLOSE PARENTHESIS PRINT READ
-
 %type <program>    program
 %type <line>       line goto
 %type <stmt>       stmt
@@ -39,18 +37,14 @@ import "fmt"
 program
 : line
 	{
-		$$ = make(Program)
-		if err := $$.AddLine($1.number, $1.stmt, $1.goto0, $1.goto1); err != nil {
-			panic(err)
-		}
+		$$ = new(Program)
+		$$.AddLine($1.number, $1.stmt, $1.goto0, $1.goto1)
 		yylex.(*lex).prog = $$
 	}
 | program line
 	{
 		$$ = $1
-		if err := $$.AddLine($2.number, $2.stmt, $2.goto0, $2.goto1); err != nil {
-			panic(err)
-		}
+		$$.AddLine($2.number, $2.stmt, $2.goto0, $2.goto1)
 		yylex.(*lex).prog = $$
 	}
 ;
@@ -209,3 +203,28 @@ line
 		}
 	}
 ;
+
+ZERO: 'Z' 'E' 'R' 'O';
+ONE: 'O' 'N' 'E';
+GOTO: 'G' 'O' 'T' 'O';
+LINE: 'L' 'I' 'N' 'E';
+NUMBER: 'N' 'U' 'M' 'B' 'E' 'R';
+CODE: 'C' 'O' 'D' 'E';
+IF: 'I' 'F';
+THE: 'T' 'H' 'E';
+JUMP: 'J' 'U' 'M' 'P';
+REGISTER: 'R' 'E' 'G' 'I' 'S' 'T' 'E' 'R';
+IS: 'I' 'S';
+VARIABLE: 'V' 'A' 'R' 'I' 'A' 'B' 'L' 'E';
+VALUE: 'V' 'A' 'L' 'U' 'E';
+AT: 'A' 'T';
+BEYOND: 'B' 'E' 'Y' 'O' 'N' 'D';
+ADDRESS: 'A' 'D' 'D' 'R' 'E' 'S' 'S';
+OF: 'O' 'F';
+NAND: 'N' 'A' 'N' 'D';
+EQUALS: 'E' 'Q' 'U' 'A' 'L' 'S';
+OPEN: 'O' 'P' 'E' 'N';
+CLOSE: 'C' 'L' 'O' 'S' 'E';
+PARENTHESIS: 'P' 'A' 'R' 'E' 'N' 'T' 'H' 'E' 'S' 'I' 'S';
+PRINT: 'P' 'R' 'I' 'N' 'T';
+READ: 'R' 'E' 'A' 'D';

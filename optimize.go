@@ -6,25 +6,25 @@ import (
 	"github.com/BenLubar/bit/bitio"
 )
 
-func (p Program) bake() (Program, error) {
+func (p Program) bake() error {
 	// precompute gotos
 	var ok bool
-	for pc, l := range p {
+	for _, l := range p {
 		if l.goto0 != nil {
-			l.line0, ok = p[*l.goto0]
+			l.line0, ok = p.findLine(*l.goto0)
 			if !ok {
-				return nil, &ProgramError{ErrMissingLine, pc}
+				return &ProgramError{ErrMissingLine, l.num}
 			}
 		}
 		if l.goto1 != nil {
-			l.line1, ok = p[*l.goto1]
+			l.line1, ok = p.findLine(*l.goto1)
 			if !ok {
-				return nil, &ProgramError{ErrMissingLine, pc}
+				return &ProgramError{ErrMissingLine, l.num}
 			}
 		}
 	}
 
-	return p, nil
+	return nil
 }
 
 func (p Program) Optimize() {
