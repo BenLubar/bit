@@ -141,7 +141,7 @@ func (w *writer) Init() (start bitgen.Line) {
 	for _, r := range registers {
 		for i := uint(0); i < 32; i++ {
 			next := w.ReserveLine()
-			w.Assign(start, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{r.Num.Start}, i}}, bitgen.Bit(false), next)
+			w.Assign(start, r.Num.Bit(i), bitgen.Bit(false), next)
 			start = next
 		}
 
@@ -426,14 +426,14 @@ func (w *writer) InitJumpTable() {
 		}
 
 		start := w.ReserveLine()
-		w.Jump(start, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{w.Goto.Start}, bit}}, n0, n1)
+		w.Jump(start, w.Goto.Bit(bit), n0, n1)
 
 		return start
 	}
 
 	n0 := binary(32-2, 0, 1<<(32-1)-1)
 	n1 := binary(32-2, 1<<(32-1), 1<<32-1)
-	w.Jump(w.JumpTableEntry, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{w.Goto.Start}, 32 - 1}}, n0, n1)
+	w.Jump(w.JumpTableEntry, w.Goto.Bit(32-1), n0, n1)
 
 	method = func(m *MethodFeature) {
 		start := w.Jumps[w.MethodStarts[m]]
@@ -578,11 +578,11 @@ func (w *writer) BeginStack(start, end bitgen.Line) {
 
 	for i := 0; i < 32; i++ {
 		next = w.ReserveLine()
-		w.Assign(start, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{w.This.Num.Start}, uint(i)}}, bitgen.Bit(false), next)
+		w.Assign(start, w.This.Num.Bit(uint(i)), bitgen.Bit(false), next)
 		start = next
 
 		next = w.ReserveLine()
-		w.Assign(start, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{w.Goto.Start}, uint(i)}}, bitgen.Bit(false), next)
+		w.Assign(start, w.Goto.Bit(uint(i)), bitgen.Bit(false), next)
 		start = next
 	}
 
@@ -605,7 +605,7 @@ func (w *writer) SaveRegisters(start, end bitgen.Line) {
 
 		for j := uint(0); j < 32; j++ {
 			next = w.ReserveLine()
-			w.Assign(start, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{w.General[i].Num.Start}, j}}, bitgen.Bit(false), next)
+			w.Assign(start, w.General[i].Num.Bit(j), bitgen.Bit(false), next)
 			start = next
 		}
 
@@ -846,13 +846,13 @@ func (w *writer) NewArrayAny(start bitgen.Line, end bitgen.Line) {
 
 	// multiply array size by 32/8 (elements -> bytes)
 	next = w.ReserveLine()
-	w.Copy(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{w.Return.Num.Start}, 2}}, w.Return.Num.Width - 2}, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.General[0].Ptr, 32}}, 32 - 2}, next)
+	w.Copy(start, w.Return.Num.Sub(2, 32), w.General[0].Num.Sub(0, 32-2), next)
 	start = next
 
 	// clear the bottom 2 bits
 	for i := uint(0); i < 2; i++ {
 		next = w.ReserveLine()
-		w.Assign(start, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{w.Return.Num.Start}, i}}, bitgen.Bit(false), next)
+		w.Assign(start, w.Return.Num.Bit(i), bitgen.Bit(false), next)
 		start = next
 	}
 
@@ -903,7 +903,7 @@ func (w *writer) CmpReg(start bitgen.Line, left, right bitgen.Integer, same, dif
 
 	for i := uint(0); i < left.Width; i++ {
 		zero, one := w.ReserveLine(), w.ReserveLine()
-		w.Jump(start, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{left.Start}, i}}, zero, one)
+		w.Jump(start, left.Bit(i), zero, one)
 
 		var next bitgen.Line
 		if i == left.Width-1 {
@@ -912,8 +912,8 @@ func (w *writer) CmpReg(start bitgen.Line, left, right bitgen.Integer, same, dif
 			next = w.ReserveLine()
 		}
 
-		w.Jump(zero, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{right.Start}, i}}, next, different)
-		w.Jump(one, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{right.Start}, i}}, different, next)
+		w.Jump(zero, right.Bit(i), next, different)
+		w.Jump(one, right.Bit(i), different, next)
 
 		start = next
 	}
@@ -926,7 +926,7 @@ func (w *writer) LessThanUnsigned(start bitgen.Line, left, right bitgen.Integer,
 
 	for i := left.Width - 1; i < left.Width; i-- {
 		zero, one := w.ReserveLine(), w.ReserveLine()
-		w.Jump(start, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{left.Start}, i}}, zero, one)
+		w.Jump(start, left.Bit(i), zero, one)
 
 		var next bitgen.Line
 		if i == 0 {
@@ -935,8 +935,8 @@ func (w *writer) LessThanUnsigned(start bitgen.Line, left, right bitgen.Integer,
 			next = w.ReserveLine()
 		}
 
-		w.Jump(zero, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{right.Start}, i}}, next, less)
-		w.Jump(one, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{right.Start}, i}}, greater, next)
+		w.Jump(zero, right.Bit(i), next, less)
+		w.Jump(one, right.Bit(i), greater, next)
 
 		start = next
 	}
@@ -954,9 +954,6 @@ func (w *writer) AddReg(start bitgen.Line, left, right bitgen.Integer, end bitge
 	var carry bitgen.Line
 
 	for i := uint(0); i < left.Width; i++ {
-		curL := bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{left.Start}, i}}
-		curR := bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{right.Start}, i}}
-
 		var next, nextCarry bitgen.Line
 		if i == left.Width-1 {
 			next, nextCarry = end, end
@@ -965,16 +962,16 @@ func (w *writer) AddReg(start bitgen.Line, left, right bitgen.Integer, end bitge
 		}
 
 		one := w.ReserveLine()
-		w.Jump(start, curR, next, one)
+		w.Jump(start, right.Bit(i), next, one)
 
 		if carry != 0 {
-			w.Jump(carry, curR, one, nextCarry)
+			w.Jump(carry, right.Bit(i), one, nextCarry)
 		}
 
 		setOne, setTwo := w.ReserveLine(), w.ReserveLine()
-		w.Jump(one, curL, setOne, setTwo)
-		w.Assign(setOne, curL, bitgen.Bit(true), next)
-		w.Assign(setTwo, curL, bitgen.Bit(false), nextCarry)
+		w.Jump(one, left.Bit(i), setOne, setTwo)
+		w.Assign(setOne, left.Bit(i), bitgen.Bit(true), next)
+		w.Assign(setTwo, left.Bit(i), bitgen.Bit(false), nextCarry)
 
 		start, carry = next, nextCarry
 	}
@@ -1021,7 +1018,7 @@ func (w *writer) gotoNext(start bitgen.Line, nextVal uint32, end bitgen.Line) {
 		} else {
 			next = w.ReserveLine()
 		}
-		w.Assign(start, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{w.Next.Start}, i}}, bitgen.Bit((nextVal>>i)&1 == 1), next)
+		w.Assign(start, w.Next.Bit(i), bitgen.Bit((nextVal>>i)&1 == 1), next)
 		start = next
 	}
 
@@ -1038,7 +1035,7 @@ func (w *writer) StaticCall(start bitgen.Line, m *StaticCallExpr, end bitgen.Lin
 
 	for i := uint(0); i < 32; i++ {
 		next := w.ReserveLine()
-		w.Assign(start, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{w.Goto.Start}, i}}, bitgen.Bit((gotoVal>>i)&1 == 1), next)
+		w.Assign(start, w.Goto.Bit(i), bitgen.Bit((gotoVal>>i)&1 == 1), next)
 		start = next
 	}
 
@@ -1061,51 +1058,51 @@ func (w *writer) DynamicCall(start bitgen.Line, m *CallExpr, end bitgen.Line) {
 	w.gotoNext(start, nextVal, end)
 }
 
-func (w *writer) hexDigit(start bitgen.Line, ptr bitgen.Value, end bitgen.Line) {
+func (w *writer) hexDigit(start bitgen.Line, n bitgen.Integer, end bitgen.Line) {
 	n0, n1 := w.ReserveLine(), w.ReserveLine()
-	w.Jump(start, bitgen.ValueAt{bitgen.Offset{ptr, 3}}, n0, n1)
+	w.Jump(start, n.Bit(3), n0, n1)
 
 	n00, n01 := w.ReserveLine(), w.ReserveLine()
-	w.Jump(n0, bitgen.ValueAt{bitgen.Offset{ptr, 2}}, n00, n01)
+	w.Jump(n0, n.Bit(2), n00, n01)
 
 	n10, n11 := w.ReserveLine(), w.ReserveLine()
-	w.Jump(n1, bitgen.ValueAt{bitgen.Offset{ptr, 2}}, n10, n11)
+	w.Jump(n1, n.Bit(2), n10, n11)
 
 	n000, n001 := w.ReserveLine(), w.ReserveLine()
-	w.Jump(n00, bitgen.ValueAt{bitgen.Offset{ptr, 1}}, n000, n001)
+	w.Jump(n00, n.Bit(1), n000, n001)
 
 	n010, n011 := w.ReserveLine(), w.ReserveLine()
-	w.Jump(n01, bitgen.ValueAt{bitgen.Offset{ptr, 1}}, n010, n011)
+	w.Jump(n01, n.Bit(1), n010, n011)
 
 	n100, n101 := w.ReserveLine(), w.ReserveLine()
-	w.Jump(n10, bitgen.ValueAt{bitgen.Offset{ptr, 1}}, n100, n101)
+	w.Jump(n10, n.Bit(1), n100, n101)
 
 	n110, n111 := w.ReserveLine(), w.ReserveLine()
-	w.Jump(n11, bitgen.ValueAt{bitgen.Offset{ptr, 1}}, n110, n111)
+	w.Jump(n11, n.Bit(1), n110, n111)
 
 	n0000, n0001 := w.ReserveLine(), w.ReserveLine()
-	w.Jump(n000, bitgen.ValueAt{ptr}, n0000, n0001)
+	w.Jump(n000, n.Bit(0), n0000, n0001)
 
 	n0010, n0011 := w.ReserveLine(), w.ReserveLine()
-	w.Jump(n001, bitgen.ValueAt{ptr}, n0010, n0011)
+	w.Jump(n001, n.Bit(0), n0010, n0011)
 
 	n0100, n0101 := w.ReserveLine(), w.ReserveLine()
-	w.Jump(n010, bitgen.ValueAt{ptr}, n0100, n0101)
+	w.Jump(n010, n.Bit(0), n0100, n0101)
 
 	n0110, n0111 := w.ReserveLine(), w.ReserveLine()
-	w.Jump(n011, bitgen.ValueAt{ptr}, n0110, n0111)
+	w.Jump(n011, n.Bit(0), n0110, n0111)
 
 	n1000, n1001 := w.ReserveLine(), w.ReserveLine()
-	w.Jump(n100, bitgen.ValueAt{ptr}, n1000, n1001)
+	w.Jump(n100, n.Bit(0), n1000, n1001)
 
 	n1010, n1011 := w.ReserveLine(), w.ReserveLine()
-	w.Jump(n101, bitgen.ValueAt{ptr}, n1010, n1011)
+	w.Jump(n101, n.Bit(0), n1010, n1011)
 
 	n1100, n1101 := w.ReserveLine(), w.ReserveLine()
-	w.Jump(n110, bitgen.ValueAt{ptr}, n1100, n1101)
+	w.Jump(n110, n.Bit(0), n1100, n1101)
 
 	n1110, n1111 := w.ReserveLine(), w.ReserveLine()
-	w.Jump(n111, bitgen.ValueAt{ptr}, n1110, n1111)
+	w.Jump(n111, n.Bit(0), n1110, n1111)
 
 	w.Print(n0000, '0', end)
 	w.Print(n0001, '1', end)
@@ -1138,7 +1135,7 @@ func (w *writer) hex(start bitgen.Line, n bitgen.Integer, end bitgen.Line) {
 			next = w.ReserveLine()
 		}
 
-		w.hexDigit(start, bitgen.Offset{bitgen.AddressOf{n.Start}, i}, next)
+		w.hexDigit(start, n.Sub(i, i+4), next)
 
 		start = next
 	}

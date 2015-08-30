@@ -470,7 +470,7 @@ type NullExpr struct {
 func (e *NullExpr) write(w *writer, start, end bitgen.Line) {
 	for i := uint(0); i < w.Return.Num.Width; i++ {
 		next := w.ReserveLine()
-		w.Assign(start, bitgen.ValueAt{bitgen.Offset{bitgen.AddressOf{w.Return.Num.Start}, i}}, bitgen.Bit(false), next)
+		w.Assign(start, w.Return.Num.Bit(i), bitgen.Bit(false), next)
 		start = next
 	}
 	w.Assign(start, w.Return.Ptr, w.Heap, end)

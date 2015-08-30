@@ -139,6 +139,13 @@ func (i Integer) Bit(n uint) Value {
 	return ValueAt{Offset{AddressOf{i.Start}, n}}
 }
 
+func (i Integer) Sub(start, end uint) Integer {
+	if start >= end || end > i.Width {
+		panic("bitgen: Integer.Sub out of range")
+	}
+	return Integer{i.Bit(start), end - start}
+}
+
 // Line represents a line number. It should be treated as an opaque type, except
 // that 0 can be used as the first line number and the line number to exit on.
 type Line uint64
@@ -303,7 +310,7 @@ func (w *Writer) Output(start Line, value Integer, end Line) {
 	n1[0] = end
 
 	for i := value.Width - 1; i < value.Width; i-- {
-		w.OutputBit(start, ValueAt{Offset{AddressOf{value.Start}, i}}, n1[i])
+		w.OutputBit(start, value.Bit(i), n1[i])
 		start = n1[i]
 	}
 }
@@ -327,7 +334,7 @@ func (w *Writer) Input(start Line, value Integer, end Line) {
 	n1[0] = end
 
 	for i := value.Width - 1; i < value.Width; i-- {
-		w.InputBit(start, ValueAt{Offset{AddressOf{value.Start}, i}}, n1[i])
+		w.InputBit(start, value.Bit(i), n1[i])
 		start = n1[i]
 	}
 }
@@ -351,7 +358,7 @@ func (w *Writer) InputEOF(start Line, value Integer, end, eof Line) {
 	n1[0] = end
 
 	for i := value.Width - 1; i < value.Width; i-- {
-		cur := ValueAt{Offset{AddressOf{value.Start}, i}}
+		cur := value.Bit(i)
 		if i == value.Width-1 {
 			w.InputBitEOF(start, cur, n1[i], eof)
 		} else {
@@ -381,9 +388,9 @@ func (w *Writer) Cmp(start Line, value Integer, base uint64, same, different Lin
 
 	for i, next := range n1 {
 		if base&(1<<uint(i)) == 0 {
-			w.Jump(start, ValueAt{Offset{AddressOf{value.Start}, uint(i)}}, next, different)
+			w.Jump(start, value.Bit(uint(i)), next, different)
 		} else {
-			w.Jump(start, ValueAt{Offset{AddressOf{value.Start}, uint(i)}}, different, next)
+			w.Jump(start, value.Bit(uint(i)), different, next)
 		}
 		start = next
 	}
@@ -395,7 +402,7 @@ func (w *Writer) Increment(start Line, value Integer, end, overflow Line) {
 	next := start
 
 	for i := uint(0); i < value.Width; i++ {
-		current := ValueAt{Offset{AddressOf{value.Start}, i}}
+		current := value.Bit(i)
 
 		n1 := w.ReserveLine()
 		n2 := w.ReserveLine()
@@ -418,7 +425,7 @@ func (w *Writer) Decrement(start Line, value Integer, end, underflow Line) {
 	next := start
 
 	for i := uint(0); i < value.Width; i++ {
-		current := ValueAt{Offset{AddressOf{value.Start}, i}}
+		current := value.Bit(i)
 
 		n1 := w.ReserveLine()
 		n2 := w.ReserveLine()
@@ -448,7 +455,7 @@ func (w *Writer) Copy(start Line, left, right Integer, end Line) {
 	n1[left.Width-1] = end
 
 	for i, next := range n1 {
-		w.Assign(start, ValueAt{Offset{AddressOf{left.Start}, uint(i)}}, ValueAt{Offset{AddressOf{right.Start}, uint(i)}}, next)
+		w.Assign(start, left.Bit(uint(i)), right.Bit(uint(i)), next)
 		start = next
 	}
 }
