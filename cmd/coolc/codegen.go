@@ -512,6 +512,7 @@ func (w *writer) MethodTables(start, end bitgen.Line) {
 			next = w.ReserveLine()
 		}
 		methods(start, c, next)
+		start = next
 	}
 }
 
