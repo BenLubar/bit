@@ -471,7 +471,9 @@ func (ast *AST) checkExpr(this *ClassDecl, value Expr) *ClassDecl {
 
 		for _, c := range v.Cases {
 			ast.checkCase(c, handled)
-			ast.checkType(c.Type.target, left, c.Type.Pos)
+			if !ast.lessThan(left, c.Type.target) {
+				ast.checkType(c.Type.target, left, c.Type.Pos)
+			}
 			results = append(results, ast.checkExpr(this, c.Body))
 		}
 
@@ -657,6 +659,10 @@ func (ast *AST) leastUpperBound(classes ...*ClassDecl) *ClassDecl {
 		}
 
 		// G-Extends
+		if left.depth == 0 || right.depth == 0 {
+			// null and a non-nullable type
+			return basicAny
+		}
 		for left.depth > right.depth {
 			left = left.Extends.Type.target
 		}
