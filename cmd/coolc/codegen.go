@@ -482,15 +482,18 @@ func (w *writer) MethodTables(start, end bitgen.Line) {
 					continue
 				}
 				jump := w.MethodStarts[m]
-				for j := uint(0); j < 32; j++ {
+				for j := uint(32 - 1); j < 32; j-- {
+					if (jump>>j)&1 == 0 {
+						continue
+					}
 					var next bitgen.Line
-					if i == uint(len(c.methods))-1 && j == 32-1 {
+					if i == uint(len(c.methods))-1 && jump&(1<<j-1) == 0 {
 						next = end
 					} else {
 						next = w.ReserveLine()
 					}
 
-					w.Assign(start, bitgen.ValueAt{bitgen.Offset{cr, 32 + 32*i + j}}, bitgen.Bit((jump>>j)&1 == 1), next)
+					w.Assign(start, bitgen.ValueAt{bitgen.Offset{cr, 32 + 32*i + j}}, bitgen.Bit(true), next)
 
 					start = next
 				}
