@@ -601,13 +601,19 @@ func (ast *AST) checkCase(left *ClassDecl, c *Case, handled map[*ClassDecl]*Case
 			any = true
 		}
 	}
-	check(basicDummyNothing)
-	check(basicDummyNull)
-	for _, h := range basicClasses {
-		check(h)
-	}
-	for _, h := range ast.Classes {
-		check(h)
+	if c.Type.target == basicDummyNull {
+		check(basicDummyNull)
+		if c.Name.Name != "null" {
+			pos := ast.FileSet.Position(c.Type.Pos)
+			panic(fmt.Errorf("case null needs special syntax at %v", pos))
+		}
+	} else {
+		for _, h := range basicClasses {
+			check(h)
+		}
+		for _, h := range ast.Classes {
+			check(h)
+		}
 	}
 
 	if !any {

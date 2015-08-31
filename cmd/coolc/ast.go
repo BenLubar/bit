@@ -232,7 +232,7 @@ findNull:
 		}
 
 		for _, h := range c.classes {
-			if h == basicDummyNull || h == basicDummyNothing {
+			if h == basicDummyNull {
 				continue
 			}
 
