@@ -396,6 +396,80 @@ func (w *Writer) Cmp(start Line, value Integer, base uint64, same, different Lin
 	}
 }
 
+func (w *Writer) AddInt(start Line, left, right Integer, end, overflow Line) {
+	if left.Width != right.Width {
+		panic("bitgen: non-equal widths for AddInt")
+	}
+
+	var carry Line
+
+	for i := uint(0); i < left.Width; i++ {
+		var next, nextCarry Line
+		if i == left.Width-1 {
+			next, nextCarry = end, overflow
+		} else {
+			next, nextCarry = w.ReserveLine(), w.ReserveLine()
+		}
+
+		one := w.ReserveLine()
+		w.Jump(start, right.Bit(i), next, one)
+
+		if carry != 0 {
+			w.Jump(carry, right.Bit(i), one, nextCarry)
+		}
+
+		setOne, setTwo := w.ReserveLine(), w.ReserveLine()
+		w.Jump(one, left.Bit(i), setOne, setTwo)
+		w.Assign(setOne, left.Bit(i), Bit(true), next)
+		w.Assign(setTwo, left.Bit(i), Bit(false), nextCarry)
+
+		start, carry = next, nextCarry
+	}
+}
+
+func (w *Writer) Add(start Line, left Integer, right uint64, end, overflow Line) {
+	if right&(1<<left.Width-1) != right {
+		panic("bitgen: non-equal widths for Add")
+	}
+	if right == 0 {
+		panic("bitgen: cannot add 0")
+	}
+
+	for i := left.Width - 1; i < left.Width; i-- {
+		var prev, carry Line
+		if right&(1<<i-1) == 0 {
+			prev = start
+		} else {
+			if right&(1<<i) != 0 {
+				prev = w.ReserveLine()
+			}
+			carry = w.ReserveLine()
+		}
+
+		one := w.ReserveLine()
+		w.Assign(one, left.Bit(i), Bit(true), end)
+
+		two := w.ReserveLine()
+		w.Assign(two, left.Bit(i), Bit(false), overflow)
+
+		three := overflow
+
+		if carry == 0 {
+			w.Jump(prev, left.Bit(i), one, two)
+			break
+		}
+
+		if prev == 0 {
+			w.Jump(carry, left.Bit(i), one, two)
+			overflow = carry
+		} else {
+			w.Jump(prev, left.Bit(i), one, two)
+			w.Jump(carry, left.Bit(i), two, three)
+			end, overflow = prev, carry
+		}
+	}
+}
+
 // Increment adds ONE to value, then jumps to end if successful or overflow if
 // it needed to carry to a nonexistent bit.
 func (w *Writer) Increment(start Line, value Integer, end, overflow Line) {

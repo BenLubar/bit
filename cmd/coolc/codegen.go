@@ -559,11 +559,9 @@ func (w *writer) BeginStack(start, end bitgen.Line) {
 	start = next
 
 	w.Offset = uint(3)
-	for i := uint(0); i < 32/8*w.Offset; i++ {
-		next = w.ReserveLine()
-		w.Increment(start, w.Alloc.Num, next, 0)
-		start = next
-	}
+	next = w.ReserveLine()
+	w.Add(start, w.Alloc.Num, uint64(w.Offset*32/8), next, 0)
+	start = next
 
 	next = w.ReserveLine()
 	w.Assign(start, w.Alloc.Ptr, bitgen.Offset{w.Alloc.Ptr, w.Offset * 32}, next)
@@ -629,11 +627,9 @@ func (w *writer) StackAlloc(start, end bitgen.Line) (cur, prev bitgen.Integer) {
 
 	w.Offset++
 
-	for i := 0; i < 32/8; i++ {
-		next := w.ReserveLine()
-		w.Increment(start, w.Alloc.Num, next, 0)
-		start = next
-	}
+	next := w.ReserveLine()
+	w.Add(start, w.Alloc.Num, 32/8, next, 0)
+	start = next
 
 	w.Assign(start, w.Alloc.Ptr, bitgen.Offset{w.Alloc.Ptr, 32}, end)
 
@@ -695,11 +691,9 @@ func (w *writer) StaticAlloc(start bitgen.Line, reg register, size uint, end bit
 	w.Assign(start, reg.Ptr, w.Alloc.Ptr, next)
 	start = next
 
-	for i := uint(0); i < size; i++ {
-		next = w.ReserveLine()
-		w.Increment(start, w.Alloc.Num, next, 0)
-		start = next
-	}
+	next = w.ReserveLine()
+	w.Add(start, w.Alloc.Num, uint64(size), next, 0)
+	start = next
 
 	w.Assign(start, w.Alloc.Ptr, bitgen.Offset{w.Alloc.Ptr, 8 * size}, end)
 }
@@ -835,13 +829,11 @@ func (w *writer) NewNativeDynamic(start bitgen.Line, reg register, c *ClassDecl,
 		start = next
 	}
 
-	for i := uint(0); i < c.size; i++ {
-		next := w.ReserveLine()
-		w.Increment(start, reg.Num, next, 0)
-		start = next
-	}
-
 	next := w.ReserveLine()
+	w.Add(start, reg.Num, uint64(c.size), next, 0)
+	start = next
+
+	next = w.ReserveLine()
 	w.DynamicAlloc(start, reg, reg.Num, next)
 	start = next
 
@@ -963,37 +955,6 @@ func (w *writer) LessThanUnsigned(start bitgen.Line, left, right bitgen.Integer,
 
 func (w *writer) IntValue(ptr bitgen.Value) bitgen.Integer {
 	return bitgen.Integer{bitgen.ValueAt{bitgen.Offset{ptr, 32}}, 32}
-}
-
-func (w *writer) AddReg(start bitgen.Line, left, right bitgen.Integer, end bitgen.Line) {
-	if left.Width != right.Width {
-		panic("non-equal widths for AddReg")
-	}
-
-	var carry bitgen.Line
-
-	for i := uint(0); i < left.Width; i++ {
-		var next, nextCarry bitgen.Line
-		if i == left.Width-1 {
-			next, nextCarry = end, end
-		} else {
-			next, nextCarry = w.ReserveLine(), w.ReserveLine()
-		}
-
-		one := w.ReserveLine()
-		w.Jump(start, right.Bit(i), next, one)
-
-		if carry != 0 {
-			w.Jump(carry, right.Bit(i), one, nextCarry)
-		}
-
-		setOne, setTwo := w.ReserveLine(), w.ReserveLine()
-		w.Jump(one, left.Bit(i), setOne, setTwo)
-		w.Assign(setOne, left.Bit(i), bitgen.Bit(true), next)
-		w.Assign(setTwo, left.Bit(i), bitgen.Bit(false), nextCarry)
-
-		start, carry = next, nextCarry
-	}
 }
 
 func (w *writer) CopyReg(start bitgen.Line, left, right register, end bitgen.Line) {

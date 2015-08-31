@@ -242,11 +242,9 @@ var basicIO = &ClassDecl{
 				w.CopyReg(start, w.Return, w.Alloc, next)
 				start = next
 
-				for i := uint(0); i < basicString.size; i++ {
-					next = w.ReserveLine()
-					w.Increment(start, w.Alloc.Num, next, 0)
-					start = next
-				}
+				next = w.ReserveLine()
+				w.Add(start, w.Alloc.Num, uint64(basicString.size), next, 0)
+				start = next
 
 				next = w.ReserveLine()
 				w.Assign(start, w.Alloc.Ptr, bitgen.Offset{w.Alloc.Ptr, basicString.size * 8}, next)
@@ -927,7 +925,7 @@ var basicInt = &ClassDecl{
 				start = next
 
 				next = w.ReserveLine()
-				w.AddReg(start, w.IntValue(w.Return.Ptr), w.IntValue(w.General[0].Ptr), next)
+				w.AddInt(start, w.IntValue(w.Return.Ptr), w.IntValue(w.General[0].Ptr), next, next)
 				start = next
 
 				w.PopStack(start, end)
@@ -1938,7 +1936,7 @@ var basicString = &ClassDecl{
 				start = next
 
 				next = w.ReserveLine()
-				w.AddReg(start, w.IntValue(w.General[3].Ptr), w.IntValue(w.General[2].Ptr), next)
+				w.AddInt(start, w.IntValue(w.General[3].Ptr), w.IntValue(w.General[2].Ptr), next, next)
 				start = next
 
 				next = w.ReserveLine()
@@ -2732,11 +2730,9 @@ var basicArrayAny = &ClassDecl{
 				w.Decrement(start, w.General[0].Num, next, done)
 				start = next
 
-				for i := 0; i < 32/8; i++ {
-					next = w.ReserveLine()
-					w.Increment(start, w.Return.Num, next, 0)
-					start = next
-				}
+				next = w.ReserveLine()
+				w.Add(start, w.Return.Num, 32/8, next, 0)
+				start = next
 
 				w.Assign(start, w.Return.Ptr, bitgen.Offset{w.Return.Ptr, 32}, loop)
 
@@ -2804,11 +2800,9 @@ var basicArrayAny = &ClassDecl{
 				w.Decrement(start, w.General[0].Num, next, done)
 				start = next
 
-				for i := 0; i < 32/8; i++ {
-					next = w.ReserveLine()
-					w.Increment(start, w.General[1].Num, next, 0)
-					start = next
-				}
+				next = w.ReserveLine()
+				w.Add(start, w.General[1].Num, 32/8, next, 0)
+				start = next
 
 				w.Assign(start, w.General[1].Ptr, bitgen.Offset{w.General[1].Ptr, 32}, loop)
 
