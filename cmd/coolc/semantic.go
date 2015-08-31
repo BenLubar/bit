@@ -57,11 +57,15 @@ func (ast *AST) Semantic(basic bool) (err error) {
 	}()
 
 	for _, c := range ast.Classes {
-		ast.recurse(classes, nil, c)
+		ast.recurse(classes, nil, &c.Extends.Type)
 	}
 
 	for _, c := range ast.Classes {
 		ast.checkExtends([]*ClassDecl{c}, c.Extends.Type.target)
+	}
+
+	for _, c := range ast.Classes {
+		ast.recurse(classes, nil, c)
 	}
 
 	if !basic {
@@ -134,6 +138,16 @@ func (ast *AST) recurse(classes map[string]*ClassDecl, ns []*ID, value interface
 
 	case *ClassDecl:
 		recurse(&v.Name)
+		for c := v.Extends.Type.target; c != basicAny; c = c.Extends.Type.target {
+			for _, a := range c.Args {
+				addNSAllowShadow(a, &a.Name)
+			}
+			for _, f := range c.Body {
+				if a, ok := f.(*VarFeature); ok {
+					addNSAllowShadow(a, &a.Name)
+				}
+			}
+		}
 		for i, a := range v.Args {
 			a.arg = uint(i)
 			addNS(a, &a.Name)
@@ -150,7 +164,6 @@ func (ast *AST) recurse(classes map[string]*ClassDecl, ns []*ID, value interface
 		}
 
 	case *ExtendsDecl:
-		recurse(&v.Type)
 		for _, e := range v.Args {
 			recurse(e)
 		}
