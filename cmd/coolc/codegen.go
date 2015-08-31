@@ -435,6 +435,9 @@ func (w *writer) InitJumpTable() {
 	n1 := binary(32-2, 1<<(32-1), 1<<32-1)
 	w.Jump(w.JumpTableEntry, w.Goto.Bit(32-1), n0, n1)
 
+	pop := w.ReserveLine()
+	w.SimplePopStack(pop, w.JumpTableEntry)
+
 	method = func(m *MethodFeature) {
 		start := w.Jumps[w.MethodStarts[m]]
 
@@ -445,16 +448,12 @@ func (w *writer) InitJumpTable() {
 			w.SaveRegisters(start, next)
 			start = next
 
-			m.Body.write(w, start, w.JumpTableEntry)
+			m.Body.write(w, start, pop)
 		} else {
 			start = m.Body.alloc(w, start)
 			w.EndStack()
 
-			next := w.ReserveLine()
-			m.Body.write(w, start, next)
-			start = next
-
-			w.SimplePopStack(start, w.JumpTableEntry)
+			m.Body.write(w, start, pop)
 		}
 	}
 
@@ -670,12 +669,14 @@ func (w *writer) PopStack(start, end bitgen.Line) {
 		w.Copy(start, w.General[i].Num, w.Save[i], next)
 		start = next
 
-		next = w.ReserveLine()
+		if i == len(w.General)-1 {
+			next = end
+		} else {
+			next = w.ReserveLine()
+		}
 		w.Pointer(start, w.General[i].Ptr, w.General[i].Num, next)
 		start = next
 	}
-
-	w.SimplePopStack(start, end)
 }
 
 func (w *writer) StaticAlloc(start bitgen.Line, reg register, size uint, end bitgen.Line) {
