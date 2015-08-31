@@ -2616,7 +2616,7 @@ var basicArrayAny = &ClassDecl{
 									Args: []Expr{
 										&NameExpr{
 											Name: ID{
-												Name: "length",
+												Name: "s",
 											},
 										},
 									},
