@@ -780,10 +780,10 @@ func (w *writer) New(start bitgen.Line, reg register, c *ClassDecl, end bitgen.L
 
 	next := end
 
-	for _, f := range c.Body {
-		if v, ok := f.(*VarFeature); ok {
+	for p := c; p != basicAny; p = p.Extends.Type.target {
+		for _, a := range p.Args {
 			var val bitgen.Integer
-			switch v.Type.target {
+			switch a.Type.target {
 			case basicBoolean:
 				val = w.False.Num
 			case w.basicInt:
@@ -794,8 +794,26 @@ func (w *writer) New(start bitgen.Line, reg register, c *ClassDecl, end bitgen.L
 				continue
 			}
 			prev := w.ReserveLine()
-			w.Copy(prev, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{reg.Ptr, v.offset * 8}}, 32}, val, next)
+			w.Copy(prev, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{reg.Ptr, a.offset * 8}}, 32}, val, next)
 			next = prev
+		}
+		for _, f := range p.Body {
+			if v, ok := f.(*VarFeature); ok {
+				var val bitgen.Integer
+				switch v.Type.target {
+				case basicBoolean:
+					val = w.False.Num
+				case w.basicInt:
+					val = w.Zero.Num
+				case basicUnit:
+					val = w.Unit.Num
+				default:
+					continue
+				}
+				prev := w.ReserveLine()
+				w.Copy(prev, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{reg.Ptr, v.offset * 8}}, 32}, val, next)
+				next = prev
+			}
 		}
 	}
 
