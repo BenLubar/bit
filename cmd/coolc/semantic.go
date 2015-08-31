@@ -470,10 +470,7 @@ func (ast *AST) checkExpr(this *ClassDecl, value Expr) *ClassDecl {
 		handled := make(map[*ClassDecl]*Case)
 
 		for _, c := range v.Cases {
-			ast.checkCase(c, handled)
-			if !ast.lessThan(left, c.Type.target) {
-				ast.checkType(c.Type.target, left, c.Type.Pos)
-			}
+			ast.checkCase(left, c, handled)
 			results = append(results, ast.checkExpr(this, c.Body))
 		}
 
@@ -595,10 +592,10 @@ func (ast *AST) checkType(left, right *ClassDecl, p token.Pos) {
 	}
 }
 
-func (ast *AST) checkCase(c *Case, handled map[*ClassDecl]*Case) {
+func (ast *AST) checkCase(left *ClassDecl, c *Case, handled map[*ClassDecl]*Case) {
 	any := false
 	check := func(h *ClassDecl) {
-		if _, ok := handled[h]; !ok && ast.lessThan(h, c.Type.target) {
+		if _, ok := handled[h]; !ok && ast.lessThan(h, c.Type.target) && ast.lessThan(h, left) {
 			c.classes = append(c.classes, h)
 			handled[h] = c
 			any = true
