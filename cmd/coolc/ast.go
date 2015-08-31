@@ -110,26 +110,30 @@ func (e *AssignExpr) write(w *writer, start, end bitgen.Line) {
 	e.Right.write(w, start, next)
 	start = next
 
+	next = w.ReserveLine()
 	switch v := e.Left.target.(type) {
 	case *VarDecl:
 		if v.offset != 0 {
-			w.Copy(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.This.Ptr, v.offset * 8}}, 32}, w.Return.Num, end)
+			w.Copy(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.This.Ptr, v.offset * 8}}, 32}, w.Return.Num, next)
 		} else {
-			w.Copy(start, w.StackOffset(w.Arg(v.arg)), w.Return.Num, end)
+			w.Copy(start, w.StackOffset(w.Arg(v.arg)), w.Return.Num, next)
 		}
 
 	case *VarFeature:
-		w.Copy(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.This.Ptr, v.offset * 8}}, 32}, w.Return.Num, end)
+		w.Copy(start, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.This.Ptr, v.offset * 8}}, 32}, w.Return.Num, next)
 
 	case *VarExpr:
-		w.Copy(start, v.slot, w.Return.Num, end)
+		w.Copy(start, v.slot, w.Return.Num, next)
 
 	case *Case:
-		w.Copy(start, v.match.slot, w.Return.Num, end)
+		w.Copy(start, v.match.slot, w.Return.Num, next)
 
 	default:
 		panic(v)
 	}
+	start = next
+
+	w.CopyReg(start, w.Return, w.Unit, end)
 }
 
 func (e *AssignExpr) alloc(w *writer, start bitgen.Line) (next bitgen.Line) {
