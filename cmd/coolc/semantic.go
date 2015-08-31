@@ -483,6 +483,9 @@ func (ast *AST) checkExpr(this *ClassDecl, value Expr) *ClassDecl {
 		case *VarExpr:
 			return t.Type.target
 
+		case *Case:
+			return t.Type.target
+
 		default:
 			panic(t)
 		}
@@ -611,8 +614,8 @@ func (ast *AST) lessThan(left, right *ClassDecl) bool {
 		return true
 	}
 	// S-Null
-	if left == basicDummyNull && right != basicDummyNothing && right != basicBoolean && right != basicInt && right != basicUnit {
-		return true
+	if left == basicDummyNull {
+		return right != basicDummyNothing && right != basicBoolean && right != basicInt && right != basicUnit
 	}
 	// S-Extends
 	for c := left; ; c = c.Extends.Type.target {

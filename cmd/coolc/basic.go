@@ -730,13 +730,13 @@ var basicInt = &ClassDecl{
 																	Args: []Expr{
 																		&NameExpr{
 																			Name: ID{
-																				Name: "n10",
+																				Name: "d",
 																			},
 																		},
 																		&CallExpr{
 																			Left: &NameExpr{
 																				Name: ID{
-																					Name: "n10",
+																					Name: "d",
 																				},
 																			},
 																			Name: ID{
@@ -948,11 +948,9 @@ var basicInt = &ClassDecl{
 				w.NewInt(start, w.Return, 0, next)
 				start = next
 
-				for i := uint(0); i < 32-1; i++ {
-					next = w.ReserveLine()
-					w.Assign(start, w.IntValue(w.Return.Ptr).Bit(i+1), w.IntValue(w.This.Ptr).Bit(i), next)
-					start = next
-				}
+				next = w.ReserveLine()
+				w.Copy(start, w.IntValue(w.Return.Ptr).Sub(1, 32), w.IntValue(w.This.Ptr).Sub(0, 32-1), next)
+				start = next
 
 				w.PopStack(start, end)
 			}),
@@ -971,11 +969,9 @@ var basicInt = &ClassDecl{
 				w.NewInt(start, w.Return, 0, next)
 				start = next
 
-				for i := uint(0); i < 32-1; i++ {
-					next = w.ReserveLine()
-					w.Assign(start, w.IntValue(w.Return.Ptr).Bit(i), w.IntValue(w.This.Ptr).Bit(i+1), next)
-					start = next
-				}
+				next = w.ReserveLine()
+				w.Copy(start, w.IntValue(w.Return.Ptr).Sub(0, 32-1), w.IntValue(w.This.Ptr).Sub(1, 32), next)
+				start = next
 
 				w.PopStack(start, end)
 			}),
@@ -1064,18 +1060,23 @@ var basicInt = &ClassDecl{
 						Expr: &ChainExpr{
 							Pre: &WhileExpr{
 								Condition: &CallExpr{
-									Left: &NameExpr{
+									Left: &CallExpr{
+										Left: &NameExpr{
+											Name: ID{
+												Name: "a",
+											},
+										},
 										Name: ID{
-											Name: "a",
+											Name: "equals",
+										},
+										Args: []Expr{
+											&IntegerExpr{
+												N: 0,
+											},
 										},
 									},
 									Name: ID{
-										Name: "equals",
-									},
-									Args: []Expr{
-										&IntegerExpr{
-											N: 0,
-										},
+										Name: "_not",
 									},
 								},
 								Do: &ChainExpr{
@@ -1414,16 +1415,18 @@ var basicInt = &ClassDecl{
 								Expr: &ChainExpr{
 									Pre: &WhileExpr{
 										Condition: &CallExpr{
-											Left: &IntegerExpr{
-												N: 0,
+											Left: &NameExpr{
+												Name: ID{
+													Name: "part1",
+												},
 											},
 											Name: ID{
-												Name: "_less",
+												Name: "_less_unsigned",
 											},
 											Args: []Expr{
 												&NameExpr{
 													Name: ID{
-														Name: "part1",
+														Name: "remain",
 													},
 												},
 											},
