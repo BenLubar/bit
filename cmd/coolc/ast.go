@@ -11,6 +11,8 @@ type AST struct {
 
 	Classes []*ClassDecl
 	main    *ClassDecl
+
+	usedTypes map[*ClassDecl]bool
 }
 
 type ID struct {
@@ -236,7 +238,7 @@ findNull:
 		}
 
 		for _, h := range c.classes {
-			if h == basicDummyNull {
+			if !w.AST.usedTypes[h] {
 				continue
 			}
 

@@ -132,9 +132,11 @@ func (w *writer) Init() (start bitgen.Line) {
 		w.Classes[c] = r
 	}
 	for _, c := range w.AST.Classes {
-		var r register
-		reg(&r)
-		w.Classes[c] = r
+		if w.AST.usedTypes[c] {
+			var r register
+			reg(&r)
+			w.Classes[c] = r
+		}
 	}
 	w.Heap = bitgen.AddressOf{w.ReserveHeap()}
 
@@ -193,9 +195,11 @@ func (w *writer) Init() (start bitgen.Line) {
 		start = next
 	}
 	for _, c := range w.AST.Classes {
-		next = w.ReserveLine()
-		w.ClassDecl(start, c, next)
-		start = next
+		if w.AST.usedTypes[c] {
+			next = w.ReserveLine()
+			w.ClassDecl(start, c, next)
+			start = next
+		}
 	}
 
 	for _, c := range basicClasses {
@@ -204,9 +208,11 @@ func (w *writer) Init() (start bitgen.Line) {
 		start = next
 	}
 	for _, c := range w.AST.Classes {
-		next = w.ReserveLine()
-		w.ClassDeclFixup(start, c, next)
-		start = next
+		if w.AST.usedTypes[c] {
+			next = w.ReserveLine()
+			w.ClassDeclFixup(start, c, next)
+			start = next
+		}
 	}
 
 	next = w.ReserveLine()
@@ -386,9 +392,11 @@ func (w *writer) InitJumpTable() {
 		}
 	}
 	for _, c := range w.AST.Classes {
-		for _, f := range c.Body {
-			if m, ok := f.(*MethodFeature); ok {
-				method(m)
+		if w.AST.usedTypes[c] {
+			for _, f := range c.Body {
+				if m, ok := f.(*MethodFeature); ok {
+					method(m)
+				}
 			}
 		}
 	}
@@ -465,9 +473,11 @@ func (w *writer) InitJumpTable() {
 		}
 	}
 	for _, c := range w.AST.Classes {
-		for _, f := range c.Body {
-			if m, ok := f.(*MethodFeature); ok {
-				method(m)
+		if w.AST.usedTypes[c] {
+			for _, f := range c.Body {
+				if m, ok := f.(*MethodFeature); ok {
+					method(m)
+				}
 			}
 		}
 	}
@@ -507,8 +517,16 @@ func (w *writer) MethodTables(start, end bitgen.Line) {
 		methods(start, c, next)
 		start = next
 	}
-	for i, c := range w.AST.Classes {
-		if i == len(w.AST.Classes)-1 {
+
+	var usedClasses []*ClassDecl
+	for _, c := range w.AST.Classes {
+		if w.AST.usedTypes[c] {
+			usedClasses = append(usedClasses, c)
+		}
+	}
+
+	for i, c := range usedClasses {
+		if i == len(usedClasses)-1 {
 			next = end
 		} else {
 			next = w.ReserveLine()
@@ -1173,9 +1191,15 @@ func (w *writer) Dump(start, end bitgen.Line) {
 		w.PrintString(start, "\n"+c.Name.Name+"\t", next)
 		start = next
 
-		next = w.ReserveLine()
-		w.hex(start, w.Classes[c].Num, next)
-		start = next
+		if w.AST.usedTypes[c] {
+			next = w.ReserveLine()
+			w.hex(start, w.Classes[c].Num, next)
+			start = next
+		} else {
+			next = w.ReserveLine()
+			w.PrintString(start, "OMITTED", next)
+			start = next
+		}
 	}
 
 	next = w.ReserveLine()
