@@ -260,13 +260,13 @@ func (w *Writer) Assign(start Line, left, right Value, end Line) {
 
 // PrintString writes the bytes in a string, most significant bit first.
 func (w *Writer) PrintString(start Line, value string, end Line) {
-	n1 := make([]Line, len(value))
-	for i := range n1[:len(value)-1] {
-		n1[i] = w.ReserveLine()
-	}
-	n1[len(value)-1] = end
-
-	for i, next := range n1 {
+	for i := range value {
+		var next Line
+		if i == len(value)-1 {
+			next = end
+		} else {
+			next = w.ReserveLine()
+		}
 		w.Print(start, value[i], next)
 		start = next
 	}
@@ -274,22 +274,16 @@ func (w *Writer) PrintString(start Line, value string, end Line) {
 
 // Print writes a byte, most significant bit first.
 func (w *Writer) Print(start Line, value byte, end Line) {
-	n1 := w.ReserveLine()
-	n2 := w.ReserveLine()
-	n3 := w.ReserveLine()
-	n4 := w.ReserveLine()
-	n5 := w.ReserveLine()
-	n6 := w.ReserveLine()
-	n7 := w.ReserveLine()
-
-	w.PrintBit(start, value&0x80 == 0x80, n1)
-	w.PrintBit(n1, value&0x40 == 0x40, n2)
-	w.PrintBit(n2, value&0x20 == 0x20, n3)
-	w.PrintBit(n3, value&0x10 == 0x10, n4)
-	w.PrintBit(n4, value&0x08 == 0x08, n5)
-	w.PrintBit(n5, value&0x04 == 0x04, n6)
-	w.PrintBit(n6, value&0x02 == 0x02, n7)
-	w.PrintBit(n7, value&0x01 == 0x01, end)
+	for i := uint(8) - 1; i < 8; i-- {
+		var next Line
+		if i == 0 {
+			next = end
+		} else {
+			next = w.ReserveLine()
+		}
+		w.PrintBit(start, (value>>i)&1 == 1, next)
+		start = next
+	}
 }
 
 // PrintBit writes a bit to the standard output.
@@ -303,94 +297,99 @@ func (w *Writer) PrintBit(start Line, value Bit, end Line) {
 
 // Output writes value, most significant bit first.
 func (w *Writer) Output(start Line, value Integer, end Line) {
-	n1 := make([]Line, value.Width)
-	for i := range n1[1:] {
-		n1[i+1] = w.ReserveLine()
-	}
-	n1[0] = end
-
 	for i := value.Width - 1; i < value.Width; i-- {
-		w.OutputBit(start, value.Bit(i), n1[i])
-		start = n1[i]
+		var next Line
+		if i == 0 {
+			next = end
+		} else {
+			next = w.ReserveLine()
+		}
+		w.OutputBit(start, value.Bit(i), next)
+		start = next
 	}
 }
 
 // OutputBit writes value to the standard output.
 func (w *Writer) OutputBit(start Line, value Value, end Line) {
+	n0 := w.ReserveLine()
 	n1 := w.ReserveLine()
-	n2 := w.ReserveLine()
 
-	w.Jump(start, value, n1, n2)
-	w.line(n1, "PRINT ZERO", end, end)
-	w.line(n2, "PRINT ONE", end, end)
+	w.Jump(start, value, n0, n1)
+	w.line(n0, "PRINT ZERO", end, end)
+	w.line(n1, "PRINT ONE", end, end)
 }
 
 // Input reads value, most significant bit first.
 func (w *Writer) Input(start Line, value Integer, end Line) {
-	n1 := make([]Line, value.Width)
-	for i := range n1[1:] {
-		n1[i+1] = w.ReserveLine()
-	}
-	n1[0] = end
-
 	for i := value.Width - 1; i < value.Width; i-- {
-		w.InputBit(start, value.Bit(i), n1[i])
-		start = n1[i]
+		var next Line
+		if i == 0 {
+			next = end
+		} else {
+			next = w.ReserveLine()
+		}
+		w.InputBit(start, value.Bit(i), next)
+		start = next
 	}
 }
 
 // InputBit reads value from the standard input.
 func (w *Writer) InputBit(start Line, value Value, end Line) {
+	n0 := w.ReserveLine()
 	n1 := w.ReserveLine()
-	n2 := w.ReserveLine()
 
-	w.line(start, "READ", n1, n2)
-	w.Assign(n1, value, Bit(false), end)
-	w.Assign(n2, value, Bit(true), end)
+	w.line(start, "READ", n0, n1)
+	w.Assign(n0, value, Bit(false), end)
+	w.Assign(n1, value, Bit(true), end)
 }
 
 // InputEOF reads value, most significant bit first.
 func (w *Writer) InputEOF(start Line, value Integer, end, eof Line) {
-	n1 := make([]Line, value.Width)
-	for i := range n1[1:] {
-		n1[i+1] = w.ReserveLine()
-	}
-	n1[0] = end
-
 	for i := value.Width - 1; i < value.Width; i-- {
-		cur := value.Bit(i)
-		if i == value.Width-1 {
-			w.InputBitEOF(start, cur, n1[i], eof)
+		var next Line
+		if i == 0 {
+			next = end
 		} else {
-			w.InputBit(start, cur, n1[i])
+			next = w.ReserveLine()
 		}
-		start = n1[i]
+
+		if i == value.Width-1 {
+			w.InputBitEOF(start, value.Bit(i), next, eof)
+		} else {
+			w.InputBit(start, value.Bit(i), next)
+		}
+		start = next
 	}
 }
 
 // InputBitEOF reads value from the standard input.
 func (w *Writer) InputBitEOF(start Line, value Value, end, eof Line) {
+	n0 := w.ReserveLine()
 	n1 := w.ReserveLine()
-	n2 := w.ReserveLine()
 
-	w.line(start, "READ "+number(uint64(eof)), n1, n2)
-	w.Assign(n1, value, Bit(false), end)
-	w.Assign(n2, value, Bit(true), end)
+	w.line(start, "READ "+number(uint64(eof)), n0, n1)
+	w.Assign(n0, value, Bit(false), end)
+	w.Assign(n1, value, Bit(true), end)
 }
 
 // Cmp jumps to same if value == base or different otherwise.
 func (w *Writer) Cmp(start Line, value Integer, base uint64, same, different Line) {
-	n1 := make([]Line, value.Width)
-	for i := range n1[:value.Width-1] {
-		n1[i] = w.ReserveLine()
+	if base&(1<<value.Width-1) != base {
+		panic("bitgen: non-equal widths for Cmp")
 	}
-	n1[value.Width-1] = same
 
-	for i, next := range n1 {
-		if base&(1<<uint(i)) == 0 {
-			w.Jump(start, value.Bit(uint(i)), next, different)
+	for i := value.Width - 1; i < value.Width; i-- {
+		var next Line
+		if i == 0 {
+			next = same
 		} else {
-			w.Jump(start, value.Bit(uint(i)), different, next)
+			next = w.ReserveLine()
+		}
+
+		if base&(1<<i) == 0 {
+			w.Jump(start, value.Bit(i), next, different)
+		} else {
+			w.Jump(start, value.Bit(i), different, next)
 		}
 		start = next
 	}
@@ -473,24 +472,7 @@ func (w *Writer) Add(start Line, left Integer, right uint64, end, overflow Line)
 // Increment adds ONE to value, then jumps to end if successful or overflow if
 // it needed to carry to a nonexistent bit.
 func (w *Writer) Increment(start Line, value Integer, end, overflow Line) {
-	next := start
-
-	for i := uint(0); i < value.Width; i++ {
-		current := value.Bit(i)
-
-		n1 := w.ReserveLine()
-		n2 := w.ReserveLine()
-
-		w.Jump(next, current, n1, n2)
-		w.Assign(n1, current, Bit(true), end)
-
-		if i == value.Width-1 {
-			next = overflow
-		} else {
-			next = w.ReserveLine()
-		}
-		w.Assign(n2, current, Bit(false), next)
-	}
+	w.Add(start, value, 1, end, overflow)
 }
 
 // Decrement subtracts ONE from value, then jumps to end if successful or
@@ -522,14 +504,14 @@ func (w *Writer) Copy(start Line, left, right Integer, end Line) {
 		panic("bitgen: cannot copy integers of varying width")
 	}
 
-	n1 := make([]Line, left.Width)
-	for i := range n1[:left.Width-1] {
-		n1[i] = w.ReserveLine()
-	}
-	n1[left.Width-1] = end
-
-	for i, next := range n1 {
-		w.Assign(start, left.Bit(uint(i)), right.Bit(uint(i)), next)
+	for i := left.Width - 1; i < left.Width; i-- {
+		var next Line
+		if i == 0 {
+			next = end
+		} else {
+			next = w.ReserveLine()
+		}
+		w.Assign(start, left.Bit(i), right.Bit(i), next)
 		start = next
 	}
 }
