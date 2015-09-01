@@ -2025,7 +2025,7 @@ var basicString = &ClassDecl{
 				start = next
 
 				next = w.ReserveLine()
-				w.LessThanUnsigned(start, w.IntValue(w.General[1].Ptr), w.IntValue(w.General[2].Ptr), next, w.IndexRange, w.IndexRange)
+				w.LessThanUnsigned(start, w.IntValue(w.General[1].Ptr), w.IntValue(w.General[2].Ptr), next, next, w.IndexRange)
 				start = next
 
 				next = w.ReserveLine()
