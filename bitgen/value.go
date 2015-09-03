@@ -107,6 +107,8 @@ type Integer struct {
 	Width uint
 }
 
+// Bit returns the Value of the nth bit of i, with the least significant bit
+// being 0 and the most significant bit being i.Width - 1.
 func (i Integer) Bit(n uint) Value {
 	if i.Width <= n {
 		panic("bitgen: Integer.Bit out of range")
@@ -114,6 +116,8 @@ func (i Integer) Bit(n uint) Value {
 	return ValueAt{Offset{AddressOf{i.Start}, n}}
 }
 
+// Sub returns an Integer starting at the start'th bit and ending at end'th bit
+// of i. The width of the returned Integer is end - start.
 func (i Integer) Sub(start, end uint) Integer {
 	if start >= end || end > i.Width {
 		panic("bitgen: Integer.Sub out of range")
