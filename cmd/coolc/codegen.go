@@ -879,7 +879,7 @@ func (w *writer) NewArrayAny(start bitgen.Line, end bitgen.Line) {
 
 	// multiply array size by 32/8 (elements -> bytes)
 	next = w.ReserveLine()
-	w.Copy(start, w.Return.Num.Sub(2, 32), w.General[0].Num.Sub(0, 32-2), next)
+	w.Copy(start, w.Return.Num.Sub(2, 32), w.IntValue(w.General[0].Ptr).Sub(0, 32-2), next)
 	start = next
 
 	// clear the bottom 2 bits
