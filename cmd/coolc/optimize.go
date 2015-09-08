@@ -6,6 +6,11 @@ func (ast *AST) Optimize() {
 		ast.usedTypes[t] = true
 	}
 	ast.findUsedTypes(ast.main)
+
+	ast.overriddenMethods = make(map[*MethodFeature]bool)
+	for t := range ast.usedTypes {
+		ast.findOverriddenMethods(t)
+	}
 }
 
 func (ast *AST) findUsedTypes(c *ClassDecl) {
@@ -90,5 +95,15 @@ func (ast *AST) findUsedTypesRecurse(expr Expr) {
 
 	default:
 		panic(e)
+	}
+}
+
+func (ast *AST) findOverriddenMethods(c *ClassDecl) {
+	for _, f := range c.Body {
+		if m, ok := f.(*MethodFeature); ok {
+			if m.Override {
+				ast.overriddenMethods[c.Extends.Type.target.methods[m.Name.Name]] = true
+			}
+		}
 	}
 }

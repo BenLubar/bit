@@ -12,7 +12,8 @@ type AST struct {
 	Classes []*ClassDecl
 	main    *ClassDecl
 
-	usedTypes map[*ClassDecl]bool
+	usedTypes         map[*ClassDecl]bool
+	overriddenMethods map[*MethodFeature]bool
 }
 
 type ID struct {
