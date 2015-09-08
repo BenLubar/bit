@@ -40,6 +40,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	ast.Optimize()
+
 	name := *output
 	if name == "" {
 		name = strings.TrimSuffix(flag.Arg(0), ".cool") + ".bit"

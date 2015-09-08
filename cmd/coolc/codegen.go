@@ -132,7 +132,7 @@ func (w *writer) Init() (start bitgen.Line) {
 		w.Classes[c] = r
 	}
 	for _, c := range w.AST.Classes {
-		if w.AST.usedTypes[c] {
+		if w.AST.usedTypes == nil || w.AST.usedTypes[c] {
 			var r register
 			reg(&r)
 			w.Classes[c] = r
@@ -195,7 +195,7 @@ func (w *writer) Init() (start bitgen.Line) {
 		start = next
 	}
 	for _, c := range w.AST.Classes {
-		if w.AST.usedTypes[c] {
+		if w.AST.usedTypes == nil || w.AST.usedTypes[c] {
 			next = w.ReserveLine()
 			w.ClassDecl(start, c, next)
 			start = next
@@ -208,7 +208,7 @@ func (w *writer) Init() (start bitgen.Line) {
 		start = next
 	}
 	for _, c := range w.AST.Classes {
-		if w.AST.usedTypes[c] {
+		if w.AST.usedTypes == nil || w.AST.usedTypes[c] {
 			next = w.ReserveLine()
 			w.ClassDeclFixup(start, c, next)
 			start = next
@@ -392,7 +392,7 @@ func (w *writer) InitJumpTable() {
 		}
 	}
 	for _, c := range w.AST.Classes {
-		if w.AST.usedTypes[c] {
+		if w.AST.usedTypes == nil || w.AST.usedTypes[c] {
 			for _, f := range c.Body {
 				if m, ok := f.(*MethodFeature); ok {
 					method(m)
@@ -473,7 +473,7 @@ func (w *writer) InitJumpTable() {
 		}
 	}
 	for _, c := range w.AST.Classes {
-		if w.AST.usedTypes[c] {
+		if w.AST.usedTypes == nil || w.AST.usedTypes[c] {
 			for _, f := range c.Body {
 				if m, ok := f.(*MethodFeature); ok {
 					method(m)
@@ -520,7 +520,7 @@ func (w *writer) MethodTables(start, end bitgen.Line) {
 
 	var usedClasses []*ClassDecl
 	for _, c := range w.AST.Classes {
-		if w.AST.usedTypes[c] {
+		if w.AST.usedTypes == nil || w.AST.usedTypes[c] {
 			usedClasses = append(usedClasses, c)
 		}
 	}

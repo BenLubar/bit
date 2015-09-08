@@ -87,12 +87,6 @@ func (ast *AST) Semantic(basic bool) (err error) {
 		ast.typecheck(c, c)
 	}
 
-	ast.usedTypes = make(map[*ClassDecl]bool)
-	for _, c := range basicClasses {
-		ast.usedTypes[c] = true
-	}
-	ast.findUsed(ast.main)
-
 	return nil
 }
 
@@ -441,92 +435,6 @@ func (ast *AST) buildMethodTable(methods map[string]*MethodFeature, c *ClassDecl
 				m.offset = uint(len(methods))
 			}
 			methods[m.Name.Name] = m
-		}
-	}
-}
-
-func (ast *AST) findUsed(c *ClassDecl) {
-	if ast.usedTypes[c] || c == basicDummyNull || c == basicDummyNothing {
-		return
-	}
-	ast.usedTypes[c] = true
-
-	var recurse func(Expr)
-	recurse = func(expr Expr) {
-		switch e := expr.(type) {
-		case *ConstructorExpr:
-			for _, a := range e.Args {
-				ast.findUsed(a.Type.target)
-			}
-			recurse(e.Expr)
-
-		case *AssignExpr:
-			recurse(e.Right)
-
-		case *IfExpr:
-			recurse(e.Condition)
-			recurse(e.Then)
-			recurse(e.Else)
-
-		case *WhileExpr:
-			recurse(e.Condition)
-			recurse(e.Do)
-
-		case *MatchExpr:
-			recurse(e.Left)
-			for _, a := range e.Cases {
-				ast.findUsed(a.Type.target)
-				recurse(a.Body)
-			}
-
-		case *CallExpr:
-			recurse(e.Left)
-			for _, a := range e.Args {
-				recurse(a)
-			}
-
-		case *StaticCallExpr:
-			for _, a := range e.Args {
-				recurse(a)
-			}
-
-		case *NewExpr:
-			ast.findUsed(e.Type.target)
-
-		case *VarExpr:
-			recurse(e.Value)
-			recurse(e.Expr)
-
-		case *ChainExpr:
-			recurse(e.Pre)
-			recurse(e.Expr)
-
-		case *NullExpr, *UnitExpr, *NameExpr, *IntegerExpr, *StringExpr, *BooleanExpr, *ThisExpr:
-
-		default:
-			panic(e)
-		}
-	}
-
-	ast.findUsed(c.Extends.Type.target)
-	for _, feature := range c.Body {
-		switch f := feature.(type) {
-		case *VarFeature:
-			ast.findUsed(f.Type.target)
-
-		case *MethodFeature:
-			for _, a := range f.Args {
-				ast.findUsed(a.Type.target)
-			}
-			ast.findUsed(f.Return.target)
-			recurse(f.Body)
-
-		case *BlockFeature:
-
-		case *NativeFeature:
-
-		default:
-			panic(f)
 		}
 	}
 }
