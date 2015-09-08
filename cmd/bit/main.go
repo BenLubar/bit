@@ -6,10 +6,13 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime/pprof"
 
 	"github.com/BenLubar/bit"
 )
 
+var flagCPUProfile = flag.String("cpuprofile", "", "Write a PPROF CPU profile")
+var flagMemProfile = flag.String("memprofile", "", "Write a PPROF heap profile")
 var flagNoOpt = flag.Bool("no-opt", false, "Don't build intrinsic versions of common patterns")
 
 func main() {
@@ -18,6 +21,22 @@ func main() {
 
 	if flag.NArg() != 1 {
 		usage()
+	}
+
+	if *flagCPUProfile != "" {
+		f, err := os.Create(*flagCPUProfile)
+		if err != nil {
+			handle(err)
+			panic("unreachable")
+		}
+		defer f.Close()
+
+		err = pprof.StartCPUProfile(f)
+		if err != nil {
+			handle(err)
+			panic("unreachable")
+		}
+		defer pprof.StopCPUProfile()
 	}
 
 	prog := parse()
@@ -30,6 +49,21 @@ func main() {
 	if err != nil {
 		handle(err)
 		panic("unreachable")
+	}
+
+	if *flagMemProfile != "" {
+		f, err := os.Create(*flagMemProfile)
+		if err != nil {
+			handle(err)
+			panic("unreachable")
+		}
+		defer f.Close()
+
+		err = pprof.WriteHeapProfile(f)
+		if err != nil {
+			handle(err)
+			panic("unreachable")
+		}
 	}
 }
 

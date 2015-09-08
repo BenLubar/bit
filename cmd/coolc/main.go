@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"runtime/pprof"
 	"strings"
 )
 
@@ -13,6 +14,8 @@ func main() {
 		flag.PrintDefaults()
 	}
 	output := flag.String("o", "", "output filename (defaults to first file name with a .bit extension)")
+	cpuProfile := flag.String("cpuprofile", "", "Write a PPROF CPU profile")
+	memProfile := flag.String("memprofile", "", "Write a PPROF heap profile")
 
 	flag.Parse()
 
@@ -20,6 +23,20 @@ func main() {
 		flag.Usage()
 		os.Exit(2)
 		return
+	}
+
+	if *cpuProfile != "" {
+		f, err := os.Create(*cpuProfile)
+		if err != nil {
+			panic(err)
+		}
+		defer f.Close()
+
+		err = pprof.StartCPUProfile(f)
+		if err != nil {
+			panic(err)
+		}
+		defer pprof.StopCPUProfile()
 	}
 
 	var ast AST
@@ -61,5 +78,18 @@ func main() {
 	if err = ast.WriteTo(f); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(3)
+	}
+
+	if *memProfile != "" {
+		f, err := os.Create(*memProfile)
+		if err != nil {
+			panic(err)
+		}
+		defer f.Close()
+
+		err = pprof.WriteHeapProfile(f)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
