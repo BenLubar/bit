@@ -1053,29 +1053,14 @@ func (w *writer) DynamicCall(start bitgen.Line, m *CallExpr, end bitgen.Line) {
 	w.EndStack()
 
 	nextVal := w.DynamicCalls[m]
-	f := m.Name.target.(*MethodFeature)
 
-	if w.AST.overriddenMethods == nil || w.AST.overriddenMethods[f] {
-		next := w.ReserveLine()
-		w.Load(start, w.Return, w.This, 0, next)
-		start = next
+	next := w.ReserveLine()
+	w.Load(start, w.Return, w.This, 0, next)
+	start = next
 
-		next = w.ReserveLine()
-		w.Copy(start, w.Goto, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.Return.Ptr, 32 + f.offset*32}}, 32}, next)
-		start = next
-	} else {
-		next := w.ReserveLine()
-		w.Cmp(start, w.This.Num, 0, w.Null, next)
-		start = next
-
-		gotoVal := w.MethodStarts[f]
-
-		for i := uint(0); i < 32; i++ {
-			next = w.ReserveLine()
-			w.Assign(start, w.Goto.Bit(i), bitgen.Bit((gotoVal>>i)&1 == 1), next)
-			start = next
-		}
-	}
+	next = w.ReserveLine()
+	w.Copy(start, w.Goto, bitgen.Integer{bitgen.ValueAt{bitgen.Offset{w.Return.Ptr, 32 + m.Name.target.(*MethodFeature).offset*32}}, 32}, next)
+	start = next
 
 	w.gotoNext(start, nextVal, end)
 }
