@@ -1,3 +1,5 @@
+//go:generate go run mkwrapper.go
+
 package main
 
 import (
@@ -8,7 +10,7 @@ import (
 	"github.com/BenLubar/bit/bitgen"
 )
 
-func (ast *AST) WriteTo(out io.Writer) (err error) {
+func (ast *AST) WriteTo(out io.Writer) (n int64, err error) {
 	w := &writer{Writer: bitgen.NewWriter(out), AST: ast}
 	defer func() {
 		if e := w.Close(); err == nil {
@@ -43,11 +45,14 @@ func (ast *AST) WriteTo(out io.Writer) (err error) {
 		},
 	}, 0)
 
-	return nil
+	return w.n, w.err
 }
 
 type writer struct {
 	*bitgen.Writer
+
+	n   int64
+	err error
 
 	AST *AST
 

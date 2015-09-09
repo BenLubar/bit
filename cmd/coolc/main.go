@@ -79,7 +79,7 @@ func main() {
 		}
 	}()
 
-	if err = ast.WriteTo(f); err != nil {
+	if _, err = ast.WriteTo(f); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(3)
 	}
