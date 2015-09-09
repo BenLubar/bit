@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"log"
 	"os"
 
@@ -8,7 +9,9 @@ import (
 )
 
 func main() {
-	list, err := bf.Parse(bf.Tokenize(os.Stdin))
+	yyErrorVerbose = true
+
+	list, err := Parse(bufio.NewReader(os.Stdin))
 	if err != nil {
 		log.Fatal(err)
 	}
