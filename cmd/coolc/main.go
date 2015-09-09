@@ -13,6 +13,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Usage of %q:\ncoolc [ -o fileout ] file1.cool file2.cool ... filen.cool\n", os.Args[0])
 		flag.PrintDefaults()
 	}
+	interpret := flag.Bool("interpret", false, "interpret the input instead of compiling it")
 	output := flag.String("o", "", "output filename (defaults to first file name with a .bit extension)")
 	cpuProfile := flag.String("cpuprofile", "", "Write a PPROF CPU profile")
 	memProfile := flag.String("memprofile", "", "Write a PPROF heap profile")
@@ -62,6 +63,11 @@ func main() {
 	}
 
 	ast.Optimize()
+
+	if *interpret {
+		ast.Interpret(os.Stdin, os.Stdout)
+		return
+	}
 
 	name := *output
 	if name == "" {
