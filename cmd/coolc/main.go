@@ -30,7 +30,11 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		defer f.Close()
+		defer func() {
+			if err := f.Close(); err != nil {
+				panic(err)
+			}
+		}()
 
 		err = pprof.StartCPUProfile(f)
 		if err != nil {
@@ -85,7 +89,11 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		defer f.Close()
+		defer func() {
+			if err := f.Close(); err != nil {
+				panic(err)
+			}
+		}()
 
 		err = pprof.WriteHeapProfile(f)
 		if err != nil {

@@ -17,7 +17,10 @@ func Example() {
 
 	var buf bytes.Buffer
 	w := NewWriter(&buf)
-	w.Program(string(b))
+	_, err = w.Program(string(b))
+	if err != nil {
+		panic(err)
+	}
 	err = w.Close()
 	if err != nil {
 		panic(err)
@@ -29,9 +32,13 @@ func Example() {
 	}
 
 	bw := bufio.NewWriter(os.Stdout)
-	defer bw.Flush()
 
 	err = prog.RunByte(bufio.NewReader(os.Stdin), bw)
+	if err != nil {
+		panic(err)
+	}
+
+	err = bw.Flush()
 	if err != nil {
 		panic(err)
 	}

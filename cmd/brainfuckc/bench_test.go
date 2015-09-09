@@ -41,7 +41,10 @@ func BenchmarkBF_Write(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		w := NewWriter(ioutil.Discard)
-		w.Program(commands)
+		_, err = w.Program(commands)
+		if err != nil {
+			panic(err)
+		}
 		err = w.Close()
 		if err != nil {
 			panic(err)
@@ -62,7 +65,10 @@ func BenchmarkBF_Parse(b *testing.B) {
 
 	var buf bytes.Buffer
 	w := NewWriter(&buf)
-	w.Program(commands)
+	_, err = w.Program(commands)
+	if err != nil {
+		panic(err)
+	}
 	err = w.Close()
 	if err != nil {
 		panic(err)
@@ -92,7 +98,10 @@ func BenchmarkBF_Optimize(b *testing.B) {
 
 	var buf bytes.Buffer
 	w := NewWriter(&buf)
-	w.Program(commands)
+	_, err = w.Program(commands)
+	if err != nil {
+		panic(err)
+	}
 	err = w.Close()
 	if err != nil {
 		panic(err)
@@ -123,7 +132,10 @@ func BenchmarkBF_Hello(b *testing.B) {
 
 	var buf bytes.Buffer
 	w := NewWriter(&buf)
-	w.Program(commands)
+	_, err = w.Program(commands)
+	if err != nil {
+		panic(err)
+	}
 	err = w.Close()
 	if err != nil {
 		panic(err)
@@ -157,7 +169,10 @@ func BenchmarkBF_HelloOptimized(b *testing.B) {
 
 	var buf bytes.Buffer
 	w := NewWriter(&buf)
-	w.Program(commands)
+	_, err = w.Program(commands)
+	if err != nil {
+		panic(err)
+	}
 	err = w.Close()
 	if err != nil {
 		panic(err)

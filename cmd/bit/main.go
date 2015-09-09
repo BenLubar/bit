@@ -29,7 +29,12 @@ func main() {
 			handle(err)
 			panic("unreachable")
 		}
-		defer f.Close()
+		defer func() {
+			if err := f.Close(); err != nil {
+				handle(err)
+				panic("unreachable")
+			}
+		}()
 
 		err = pprof.StartCPUProfile(f)
 		if err != nil {
@@ -57,7 +62,12 @@ func main() {
 			handle(err)
 			panic("unreachable")
 		}
-		defer f.Close()
+		defer func() {
+			if err := f.Close(); err != nil {
+				handle(err)
+				panic("unreachable")
+			}
+		}()
 
 		err = pprof.WriteHeapProfile(f)
 		if err != nil {

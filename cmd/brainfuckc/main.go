@@ -165,76 +165,144 @@ type Writer struct {
 	UserStart  bitgen.Variable
 }
 
-func (w *Writer) Command(n bitgen.Line, cmd Command, done bitgen.Line) {
+func (w *Writer) Command(start bitgen.Line, cmd Command, end bitgen.Line) (n int64, err error) {
 	cell := bitgen.Integer{bitgen.ValueAt{w.DataPtr}, 8}
 
 	switch cmd.Token {
 	case Right:
-		w.Right(n, done)
+		return w.Right(start, end)
 	case Left:
-		w.Left(n, done)
+		return w.Left(start, end)
 	case Increment:
-		w.Increment(n, cell, done, done)
+		return w.Increment(start, cell, end, end)
 	case Decrement:
-		w.Decrement(n, cell, done, done)
+		return w.Decrement(start, cell, end, end)
 	case Output:
-		w.Output(n, cell, done)
+		return w.Output(start, cell, end)
 	case Input:
-		w.Input(n, cell, done)
+		return w.Input(start, cell, end)
 	case Begin:
-		w.Loop(n, cell, cmd.Loop, done)
+		return w.Loop(start, cell, cmd.Loop, end)
+	default:
+		panic(cmd.Token)
 	}
 }
 
-func (w *Writer) Commands(list []Command, done bitgen.Line) bitgen.Line {
+func (w *Writer) Commands(list []Command, end bitgen.Line) (start bitgen.Line, n int64, err error) {
+	start = end
+
 	for i := len(list) - 1; i >= 0; i-- {
-		n := w.ReserveLine()
+		start = w.ReserveLine()
 
-		w.Command(n, list[i], done)
+		var nn int64
+		nn, err = w.Command(start, list[i], end)
+		n += nn
+		if err != nil {
+			return
+		}
 
-		done = n
+		end = start
 	}
 
-	return done
+	return
 }
 
-func (w *Writer) Program(list []Command) {
-	var first bitgen.Line
+func (w *Writer) Program(list []Command) (n int64, err error) {
+	var start bitgen.Line
 	if len(list) != 0 {
-		first = w.ReserveLine()
+		start = w.ReserveLine()
 	}
 
-	w.Assign(0, w.DataPtr, bitgen.AddressOf{w.UserStart}, first)
+	n, err = w.Assign(0, w.DataPtr, bitgen.AddressOf{w.UserStart}, start)
+	if err != nil {
+		return
+	}
 
 	if len(list) != 0 {
-		second := w.Commands(list[1:], 0)
-		w.Command(first, list[0], second)
+		var next bitgen.Line
+		var nn int64
+
+		next, nn, err = w.Commands(list[1:], 0)
+		n += nn
+		if err != nil {
+			return
+		}
+
+		nn, err = w.Command(start, list[0], next)
+		n += nn
+		if err != nil {
+			return
+		}
 	}
+
+	return
 }
 
-func (w *Writer) Right(start, end bitgen.Line) {
-	n1 := w.ReserveLine()
+func (w *Writer) Right(start, end bitgen.Line) (n int64, err error) {
+	next := w.ReserveLine()
+	nn, err := w.Assign(start, w.DataPtr, bitgen.Offset{w.DataPtr, 8}, next)
+	n += nn
+	if err != nil {
+		return
+	}
+	start = next
 
-	w.Assign(start, w.DataPtr, bitgen.Offset{w.DataPtr, 8}, n1)
-	w.Increment(n1, w.DataIndex, end, 0)
+	nn, err = w.Increment(start, w.DataIndex, end, 0)
+	n += nn
+	if err != nil {
+		return
+	}
+	return
 }
 
-func (w *Writer) Left(start, end bitgen.Line) {
-	n1 := w.ReserveLine()
-	n2 := w.ReserveLine()
-	n3 := w.ReserveLine()
-	n4 := w.ReserveLine()
+func (w *Writer) Left(start, end bitgen.Line) (n int64, err error) {
+	next := w.ReserveLine()
+	nn, err := w.Decrement(start, w.DataIndex, next, 0)
+	n += nn
+	if err != nil {
+		return
+	}
+	start = next
 
-	w.Decrement(start, w.DataIndex, n1, 0)
-	w.Copy(n1, w.Scratch64, w.DataIndex, n2)
-	w.Assign(n2, w.DataPtr, bitgen.AddressOf{w.UserStart}, n3)
-	w.Decrement(n3, w.Scratch64, n4, end)
-	w.Assign(n4, w.DataPtr, bitgen.Offset{w.DataPtr, 8}, n3)
+	next = w.ReserveLine()
+	nn, err = w.Copy(start, w.Scratch64, w.DataIndex, next)
+	n += nn
+	if err != nil {
+		return
+	}
+	start = next
+
+	next = w.ReserveLine()
+	nn, err = w.Assign(start, w.DataPtr, bitgen.AddressOf{w.UserStart}, next)
+	n += nn
+	if err != nil {
+		return
+	}
+	start = next
+
+	loop := start
+	next = w.ReserveLine()
+	nn, err = w.Decrement(start, w.Scratch64, next, end)
+	n += nn
+	if err != nil {
+		return
+	}
+	start = next
+
+	nn, err = w.Assign(start, w.DataPtr, bitgen.Offset{w.DataPtr, 8}, loop)
+	n += nn
+	return
 }
 
-func (w *Writer) Loop(start bitgen.Line, value bitgen.Integer, list []Command, end bitgen.Line) {
-	inner := w.Commands(list, start)
-	w.Cmp(start, value, 0, end, inner)
+func (w *Writer) Loop(start bitgen.Line, value bitgen.Integer, list []Command, end bitgen.Line) (n int64, err error) {
+	inner, n, err := w.Commands(list, start)
+	if err != nil {
+		return
+	}
+
+	nn, err := w.Cmp(start, value, 0, end, inner)
+	n += nn
+	return
 }
 
 func NewWriter(writer io.Writer) *Writer {
@@ -255,7 +323,10 @@ func main() {
 
 	w := NewWriter(os.Stdout)
 
-	w.Program(list)
+	_, err = w.Program(list)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	err = w.Close()
 	if err != nil {

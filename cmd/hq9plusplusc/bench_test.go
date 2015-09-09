@@ -21,7 +21,10 @@ func BenchmarkHQ9_Write(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		w := NewWriter(ioutil.Discard)
-		w.Program(s)
+		_, err = w.Program(s)
+		if err != nil {
+			panic(err)
+		}
 		err = w.Close()
 		if err != nil {
 			panic(err)
@@ -37,7 +40,10 @@ func BenchmarkHQ9_Parse(b *testing.B) {
 
 	var buf bytes.Buffer
 	w := NewWriter(&buf)
-	w.Program(string(hq9))
+	_, err = w.Program(string(hq9))
+	if err != nil {
+		panic(err)
+	}
 	err = w.Close()
 	if err != nil {
 		panic(err)
@@ -62,7 +68,10 @@ func BenchmarkHQ9_Optimize(b *testing.B) {
 
 	var buf bytes.Buffer
 	w := NewWriter(&buf)
-	w.Program(string(hq9))
+	_, err = w.Program(string(hq9))
+	if err != nil {
+		panic(err)
+	}
 	err = w.Close()
 	if err != nil {
 		panic(err)
@@ -90,7 +99,10 @@ func BenchmarkHQ9_Hello(b *testing.B) {
 
 	var buf bytes.Buffer
 	w := NewWriter(&buf)
-	w.Program(string(hq9))
+	_, err = w.Program(string(hq9))
+	if err != nil {
+		panic(err)
+	}
 	err = w.Close()
 	if err != nil {
 		panic(err)
@@ -121,7 +133,10 @@ func BenchmarkHQ9_HelloOptimized(b *testing.B) {
 
 	var buf bytes.Buffer
 	w := NewWriter(&buf)
-	w.Program(string(hq9))
+	_, err = w.Program(string(hq9))
+	if err != nil {
+		panic(err)
+	}
 	err = w.Close()
 	if err != nil {
 		panic(err)

@@ -15,14 +15,21 @@ func Example() {
 	}
 
 	commands, err := Parse(Tokenize(f))
-	f.Close()
+	if err != nil {
+		panic(err)
+	}
+
+	err = f.Close()
 	if err != nil {
 		panic(err)
 	}
 
 	var buf bytes.Buffer
 	w := NewWriter(&buf)
-	w.Program(commands)
+	_, err = w.Program(commands)
+	if err != nil {
+		panic(err)
+	}
 	err = w.Close()
 	if err != nil {
 		panic(err)
@@ -34,9 +41,13 @@ func Example() {
 	}
 
 	bw := bufio.NewWriter(os.Stdout)
-	defer bw.Flush()
 
 	err = prog.RunByte(bufio.NewReader(os.Stdin), bw)
+	if err != nil {
+		panic(err)
+	}
+
+	err = bw.Flush()
 	if err != nil {
 		panic(err)
 	}

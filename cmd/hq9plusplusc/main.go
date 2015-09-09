@@ -17,20 +17,26 @@ func NewWriter(w io.Writer) *Writer {
 	return &Writer{bitgen.NewWriter(w)}
 }
 
-func (w *Writer) Program(s string) {
+func (w *Writer) Program(s string) (n int64, err error) {
 	var l bitgen.Line
 	var m string
 
 	write := func(v string) {
+		if err != nil {
+			return
+		}
+
+		var nn int64
 		if m == "" {
 			m = v
 		} else if v == "" {
-			w.PrintString(l, m, 0)
+			nn, err = w.PrintString(l, m, 0)
 		} else {
 			next := w.ReserveLine()
-			w.PrintString(l, m, next)
+			nn, err = w.PrintString(l, m, next)
 			l, m = next, v
 		}
+		n += nn
 	}
 
 	for _, r := range s {
@@ -46,6 +52,7 @@ func (w *Writer) Program(s string) {
 		}
 	}
 	write("")
+	return
 }
 
 func main() {
@@ -56,7 +63,10 @@ func main() {
 
 	w := NewWriter(os.Stdout)
 
-	w.Program(string(b))
+	_, err = w.Program(string(b))
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	err = w.Close()
 	if err != nil {

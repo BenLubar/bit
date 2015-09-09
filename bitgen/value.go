@@ -1,21 +1,20 @@
 package bitgen
 
-import (
-	"fmt"
-	"strings"
-)
+import "io"
 
 // Value represents an expression whose value is known at runtime.
 type Value interface {
-	fmt.Stringer
+	io.WriterTo
 	simplify() Value
 }
 
 // Variable is a Value that represents a location in memory.
 type Variable uint64
 
-func (v Variable) String() string {
-	return "VARIABLE " + number(uint64(v))
+func (v Variable) WriteTo(w io.Writer) (n int64, err error) {
+	write(w, "VARIABLE ", &n, &err)
+	number(w, uint64(v), &n, &err)
+	return
 }
 func (v Variable) simplify() Value { return v }
 
@@ -25,8 +24,10 @@ type ValueAt struct {
 	Value
 }
 
-func (v ValueAt) String() string {
-	return "THE VALUE AT " + v.Value.String()
+func (v ValueAt) WriteTo(w io.Writer) (n int64, err error) {
+	write(w, "THE VALUE AT ", &n, &err)
+	writeTo(w, v.Value, &n, &err)
+	return
 }
 func (v ValueAt) simplify() Value {
 	v.Value = v.Value.simplify()
@@ -47,8 +48,10 @@ type AddressOf struct {
 	Value
 }
 
-func (v AddressOf) String() string {
-	return "THE ADDRESS OF " + v.Value.String()
+func (v AddressOf) WriteTo(w io.Writer) (n int64, err error) {
+	write(w, "THE ADDRESS OF ", &n, &err)
+	writeTo(w, v.Value, &n, &err)
+	return
 }
 func (v AddressOf) simplify() Value {
 	v.Value = v.Value.simplify()
@@ -61,11 +64,13 @@ func (v AddressOf) simplify() Value {
 // Bit is a Value that represents a bit constant.
 type Bit bool
 
-func (v Bit) String() string {
+func (v Bit) WriteTo(w io.Writer) (n int64, err error) {
 	if v {
-		return "ONE"
+		write(w, "ONE", &n, &err)
+	} else {
+		write(w, "ZERO", &n, &err)
 	}
-	return "ZERO"
+	return
 }
 func (v Bit) simplify() Value {
 	return v
@@ -78,8 +83,12 @@ type Offset struct {
 	Offset uint
 }
 
-func (v Offset) String() string {
-	return strings.Repeat("THE ADDRESS OF THE VALUE BEYOND ", int(v.Offset)) + v.Value.String()
+func (v Offset) WriteTo(w io.Writer) (n int64, err error) {
+	for i := uint(0); i < v.Offset; i++ {
+		write(w, "THE ADDRESS OF THE VALUE BEYOND ", &n, &err)
+	}
+	writeTo(w, v.Value, &n, &err)
+	return
 }
 func (v Offset) simplify() Value {
 	v.Value = v.Value.simplify()
@@ -94,8 +103,12 @@ type offsetValue struct {
 	Offset uint
 }
 
-func (v offsetValue) String() string {
-	return strings.Repeat("THE VALUE BEYOND THE ADDRESS OF ", int(v.Offset)) + v.Value.String()
+func (v offsetValue) WriteTo(w io.Writer) (n int64, err error) {
+	for i := uint(0); i < v.Offset; i++ {
+		write(w, "THE VALUE BEYOND THE ADDRESS OF ", &n, &err)
+	}
+	writeTo(w, v.Value, &n, &err)
+	return
 }
 func (v offsetValue) simplify() Value {
 	panic("bitgen: offsetValue.simplify should be unreachable")

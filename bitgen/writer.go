@@ -6,12 +6,35 @@ import (
 	"io"
 )
 
-func number(n uint64) string {
-	if n == 0 {
-		return "ZERO"
+func write(w io.Writer, s string, n *int64, err *error) {
+	if *err != nil {
+		return
+	}
+	var nn int
+	nn, *err = io.WriteString(w, s)
+	*n += int64(nn)
+}
+
+func writeTo(w io.Writer, wt io.WriterTo, n *int64, err *error) {
+	if *err != nil {
+		return
+	}
+	var nn int64
+	nn, *err = wt.WriteTo(w)
+	*n += nn
+}
+
+func number(w io.Writer, n uint64, nn *int64, err *error) {
+	if *err != nil {
+		return
 	}
 
-	buf := []byte("ONE")
+	if n == 0 {
+		write(w, "ZERO", nn, err)
+		return
+	}
+
+	write(w, "ONE", nn, err)
 	first := true
 	for i := 64 - 1; i >= 0; i-- {
 		zero := n&(1<<uint(i)) == 0
@@ -19,13 +42,12 @@ func number(n uint64) string {
 			first = zero
 		} else {
 			if zero {
-				buf = append(buf, " ZERO"...)
+				write(w, " ZERO", nn, err)
 			} else {
-				buf = append(buf, " ONE"...)
+				write(w, " ONE", nn, err)
 			}
 		}
 	}
-	return string(buf)
 }
 
 // Line represents a line number. It should be treated as an opaque type, except
@@ -97,7 +119,11 @@ func (w *Writer) ReserveHeap() Variable {
 
 var flagCrashOnLine = flag.Uint64("crash-on-line", ^uint64(0), "debugging tool: crash when this line number is reserved")
 
-func (w *Writer) line(n Line, line string, goto0, goto1 Line) {
+func (w *Writer) startLine(n Line, nn *int64, err *error) {
+	if *err != nil {
+		return
+	}
+
 	if w.taken[n] {
 		panic("bitgen: duplicate line number")
 	}
@@ -105,43 +131,82 @@ func (w *Writer) line(n Line, line string, goto0, goto1 Line) {
 	if n == Line(*flagCrashOnLine) {
 		panic("DEBUG")
 	}
-	w.w.WriteString("LINE NUMBER ")
-	w.w.WriteString(number(uint64(n)))
-	w.w.WriteString(" CODE ")
-	w.w.WriteString(line)
 
+	write(w.w, "LINE NUMBER ", nn, err)
+	number(w.w, uint64(n), nn, err)
+	write(w.w, " CODE ", nn, err)
+}
+
+func (w *Writer) endLine(goto0, goto1 Line, n *int64, err *error) {
+	if *err != nil {
+		return
+	}
 	if goto0 == goto1 {
 		if goto0 != 0 {
-			w.w.WriteString(" GOTO ")
-			w.w.WriteString(number(uint64(goto0)))
+			write(w.w, " GOTO ", n, err)
+			number(w.w, uint64(goto0), n, err)
 		}
 	} else {
 		if goto0 != 0 {
-			w.w.WriteString(" GOTO ")
-			w.w.WriteString(number(uint64(goto0)))
-			w.w.WriteString(" IF THE JUMP REGISTER IS ZERO")
+			write(w.w, " GOTO ", n, err)
+			number(w.w, uint64(goto0), n, err)
+			write(w.w, " IF THE JUMP REGISTER IS ZERO", n, err)
 		}
 		if goto1 != 0 {
-			w.w.WriteString(" GOTO ")
-			w.w.WriteString(number(uint64(goto1)))
-			w.w.WriteString(" IF THE JUMP REGISTER IS ONE")
+			write(w.w, " GOTO ", n, err)
+			number(w.w, uint64(goto1), n, err)
+			write(w.w, " IF THE JUMP REGISTER IS ONE", n, err)
 		}
 	}
-	w.w.WriteString("\n")
+	write(w.w, "\n", n, err)
 }
 
 // Jump to goto0 if value is ZERO or goto1 if value is ONE.
-func (w *Writer) Jump(start Line, value Value, goto0, goto1 Line) {
-	w.line(start, "THE JUMP REGISTER EQUALS "+value.simplify().String(), goto0, goto1)
+func (w *Writer) Jump(start Line, value Value, goto0, goto1 Line) (n int64, err error) {
+	w.jump(start, value, goto0, goto1, &n, &err)
+	return
+}
+
+func (w *Writer) jump(start Line, value Value, goto0, goto1 Line, n *int64, err *error) {
+	if *err != nil {
+		return
+	}
+
+	w.startLine(start, n, err)
+	write(w.w, "THE JUMP REGISTER EQUALS ", n, err)
+	writeTo(w.w, value.simplify(), n, err)
+	w.endLine(goto0, goto1, n, err)
 }
 
 // Assign sets left to right.
-func (w *Writer) Assign(start Line, left, right Value, end Line) {
-	w.line(start, left.simplify().String()+" EQUALS "+right.simplify().String(), end, end)
+func (w *Writer) Assign(start Line, left, right Value, end Line) (n int64, err error) {
+	w.assign(start, left, right, end, &n, &err)
+	return
+}
+
+func (w *Writer) assign(start Line, left, right Value, end Line, n *int64, err *error) {
+	if *err != nil {
+		return
+	}
+
+	w.startLine(start, n, err)
+	writeTo(w.w, left.simplify(), n, err)
+	write(w.w, " EQUALS ", n, err)
+	writeTo(w.w, right.simplify(), n, err)
+	w.endLine(end, end, n, err)
 }
 
 // PrintString writes the bytes in a string, most significant bit first.
-func (w *Writer) PrintString(start Line, value string, end Line) {
+func (w *Writer) PrintString(start Line, value string, end Line) (n int64, err error) {
+	w.printString(start, value, end, &n, &err)
+	return
+}
+
+func (w *Writer) printString(start Line, value string, end Line, n *int64, err *error) {
+	if *err != nil {
+		return
+	}
+
 	for i := range value {
 		var next Line
 		if i == len(value)-1 {
@@ -149,13 +214,22 @@ func (w *Writer) PrintString(start Line, value string, end Line) {
 		} else {
 			next = w.ReserveLine()
 		}
-		w.Print(start, value[i], next)
+		w.print(start, value[i], next, n, err)
 		start = next
 	}
 }
 
 // Print writes a byte, most significant bit first.
-func (w *Writer) Print(start Line, value byte, end Line) {
+func (w *Writer) Print(start Line, value byte, end Line) (n int64, err error) {
+	w.print(start, value, end, &n, &err)
+	return
+}
+
+func (w *Writer) print(start Line, value byte, end Line, n *int64, err *error) {
+	if *err != nil {
+		return
+	}
+
 	for i := uint(8) - 1; i < 8; i-- {
 		var next Line
 		if i == 0 {
@@ -163,22 +237,42 @@ func (w *Writer) Print(start Line, value byte, end Line) {
 		} else {
 			next = w.ReserveLine()
 		}
-		w.PrintBit(start, (value>>i)&1 == 1, next)
+		w.printBit(start, (value>>i)&1 == 1, next, n, err)
 		start = next
 	}
 }
 
 // PrintBit writes a bit to the standard output.
-func (w *Writer) PrintBit(start Line, value Bit, end Line) {
-	if value {
-		w.line(start, "PRINT ONE", end, end)
-	} else {
-		w.line(start, "PRINT ZERO", end, end)
+func (w *Writer) PrintBit(start Line, value Bit, end Line) (n int64, err error) {
+	w.printBit(start, value, end, &n, &err)
+	return
+}
+
+func (w *Writer) printBit(start Line, value Bit, end Line, n *int64, err *error) {
+	if *err != nil {
+		return
 	}
+
+	w.startLine(start, n, err)
+	if value {
+		write(w.w, "PRINT ONE", n, err)
+	} else {
+		write(w.w, "PRINT ZERO", n, err)
+	}
+	w.endLine(end, end, n, err)
 }
 
 // Output writes value, most significant bit first.
-func (w *Writer) Output(start Line, value Integer, end Line) {
+func (w *Writer) Output(start Line, value Integer, end Line) (n int64, err error) {
+	w.output(start, value, end, &n, &err)
+	return
+}
+
+func (w *Writer) output(start Line, value Integer, end Line, n *int64, err *error) {
+	if *err != nil {
+		return
+	}
+
 	for i := value.Width - 1; i < value.Width; i-- {
 		var next Line
 		if i == 0 {
@@ -186,23 +280,47 @@ func (w *Writer) Output(start Line, value Integer, end Line) {
 		} else {
 			next = w.ReserveLine()
 		}
-		w.OutputBit(start, value.Bit(i), next)
+		w.outputBit(start, value.Bit(i), next, n, err)
 		start = next
 	}
 }
 
 // OutputBit writes value to the standard output.
-func (w *Writer) OutputBit(start Line, value Value, end Line) {
+func (w *Writer) OutputBit(start Line, value Value, end Line) (n int64, err error) {
+	w.outputBit(start, value, end, &n, &err)
+	return
+}
+
+func (w *Writer) outputBit(start Line, value Value, end Line, n *int64, err *error) {
+	if *err != nil {
+		return
+	}
+
 	n0 := w.ReserveLine()
 	n1 := w.ReserveLine()
 
-	w.Jump(start, value, n0, n1)
-	w.line(n0, "PRINT ZERO", end, end)
-	w.line(n1, "PRINT ONE", end, end)
+	w.jump(start, value, n0, n1, n, err)
+
+	w.startLine(n0, n, err)
+	write(w.w, "PRINT ZERO", n, err)
+	w.endLine(end, end, n, err)
+
+	w.startLine(n1, n, err)
+	write(w.w, "PRINT ONE", n, err)
+	w.endLine(end, end, n, err)
 }
 
 // Input reads value, most significant bit first.
-func (w *Writer) Input(start Line, value Integer, end Line) {
+func (w *Writer) Input(start Line, value Integer, end Line) (n int64, err error) {
+	w.input(start, value, end, &n, &err)
+	return
+}
+
+func (w *Writer) input(start Line, value Integer, end Line, n *int64, err *error) {
+	if *err != nil {
+		return
+	}
+
 	for i := value.Width - 1; i < value.Width; i-- {
 		var next Line
 		if i == 0 {
@@ -210,23 +328,44 @@ func (w *Writer) Input(start Line, value Integer, end Line) {
 		} else {
 			next = w.ReserveLine()
 		}
-		w.InputBit(start, value.Bit(i), next)
+		w.inputBit(start, value.Bit(i), next, n, err)
 		start = next
 	}
 }
 
 // InputBit reads value from the standard input.
-func (w *Writer) InputBit(start Line, value Value, end Line) {
+func (w *Writer) InputBit(start Line, value Value, end Line) (n int64, err error) {
+	w.inputBit(start, value, end, &n, &err)
+	return
+}
+
+func (w *Writer) inputBit(start Line, value Value, end Line, n *int64, err *error) {
+	if *err != nil {
+		return
+	}
+
 	n0 := w.ReserveLine()
 	n1 := w.ReserveLine()
 
-	w.line(start, "READ", n0, n1)
-	w.Assign(n0, value, Bit(false), end)
-	w.Assign(n1, value, Bit(true), end)
+	w.startLine(start, n, err)
+	write(w.w, "READ", n, err)
+	w.endLine(n0, n1, n, err)
+
+	w.assign(n0, value, Bit(false), end, n, err)
+	w.assign(n1, value, Bit(true), end, n, err)
 }
 
 // InputEOF reads value, most significant bit first.
-func (w *Writer) InputEOF(start Line, value Integer, end, eof Line) {
+func (w *Writer) InputEOF(start Line, value Integer, end, eof Line) (n int64, err error) {
+	w.inputEOF(start, value, end, eof, &n, &err)
+	return
+}
+
+func (w *Writer) inputEOF(start Line, value Integer, end, eof Line, n *int64, err *error) {
+	if *err != nil {
+		return
+	}
+
 	for i := value.Width - 1; i < value.Width; i-- {
 		var next Line
 		if i == 0 {
@@ -236,26 +375,48 @@ func (w *Writer) InputEOF(start Line, value Integer, end, eof Line) {
 		}
 
 		if i == value.Width-1 {
-			w.InputBitEOF(start, value.Bit(i), next, eof)
+			w.inputBitEOF(start, value.Bit(i), next, eof, n, err)
 		} else {
-			w.InputBit(start, value.Bit(i), next)
+			w.inputBit(start, value.Bit(i), next, n, err)
 		}
 		start = next
 	}
 }
 
 // InputBitEOF reads value from the standard input.
-func (w *Writer) InputBitEOF(start Line, value Value, end, eof Line) {
+func (w *Writer) InputBitEOF(start Line, value Value, end, eof Line) (n int64, err error) {
+	w.inputBitEOF(start, value, end, eof, &n, &err)
+	return
+}
+
+func (w *Writer) inputBitEOF(start Line, value Value, end, eof Line, n *int64, err *error) {
+	if *err != nil {
+		return
+	}
+
 	n0 := w.ReserveLine()
 	n1 := w.ReserveLine()
 
-	w.line(start, "READ "+number(uint64(eof)), n0, n1)
-	w.Assign(n0, value, Bit(false), end)
-	w.Assign(n1, value, Bit(true), end)
+	w.startLine(start, n, err)
+	write(w.w, "READ ", n, err)
+	number(w.w, uint64(eof), n, err)
+	w.endLine(n0, n1, n, err)
+
+	w.assign(n0, value, Bit(false), end, n, err)
+	w.assign(n1, value, Bit(true), end, n, err)
 }
 
 // Cmp jumps to same if value == base or different otherwise.
-func (w *Writer) Cmp(start Line, value Integer, base uint64, same, different Line) {
+func (w *Writer) Cmp(start Line, value Integer, base uint64, same, different Line) (n int64, err error) {
+	w.cmp(start, value, base, same, different, &n, &err)
+	return
+}
+
+func (w *Writer) cmp(start Line, value Integer, base uint64, same, different Line, n *int64, err *error) {
+	if *err != nil {
+		return
+	}
+
 	if base&(1<<value.Width-1) != base {
 		panic("bitgen: non-equal widths for Cmp")
 	}
@@ -269,15 +430,24 @@ func (w *Writer) Cmp(start Line, value Integer, base uint64, same, different Lin
 		}
 
 		if base&(1<<i) == 0 {
-			w.Jump(start, value.Bit(i), next, different)
+			w.jump(start, value.Bit(i), next, different, n, err)
 		} else {
-			w.Jump(start, value.Bit(i), different, next)
+			w.jump(start, value.Bit(i), different, next, n, err)
 		}
 		start = next
 	}
 }
 
-func (w *Writer) AddInt(start Line, left, right Integer, end, overflow Line) {
+func (w *Writer) AddInt(start Line, left, right Integer, end, overflow Line) (n int64, err error) {
+	w.addInt(start, left, right, end, overflow, &n, &err)
+	return
+}
+
+func (w *Writer) addInt(start Line, left, right Integer, end, overflow Line, n *int64, err *error) {
+	if *err != nil {
+		return
+	}
+
 	if left.Width != right.Width {
 		panic("bitgen: non-equal widths for AddInt")
 	}
@@ -293,22 +463,31 @@ func (w *Writer) AddInt(start Line, left, right Integer, end, overflow Line) {
 		}
 
 		one := w.ReserveLine()
-		w.Jump(start, right.Bit(i), next, one)
+		w.jump(start, right.Bit(i), next, one, n, err)
 
 		if carry != 0 {
-			w.Jump(carry, right.Bit(i), one, nextCarry)
+			w.jump(carry, right.Bit(i), one, nextCarry, n, err)
 		}
 
 		setOne, setTwo := w.ReserveLine(), w.ReserveLine()
-		w.Jump(one, left.Bit(i), setOne, setTwo)
-		w.Assign(setOne, left.Bit(i), Bit(true), next)
-		w.Assign(setTwo, left.Bit(i), Bit(false), nextCarry)
+		w.jump(one, left.Bit(i), setOne, setTwo, n, err)
+		w.assign(setOne, left.Bit(i), Bit(true), next, n, err)
+		w.assign(setTwo, left.Bit(i), Bit(false), nextCarry, n, err)
 
 		start, carry = next, nextCarry
 	}
 }
 
-func (w *Writer) Add(start Line, left Integer, right uint64, end, overflow Line) {
+func (w *Writer) Add(start Line, left Integer, right uint64, end, overflow Line) (n int64, err error) {
+	w.add(start, left, right, end, overflow, &n, &err)
+	return
+}
+
+func (w *Writer) add(start Line, left Integer, right uint64, end, overflow Line, n *int64, err *error) {
+	if *err != nil {
+		return
+	}
+
 	if right&(1<<left.Width-1) != right {
 		panic("bitgen: non-equal widths for Add")
 	}
@@ -328,24 +507,24 @@ func (w *Writer) Add(start Line, left Integer, right uint64, end, overflow Line)
 		}
 
 		one := w.ReserveLine()
-		w.Assign(one, left.Bit(i), Bit(true), end)
+		w.assign(one, left.Bit(i), Bit(true), end, n, err)
 
 		two := w.ReserveLine()
-		w.Assign(two, left.Bit(i), Bit(false), overflow)
+		w.assign(two, left.Bit(i), Bit(false), overflow, n, err)
 
 		three := overflow
 
 		if carry == 0 {
-			w.Jump(prev, left.Bit(i), one, two)
+			w.jump(prev, left.Bit(i), one, two, n, err)
 			break
 		}
 
 		if prev == 0 {
-			w.Jump(carry, left.Bit(i), one, two)
+			w.jump(carry, left.Bit(i), one, two, n, err)
 			overflow = carry
 		} else {
-			w.Jump(prev, left.Bit(i), one, two)
-			w.Jump(carry, left.Bit(i), two, three)
+			w.jump(prev, left.Bit(i), one, two, n, err)
+			w.jump(carry, left.Bit(i), two, three, n, err)
 			end, overflow = prev, carry
 		}
 	}
@@ -353,35 +532,27 @@ func (w *Writer) Add(start Line, left Integer, right uint64, end, overflow Line)
 
 // Increment adds ONE to value, then jumps to end if successful or overflow if
 // it needed to carry to a nonexistent bit.
-func (w *Writer) Increment(start Line, value Integer, end, overflow Line) {
-	w.Add(start, value, 1, end, overflow)
+func (w *Writer) Increment(start Line, value Integer, end, overflow Line) (n int64, err error) {
+	return w.Add(start, value, 1, end, overflow)
 }
 
 // Decrement subtracts ONE from value, then jumps to end if successful or
 // underflow if it needed to borrow from a nonexistent bit.
-func (w *Writer) Decrement(start Line, value Integer, end, underflow Line) {
-	next := start
-
-	for i := uint(0); i < value.Width; i++ {
-		current := value.Bit(i)
-
-		n1 := w.ReserveLine()
-		n2 := w.ReserveLine()
-
-		w.Jump(next, current, n1, n2)
-
-		if i == value.Width-1 {
-			next = underflow
-		} else {
-			next = w.ReserveLine()
-		}
-		w.Assign(n1, current, Bit(true), next)
-		w.Assign(n2, current, Bit(false), end)
-	}
+func (w *Writer) Decrement(start Line, value Integer, end, underflow Line) (n int64, err error) {
+	return w.Add(start, value, uint64(1)<<value.Width-1, underflow, end)
 }
 
 // Copy sets left to right.
-func (w *Writer) Copy(start Line, left, right Integer, end Line) {
+func (w *Writer) Copy(start Line, left, right Integer, end Line) (n int64, err error) {
+	w.copy(start, left, right, end, &n, &err)
+	return
+}
+
+func (w *Writer) copy(start Line, left, right Integer, end Line, n *int64, err *error) {
+	if *err != nil {
+		return
+	}
+
 	if left.Width != right.Width {
 		panic("bitgen: cannot copy integers of varying width")
 	}
@@ -393,7 +564,7 @@ func (w *Writer) Copy(start Line, left, right Integer, end Line) {
 		} else {
 			next = w.ReserveLine()
 		}
-		w.Assign(start, left.Bit(i), right.Bit(i), next)
+		w.assign(start, left.Bit(i), right.Bit(i), next, n, err)
 		start = next
 	}
 }
