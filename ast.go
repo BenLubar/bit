@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math/big"
 	"sort"
 
 	"github.com/BenLubar/bit/bitio"
@@ -22,10 +21,52 @@ var (
 
 type context struct {
 	jump   bool
-	memory *big.Int
-	bVar   *big.Int
+	memory bitInt
+	bVar   bitInt
 	aVar   map[uint64]uint64
-	n0, n1 big.Int
+}
+
+type bitInt []uint64
+
+func (i *bitInt) Uint64(offset uint64) uint64 {
+	high, low := offset/64, offset%64
+	if uint64(len(*i)) > high {
+		if uint64(len(*i)) > high+1 {
+			return (*i)[high+1]<<(64-low) | (*i)[high]>>low
+		}
+		return (*i)[high] >> low
+	}
+	return 0
+}
+
+func (i *bitInt) SetBit(offset uint64, n bool) {
+	high, low := offset/64, offset%64
+	if n {
+		if uint64(len(*i)) <= high {
+			l := high
+			l |= l >> 1
+			l |= l >> 2
+			l |= l >> 4
+			l |= l >> 8
+			l |= l >> 16
+			l |= l >> 32
+			l++
+			t := make([]uint64, l)
+			copy(t, *i)
+			*i = t
+		}
+		(*i)[high] |= 1 << low
+	} else if uint64(len(*i)) > high {
+		(*i)[high] &^= 1 << low
+	}
+}
+
+func (i *bitInt) Bit(offset uint64) bool {
+	high, low := offset/64, offset%64
+	if uint64(len(*i)) > high {
+		return (*i)[high]&(1<<low) != 0
+	}
+	return false
 }
 
 type line struct {
@@ -93,10 +134,8 @@ func (err *ProgramError) Error() string {
 
 func (p Program) Run(in bitio.BitReader, out bitio.BitWriter) error {
 	ctx := &context{
-		jump:   false,
-		memory: new(big.Int),
-		bVar:   new(big.Int),
-		aVar:   make(map[uint64]uint64),
+		jump: false,
+		aVar: make(map[uint64]uint64),
 	}
 	pc := new(uint64)
 	*pc = p.Start()
@@ -191,11 +230,7 @@ func (stmt AssignStmt) run(in bitio.BitReader, out bitio.BitWriter, ctx *context
 			if err != nil {
 				return err
 			}
-			var n uint
-			if b {
-				n = 1
-			}
-			ctx.memory.SetBit(ctx.memory, int(left.a), n)
+			ctx.memory.SetBit(left.a, b)
 			return nil
 		}
 		if right.isAddr(ctx) {
@@ -211,12 +246,8 @@ func (stmt AssignStmt) run(in bitio.BitReader, out bitio.BitWriter, ctx *context
 			if err != nil {
 				return err
 			}
-			ctx.bVar.SetBit(ctx.bVar, int(left.a), 1)
-			var n uint
-			if b {
-				n = 1
-			}
-			ctx.memory.SetBit(ctx.memory, int(left.a), n)
+			ctx.bVar.SetBit(left.a, true)
+			ctx.memory.SetBit(left.a, b)
 			return nil
 		}
 		return ErrUnassignedVariable
@@ -450,9 +481,9 @@ func (v Val) value(ctx *context) (bool, error) {
 	}
 
 	// remember that we used this variable as a bit.
-	ctx.bVar.SetBit(ctx.bVar, int(v.a), 1)
+	ctx.bVar.SetBit(v.a, true)
 
-	return ctx.memory.Bit(int(v.a)) != 0, nil
+	return ctx.memory.Bit(v.a), nil
 }
 func (v Val) pointer(ctx *context) (uint64, error) {
 	if v.actual {
@@ -482,7 +513,7 @@ func (v Val) addr(ctx *context) (Val, error) {
 	}
 
 	// remember that we used this variable as a bit.
-	ctx.bVar.SetBit(ctx.bVar, int(v.a), 1)
+	ctx.bVar.SetBit(v.a, true)
 
 	return addrVal(v.a), nil
 }
@@ -503,5 +534,5 @@ func (v Val) isValue(ctx *context) bool {
 	if v.ptr {
 		return false
 	}
-	return ctx.bVar.Bit(int(v.a)) != 0
+	return ctx.bVar.Bit(v.a)
 }

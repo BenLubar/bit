@@ -1,10 +1,6 @@
 package bit
 
-import (
-	"math/big"
-
-	"github.com/BenLubar/bit/bitio"
-)
+import "github.com/BenLubar/bit/bitio"
 
 func (p Program) bake() error {
 	// precompute gotos
@@ -126,17 +122,11 @@ func (p Program) out(l *line, jr bool) *line {
 	return l.line0
 }
 
-var one = big.NewInt(1)
-
 func (p Program) optimizeIncDec(l *line, ptr VarExpr, inc bool) bool {
 	done, flow, donepc, flowpc, bits, ok := p.verifyIncDec(l, ptr, 0, inc)
-	if !ok {
+	if !ok || bits > 64 {
 		return false
 	}
-
-	var mask big.Int
-	mask.SetBit(&mask, int(bits), 1)
-	mask.Sub(&mask, one)
 
 	l.opt = optIncDec{
 		ptr:   ptr,
@@ -146,7 +136,6 @@ func (p Program) optimizeIncDec(l *line, ptr VarExpr, inc bool) bool {
 		donel: done,
 		flowg: flowpc,
 		flowl: flow,
-		mask:  &mask,
 	}
 	return false
 }
@@ -231,7 +220,6 @@ type optIncDec struct {
 	donel *line
 	flowg *uint64
 	flowl *line
-	mask  *big.Int
 }
 
 func (opt optIncDec) run(in bitio.BitReader, out bitio.BitWriter, ctx *context) (g *uint64, l *line, err error) {
@@ -244,40 +232,37 @@ func (opt optIncDec) run(in bitio.BitReader, out bitio.BitWriter, ctx *context) 
 		return
 	}
 
-	ctx.n0.Rsh(ctx.memory, uint(ptr))
-	ctx.n0.And(&ctx.n0, opt.mask)
-
-	ctx.n1.Set(&ctx.n0)
+	mask := uint64(1<<opt.bits - 1)
+	n0 := ctx.memory.Uint64(ptr)
+	n0 &= mask
 
 	g, l = opt.doneg, opt.donel
 	ctx.jump = !opt.inc
 
+	var n1 uint64
 	if opt.inc {
-		ctx.n0.Add(&ctx.n0, one)
-		if ctx.n0.Cmp(opt.mask) > 0 {
-			ctx.n0.SetInt64(0)
+		n1 = (n0 + 1) & mask
+		if n0 > n1 {
+			n1 = 0
 			g, l = opt.flowg, opt.flowl
 			ctx.jump = true
 		}
 	} else {
-		ctx.n0.Sub(&ctx.n0, one)
-		if ctx.n0.Sign() < 0 {
-			ctx.n0.Set(opt.mask)
+		n1 = (n0 + 1) & mask
+		if n0 < n1 {
+			n1 = mask
 			g, l = opt.flowg, opt.flowl
 			ctx.jump = false
 		}
 	}
 
-	ctx.n1.Xor(&ctx.n1, &ctx.n0)
-	for i := opt.bits; i > 0; i-- {
-		if j := i - 1; ctx.n1.Bit(int(j)) == 1 {
-			_, err = varVal(ptr + j).addr(ctx)
-			if err != nil {
-				return
-			}
-
-			ctx.memory.SetBit(ctx.memory, int(ptr+j), ctx.n0.Bit(int(j)))
+	for i := ptr; i < ptr+opt.bits; i++ {
+		if _, err = varVal(i).addr(ctx); err != nil {
+			return
 		}
+
+		ctx.memory.SetBit(i, n1&1 == 1)
+		n1 >>= 1
 	}
 
 	return
@@ -293,8 +278,6 @@ func (opt optPrintByteConst) run(in bitio.BitReader, out bitio.BitWriter, ctx *c
 	return opt.g, opt.l, bitio.WriteByte(out, opt.b)
 }
 
-var byteMask = big.NewInt(0xFF)
-
 type optPrintByte struct {
 	p VarExpr
 	g *uint64
@@ -302,20 +285,17 @@ type optPrintByte struct {
 }
 
 func (opt optPrintByte) run(in bitio.BitReader, out bitio.BitWriter, ctx *context) (g *uint64, l *line, err error) {
-	ctx.n0.Rsh(ctx.bVar, uint(opt.p))
-	for i := 0; i < 8; i++ {
-		if ctx.n0.Bit(i) == 0 {
-			_, err = varVal(uint64(opt.p) + uint64(i)).value(ctx)
+	n0 := ctx.bVar.Uint64(uint64(opt.p))
+	for i := uint64(0); i < 8; i++ {
+		if n0&1<<i == 0 {
+			_, err = varVal(uint64(opt.p) + i).value(ctx)
 			if err != nil {
 				return
 			}
 		}
 	}
 
-	ctx.n0.Rsh(ctx.memory, uint(opt.p))
-	ctx.n0.And(&ctx.n0, byteMask)
-
-	b := byte(ctx.n0.Uint64())
+	b := byte(ctx.memory.Uint64(uint64(opt.p)))
 
 	ctx.jump = b&1 == 1
 
