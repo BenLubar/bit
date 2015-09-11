@@ -1,9 +1,12 @@
 package bit
 
 import (
+	"encoding/gob"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
+	"os"
 	"sort"
 
 	"github.com/BenLubar/bit/bitio"
@@ -123,6 +126,8 @@ func (p Program) Start() uint64 {
 	return p[0].num
 }
 
+var flagTrace = flag.String("trace", "", "output the number of times each line was reached to a file")
+
 type ProgramError struct {
 	Err  error
 	Line uint64
@@ -141,7 +146,28 @@ func (p Program) Run(in bitio.BitReader, out bitio.BitWriter) error {
 	*pc = p.Start()
 	line := p[*pc]
 
+	var trace map[uint64]uint64
+	if *flagTrace != "" {
+		trace = make(map[uint64]uint64)
+		defer func() {
+			f, err := os.Create(*flagTrace)
+			if err != nil {
+				panic(err)
+			}
+			defer f.Close()
+
+			err = gob.NewEncoder(f).Encode(trace)
+			if err != nil {
+				panic(err)
+			}
+		}()
+	}
+
 	for line != nil {
+		if trace != nil {
+			trace[*pc]++
+		}
+
 		if line.opt != nil {
 			newpc, newline, err := line.opt.run(in, out, ctx)
 			if err != nil {

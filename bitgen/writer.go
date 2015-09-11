@@ -2,8 +2,11 @@ package bitgen
 
 import (
 	"bufio"
+	"encoding/gob"
 	"flag"
 	"io"
+	"os"
+	"runtime"
 )
 
 func write(w io.Writer, s string, n *int64, err *error) {
@@ -60,20 +63,43 @@ type Writer struct {
 	n     Line
 	v     Variable
 	heap  bool
-	taken map[Line]bool
+	taken map[Line][64]uint64
 }
 
 // NewWriter returns a *Writer. Remember to call Close when you're done!
 func NewWriter(w io.Writer) *Writer {
 	return &Writer{
 		w:     bufio.NewWriter(w),
-		taken: make(map[Line]bool),
+		taken: make(map[Line][64]uint64),
 	}
 }
 
+var flagMap = flag.String("map", "", "output mapping from BIT line number to stack trace to this file")
+
 // Close flushes the internal buffer.
 func (w *Writer) Close() error {
-	return w.w.Flush()
+	if err := w.w.Flush(); err != nil {
+		return err
+	}
+
+	if *flagMap != "" {
+		f, err := os.Create(*flagMap)
+		if err != nil {
+			return err
+		}
+
+		err = gob.NewEncoder(f).Encode(w.taken)
+		if err != nil {
+			return err
+		}
+
+		err = f.Close()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // ReserveLine returns a line number that has not yet been used.
@@ -124,10 +150,20 @@ func (w *Writer) startLine(n Line, nn *int64, err *error) {
 		return
 	}
 
-	if w.taken[n] {
+	if _, ok := w.taken[n]; ok {
 		panic("bitgen: duplicate line number")
 	}
-	w.taken[n] = true
+	var pc [64]uint64
+	if *flagMap != "" {
+		var pcnative [len(pc)]uintptr
+		if i := runtime.Callers(1, pcnative[:]); i >= len(pc) {
+			panic("call stack too deep for profile")
+		}
+		for i, n := range pcnative {
+			pc[i] = uint64(n)
+		}
+	}
+	w.taken[n] = pc
 	if n == Line(*flagCrashOnLine) {
 		panic("DEBUG")
 	}
