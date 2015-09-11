@@ -59,7 +59,8 @@ func main() {
 			if pc == 0 {
 				break
 			}
-			fmt.Println(sym.PCToFunc(pc).Name)
+			file, line, fn := sym.PCToLine(pc)
+			fmt.Printf("%s @ %s:%d\n", fn.Name, file, line)
 		}
 		fmt.Println()
 	}
