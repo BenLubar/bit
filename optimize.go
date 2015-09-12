@@ -57,6 +57,17 @@ func (p Program) Optimize() {
 		}
 	}
 
+	// intrinsic x = y
+	for _, l := range p {
+		if a, ok := l.stmt.(AssignStmt); ok {
+			if _, ok = a.Right.(BitExpr); ok {
+				p.optimizeCopyConst(l, a.Left)
+			} else {
+				p.optimizeCopy(l, a.Left, a.Right)
+			}
+		}
+	}
+
 	// intrinsic print(byte)
 intrinsicPrint:
 	for _, l := range p {
@@ -313,6 +324,65 @@ func (p Program) verifyAddConstTwo(l *line, v Expr) (offset uint64, flowl *line,
 	return
 }
 
+func (p Program) optimizeCopyConst(l *line, v Expr) {
+	width, n, end := p.verifyCopyConst(l, v, 0, 0)
+	if width == 0 {
+		return
+	}
+
+	l.opt = optCopyConst{
+		width: width,
+		left:  v,
+		right: n,
+		endl:  end,
+	}
+}
+
+func (p Program) verifyCopyConst(l *line, v Expr, i, n uint64) (offset, nout uint64, end *line) {
+	if i < 64 && l != nil && l.line0 == l.line1 {
+		if a, ok := l.stmt.(AssignStmt); ok {
+			if b, ok := a.Right.(BitExpr); ok {
+				if offset, ok = p.verifyAddConstOffset(a.Left, v); ok && offset == i {
+					if b {
+						n |= 1 << offset
+					}
+					return p.verifyCopyConst(l.line0, v, i+1, n)
+				}
+			}
+		}
+	}
+
+	return i, n, l
+}
+
+func (p Program) optimizeCopy(l *line, left, right Expr) {
+	width, end := p.verifyCopy(l, left, right, 0)
+	if width < 2 {
+		return
+	}
+
+	l.opt = optCopy{
+		width: width,
+		left:  left,
+		right: right,
+		endl:  end,
+	}
+}
+
+func (p Program) verifyCopy(l *line, left, right Expr, i uint64) (offset uint64, end *line) {
+	if i < 64 && l != nil && l.line0 == l.line1 {
+		if a, ok := l.stmt.(AssignStmt); ok {
+			if offset, ok = p.verifyAddConstOffset(a.Left, left); ok && offset == i {
+				if offset, ok = p.verifyAddConstOffset(a.Right, right); ok && offset == i {
+					return p.verifyCopy(l.line0, left, right, i+1)
+				}
+			}
+		}
+	}
+
+	return i, l
+}
+
 func (p Program) verifyPrint(l *line, ptr VarExpr, offset uint64) (done *line, ok bool) {
 	if l == nil || l.line0 == nil || l.line1 == nil {
 		return
@@ -437,6 +507,99 @@ func (opt optPointerAdvance) run(in bitio.BitReader, out bitio.BitWriter, ctx *c
 	}
 
 	ctx.jump = false
+	return opt.endl, nil
+}
+
+type optCopyConst struct {
+	width uint64
+	left  Expr
+	right uint64
+	endl  *line
+}
+
+func (opt optCopyConst) run(in bitio.BitReader, out bitio.BitWriter, ctx *context) (l *line, err error) {
+	left, err := opt.left.run(ctx)
+	if err != nil {
+		return
+	}
+
+	addr, err := left.addr(ctx)
+	if err != nil {
+		return
+	}
+
+	offset, err := addr.pointer(ctx)
+	if err != nil {
+		return
+	}
+
+	n := opt.right
+	for i := offset; i < offset+opt.width; i++ {
+		_, err = varVal(i).value(ctx)
+		if err != nil {
+			return
+		}
+
+		ctx.memory.SetBit(i, n&1 == 1)
+		n >>= 1
+	}
+
+	return opt.endl, nil
+}
+
+type optCopy struct {
+	width uint64
+	left  Expr
+	right Expr
+	endl  *line
+}
+
+func (opt optCopy) run(in bitio.BitReader, out bitio.BitWriter, ctx *context) (l *line, err error) {
+	left, err := opt.left.run(ctx)
+	if err != nil {
+		return
+	}
+
+	addr, err := left.addr(ctx)
+	if err != nil {
+		return
+	}
+
+	offsetL, err := addr.pointer(ctx)
+	if err != nil {
+		return
+	}
+
+	right, err := opt.right.run(ctx)
+	if err != nil {
+		return
+	}
+
+	addr, err = right.addr(ctx)
+	if err != nil {
+		return
+	}
+
+	offsetR, err := addr.pointer(ctx)
+	if err != nil {
+		return
+	}
+
+	for i, j := offsetL, offsetR; i < offsetL+opt.width; i, j = i+1, j+1 {
+		_, err = varVal(i).value(ctx)
+		if err != nil {
+			return
+		}
+
+		var b bool
+		b, err = varVal(j).value(ctx)
+		if err != nil {
+			return
+		}
+
+		ctx.memory.SetBit(i, b)
+	}
+
 	return opt.endl, nil
 }
 

@@ -10,6 +10,7 @@ import (
 	"sort"
 
 	"github.com/BenLubar/bit/bitio"
+	"github.com/BenLubar/bit/internal/bitdebug"
 )
 
 var (
@@ -138,7 +139,7 @@ func (err *ProgramError) Error() string {
 }
 
 func (p Program) Run(in bitio.BitReader, out bitio.BitWriter) error {
-	var trace func(*line)
+	var trace func(*line, *context)
 	if *flagTrace != "" {
 		m := make(map[uint64]uint64)
 		defer func() {
@@ -154,7 +155,7 @@ func (p Program) Run(in bitio.BitReader, out bitio.BitWriter) error {
 			}
 		}()
 
-		trace = func(l *line) {
+		trace = func(l *line, c *context) {
 			m[l.num]++
 		}
 	}
@@ -163,7 +164,22 @@ func (p Program) Run(in bitio.BitReader, out bitio.BitWriter) error {
 	return err
 }
 
-func (p Program) run(in bitio.BitReader, out bitio.BitWriter, trace func(*line)) (*context, error) {
+func init() {
+	bitdebug.RunTrace = func(prog interface{}, in bitio.BitReader, out bitio.BitWriter, trace func(interface{}, interface{})) (interface{}, error) {
+		return prog.(Program).run(in, out, func(l *line, c *context) { trace(l, c) })
+	}
+	bitdebug.LineNum = func(l interface{}) uint64 {
+		return l.(*line).num
+	}
+	bitdebug.LineStmt = func(l interface{}) interface{} {
+		return l.(*line).stmt
+	}
+	bitdebug.LineOpt = func(l interface{}) interface{} {
+		return l.(*line).opt
+	}
+}
+
+func (p Program) run(in bitio.BitReader, out bitio.BitWriter, trace func(*line, *context)) (*context, error) {
 	ctx := &context{
 		jump: false,
 		aVar: make(map[uint64]uint64),
@@ -172,7 +188,7 @@ func (p Program) run(in bitio.BitReader, out bitio.BitWriter, trace func(*line))
 
 	for line != nil {
 		if trace != nil {
-			trace(line)
+			trace(line, ctx)
 		}
 
 		if line.opt != nil {

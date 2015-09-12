@@ -593,9 +593,9 @@ func (w *Writer) copy(start Line, left, right Integer, end Line, n *int64, err *
 		panic("bitgen: cannot copy integers of varying width")
 	}
 
-	for i := left.Width - 1; i < left.Width; i-- {
+	for i := uint(0); i < left.Width; i++ {
 		var next Line
-		if i == 0 {
+		if i == left.Width-1 {
 			next = end
 		} else {
 			next = w.ReserveLine()
