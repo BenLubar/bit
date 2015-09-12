@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"flag"
 	"fmt"
@@ -118,7 +117,7 @@ func parse() (prog0, prog1 bit.Program) {
 				panic("unreachable")
 			}
 
-			prog, err := bit.Parse(bufio.NewReader(f))
+			prog, err := bit.Parse(f)
 			if err != nil {
 				handle(err)
 				panic("unreachable")

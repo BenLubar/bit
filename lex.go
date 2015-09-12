@@ -7,7 +7,9 @@ import (
 )
 
 type lex struct {
-	r    io.ByteReader
+	r    io.Reader
+	read []byte
+	buf  [4096]byte
 	line int
 	col  int
 	off  int
@@ -16,13 +18,19 @@ type lex struct {
 
 func (l *lex) Lex(lval *yySymType) int {
 	for {
-		b, err := l.r.ReadByte()
-		if err != nil {
-			if err == io.EOF {
-				return 0
+		for len(l.read) == 0 {
+			n, err := l.r.Read(l.buf[:])
+			if err != nil {
+				if err == io.EOF {
+					return 0
+				}
+				panic(err)
 			}
-			panic(err)
+			l.read = l.buf[:n]
 		}
+
+		var b byte
+		b, l.read = l.read[0], l.read[1:]
 		l.off++
 		l.col++
 		if b == '\n' {
@@ -52,7 +60,7 @@ func (err *ParseError) Error() string {
 	return fmt.Sprintf("bit: on line %d column %d (offset %d): %v", err.Line, err.Column, err.Offset, err.Err)
 }
 
-func Parse(r io.ByteReader) (prog Program, err error) {
+func Parse(r io.Reader) (prog Program, err error) {
 	l := &lex{r: r, line: 1}
 
 	defer func() {
