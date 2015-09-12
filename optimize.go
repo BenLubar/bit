@@ -24,36 +24,36 @@ func (p Program) bake() error {
 }
 
 func (p Program) Optimize() {
-	// intrinsic x++ and x--
+	// intrinsic left += const right
 	for _, l := range p {
-		as, ok := l.stmt.(AssignStmt)
-		if !ok {
-			continue
+		if j, ok := l.stmt.(JumpRegisterStmt); ok {
+			p.optimizeAddConst(l, j.Right)
 		}
-		ptr, ok := as.Left.(VarExpr)
-		if !ok {
-			continue
-		}
-		if l.line0 != l.line1 || l.line0 == nil {
-			continue
-		}
-		j, ok := l.line0.stmt.(JumpRegisterStmt)
-		if !ok {
-			continue
-		}
-		star, ok := j.Right.(StarExpr)
-		if !ok {
-			continue
-		}
-		if star.X != ptr {
-			continue
-		}
-		// it could be an increment, a decrement, or something else.
-		if p.optimizeIncDec(l.line0, ptr, true) {
-			continue
-		}
-		if p.optimizeIncDec(l.line0, ptr, false) {
-			continue
+	}
+
+	// intrinsic while (x--) ptr++;
+	for _, l := range p {
+		if s, ok := l.stmt.(AssignStmt); ok && l.line0 == l.line1 && l.line0 != nil {
+			if a, ok := s.Right.(AddrExpr); ok {
+				if v, ok := a.X.(VarExpr); ok {
+					if o, ok := l.line0.opt.(optAddConst); ok && o.right == 1<<o.width-1 && o.flowl != nil && o.flowl.line0 == o.flowl.line1 && o.flowl.line0 == l.line0 {
+						if p, ok := o.flowl.stmt.(AssignStmt); ok && s.Left == p.Left {
+							if pa, ok := p.Right.(AddrExpr); ok {
+								if pn, ok := pa.X.(NextExpr); ok && pn.X == p.Left {
+									l.opt = optPointerAdvance{
+										base:  v,
+										addr:  o.left,
+										width: o.width,
+										ptr:   s.Left,
+										step:  pn.additional + 1,
+										endl:  o.endl,
+									}
+								}
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 
@@ -62,7 +62,6 @@ intrinsicPrint:
 	for _, l := range p {
 		var b byte
 		ll := l
-		var g *uint64
 
 		for i := uint(8); i > 0; i-- {
 			if ll == nil || ll.line0 != ll.line1 {
@@ -75,14 +74,12 @@ intrinsicPrint:
 			if bool(ps) {
 				b |= 1 << (i - 1)
 			}
-			g = ll.goto0
 			ll = ll.line0
 		}
 
 		l.opt = optPrintByteConst{
 			b: b,
 			l: ll,
-			g: g,
 		}
 	}
 
@@ -103,14 +100,13 @@ intrinsicPrint:
 		if !ok {
 			continue
 		}
-		done, donepc, ok := p.verifyPrint(l, ptr, 8-2)
+		done, ok := p.verifyPrint(l, ptr, 8-2)
 		if !ok {
 			continue
 		}
 		l.opt = optPrintByte{
 			p: ptr,
 			l: done,
-			g: donepc,
 		}
 	}
 }
@@ -122,66 +118,202 @@ func (p Program) out(l *line, jr bool) *line {
 	return l.line0
 }
 
-func (p Program) optimizeIncDec(l *line, ptr VarExpr, inc bool) bool {
-	done, flow, donepc, flowpc, bits, ok := p.verifyIncDec(l, ptr, 0, inc)
-	if !ok || bits > 64 {
-		return false
+func (p Program) optimizeAddConst(l *line, v Expr) {
+	var endl, flowl *line
+
+	offset, one, two, ok := p.verifyAddConstJump(l, v)
+	if !ok || offset != 0 {
+		return
 	}
 
-	l.opt = optIncDec{
-		ptr:   ptr,
-		bits:  bits,
-		inc:   inc,
-		doneg: donepc,
-		donel: done,
-		flowg: flowpc,
-		flowl: flow,
+	offset, endl, ok = p.verifyAddConstOne(one, v)
+	if !ok || offset != 0 {
+		return
 	}
-	return false
+
+	offset, flowl, ok = p.verifyAddConstTwo(two, v)
+	if !ok || offset != 0 {
+		return
+	}
+
+	n := uint64(1)
+
+	offset, endl, flowl, n = p.verifyAddConst(v, endl, flowl, n, 1)
+
+	l.opt = optAddConst{
+		width: offset,
+		left:  v,
+		right: n,
+		endl:  endl,
+		flowl: flowl,
+	}
 }
 
-func (p Program) verifyIncDec(l *line, ptr VarExpr, offset uint64, inc bool) (done, flow *line, donepc, flowpc *uint64, bits uint64, ok bool) {
-	var reg Expr
-	if offset == 0 {
-		reg = StarExpr{X: ptr}
-	} else {
-		reg = NextExpr{X: ptr, additional: offset - 1}
-	}
-	if l.stmt != (JumpRegisterStmt{Right: reg}) {
-		return
-	}
-	l0, l1 := p.out(l, !inc), p.out(l, inc)
-	if l0.stmt != (AssignStmt{Left: reg, Right: BitExpr(inc)}) {
-		return
-	}
-	if l1.stmt != (AssignStmt{Left: reg, Right: BitExpr(!inc)}) {
-		return
-	}
-	if l0.line0 != l0.line1 {
-		return
-	}
-	done = l0.line0
-	if l1.line0 != l1.line1 {
-		return
-	}
-	if l1.line0 != nil {
-		var check *line
-		check, flow, donepc, flowpc, bits, ok = p.verifyIncDec(l1.line0, ptr, offset+1, inc)
-		if done != check {
-			ok = false
+func (p Program) verifyAddConst(v Expr, prevl, carryl *line, n, i uint64) (offset uint64, endl, flowl *line, nout uint64) {
+	var ok bool
+	if i < 64 && carryl != nil {
+		offset, endl, flowl, nout, ok = p.verifyAddConstFalse(v, prevl, carryl, n, i)
+
+		if !ok && prevl != nil {
+			offset, endl, flowl, nout, ok = p.verifyAddConstTrue(v, prevl, carryl, n, i)
 		}
 	}
 	if !ok {
-		flow = l1.line0
-		donepc = l0.goto0
-		flowpc = l1.goto0
-		bits = offset + 1
-		ok = true
+		return i, prevl, carryl, n
 	}
+
+	return p.verifyAddConst(v, endl, flowl, nout, i+1)
+}
+
+func (p Program) verifyAddConstOffset(v, base Expr) (offset uint64, ok bool) {
+	if v == base {
+		return 0, true
+	}
+
+	if n, ok := v.(NextExpr); ok {
+		if n.X == (AddrExpr{base}) {
+			return n.additional + 1, true
+		}
+		if (StarExpr{n.X}) == base {
+			return n.additional + 1, true
+		}
+		if bn, ok := base.(NextExpr); ok && n.X == bn.X {
+			return n.additional - bn.additional, true
+		}
+	}
+
+	return 0, false
+}
+
+func (p Program) verifyAddConstFalse(v Expr, prevl, carryl *line, n, i uint64) (offset uint64, endl, flowl *line, nout uint64, ok bool) {
+	nout = n
+
+	offset, one, two, ok := p.verifyAddConstJump(carryl, v)
+	if !ok || offset != i {
+		ok = false
+		return
+	}
+
+	offset, endl, ok = p.verifyAddConstOne(one, v)
+	if !ok || offset != i {
+		ok = false
+		return
+	}
+
+	offset, flowl, ok = p.verifyAddConstTwo(two, v)
+	if !ok || offset != i {
+		ok = false
+		return
+	}
+
 	return
 }
 
-func (p Program) verifyPrint(l *line, ptr VarExpr, offset uint64) (done *line, donepc *uint64, ok bool) {
+func (p Program) verifyAddConstTrue(v Expr, prevl, carryl *line, n, i uint64) (offset uint64, endl, flowl *line, nout uint64, ok bool) {
+	nout = n | (1 << i)
+
+	offset, one, two, ok := p.verifyAddConstJump(prevl, v)
+	if !ok || offset != i {
+		ok = false
+		return
+	}
+
+	offset, endl, ok = p.verifyAddConstOne(one, v)
+	if !ok || offset != i {
+		ok = false
+		return
+	}
+
+	offset, flowl, ok = p.verifyAddConstTwo(two, v)
+	if !ok || offset != i {
+		ok = false
+		return
+	}
+
+	offset, two_, three, ok := p.verifyAddConstJump(carryl, v)
+	if !ok || offset != i || two_ != two || three != flowl {
+		ok = false
+		return
+	}
+
+	return
+}
+
+func (p Program) verifyAddConstJump(l *line, v Expr) (offset uint64, l0, l1 *line, ok bool) {
+	if l.line0 == l.line1 || l.line0 == nil || l.line1 == nil {
+		return
+	}
+	l0, l1 = l.line0, l.line1
+
+	var j JumpRegisterStmt
+	if j, ok = l.stmt.(JumpRegisterStmt); !ok {
+		return
+	}
+
+	if offset, ok = p.verifyAddConstOffset(j.Right, v); !ok {
+		return
+	}
+
+	return
+}
+
+func (p Program) verifyAddConstOne(l *line, v Expr) (offset uint64, endl *line, ok bool) {
+	if l.line0 != l.line1 {
+		return
+	}
+	endl = l.line0
+
+	var a AssignStmt
+	if a, ok = l.stmt.(AssignStmt); !ok {
+		return
+	}
+
+	if offset, ok = p.verifyAddConstOffset(a.Left, v); !ok {
+		return
+	}
+
+	var b BitExpr
+	if b, ok = a.Right.(BitExpr); !ok {
+		return
+	}
+
+	if !b {
+		ok = false
+		return
+	}
+
+	return
+}
+
+func (p Program) verifyAddConstTwo(l *line, v Expr) (offset uint64, flowl *line, ok bool) {
+	if l.line0 != l.line1 {
+		return
+	}
+	flowl = l.line0
+
+	var a AssignStmt
+	if a, ok = l.stmt.(AssignStmt); !ok {
+		return
+	}
+
+	if offset, ok = p.verifyAddConstOffset(a.Left, v); !ok {
+		return
+	}
+
+	var b BitExpr
+	if b, ok = a.Right.(BitExpr); !ok {
+		return
+	}
+
+	if b {
+		ok = false
+		return
+	}
+
+	return
+}
+
+func (p Program) verifyPrint(l *line, ptr VarExpr, offset uint64) (done *line, ok bool) {
 	if l == nil || l.line0 == nil || l.line1 == nil {
 		return
 	}
@@ -194,7 +326,7 @@ func (p Program) verifyPrint(l *line, ptr VarExpr, offset uint64) (done *line, d
 			return
 		}
 	}
-	done, donepc = l.line0.line0, l.line0.goto0
+	done = l.line0.line0
 	if done != l.line0.line1 || done != l.line1.line0 || done != l.line1.line1 {
 		return
 	}
@@ -209,82 +341,120 @@ func (p Program) verifyPrint(l *line, ptr VarExpr, offset uint64) (done *line, d
 }
 
 type optimized interface {
-	run(bitio.BitReader, bitio.BitWriter, *context) (*uint64, *line, error)
+	run(bitio.BitReader, bitio.BitWriter, *context) (*line, error)
 }
 
-type optIncDec struct {
-	ptr   VarExpr
-	bits  uint64
-	inc   bool
-	doneg *uint64
-	donel *line
-	flowg *uint64
+type optAddConst struct {
+	width uint64
+	left  Expr
+	right uint64
+	endl  *line
 	flowl *line
 }
 
-func (opt optIncDec) run(in bitio.BitReader, out bitio.BitWriter, ctx *context) (g *uint64, l *line, err error) {
-	val, err := opt.ptr.run(ctx)
+func (opt optAddConst) run(in bitio.BitReader, out bitio.BitWriter, ctx *context) (l *line, err error) {
+	v, err := opt.left.run(ctx)
 	if err != nil {
 		return
 	}
-	ptr, err := val.pointer(ctx)
+	v, err = v.addr(ctx)
+	if err != nil {
+		return
+	}
+	offset, err := v.pointer(ctx)
 	if err != nil {
 		return
 	}
 
-	mask := uint64(1<<opt.bits - 1)
-	n0 := ctx.memory.Uint64(ptr)
-	n0 &= mask
+	n0 := ctx.memory.Uint64(offset) & (1<<opt.width - 1)
+	n1 := n0 + opt.right
+	n2 := n1 & (1<<opt.width - 1)
 
-	g, l = opt.doneg, opt.donel
-	ctx.jump = !opt.inc
-
-	var n1 uint64
-	if opt.inc {
-		n1 = (n0 + 1) & mask
-		if n0 > n1 {
-			n1 = 0
-			g, l = opt.flowg, opt.flowl
-			ctx.jump = true
-		}
+	if n0 < n2 {
+		l = opt.endl
+		ctx.jump = false
 	} else {
-		n1 = (n0 + 1) & mask
-		if n0 < n1 {
-			n1 = mask
-			g, l = opt.flowg, opt.flowl
-			ctx.jump = false
-		}
+		n1 = 1<<opt.width - 1
+		l = opt.flowl
+		ctx.jump = true
 	}
 
-	for i := ptr; i < ptr+opt.bits; i++ {
+	for i := offset; i < offset+opt.width; i++ {
 		if _, err = varVal(i).addr(ctx); err != nil {
 			return
 		}
-
-		ctx.memory.SetBit(i, n1&1 == 1)
+		ctx.memory.SetBit(i, n2&1 == 1)
 		n1 >>= 1
+		n2 >>= 1
+		if n1 == 0 && n2 == 0 {
+			break
+		}
 	}
 
 	return
 }
 
+type optPointerAdvance struct {
+	base  VarExpr
+	addr  Expr
+	width uint64
+	ptr   Expr
+	step  uint64
+	endl  *line
+}
+
+func (opt optPointerAdvance) run(in bitio.BitReader, out bitio.BitWriter, ctx *context) (l *line, err error) {
+	addr, err := opt.addr.run(ctx)
+	if err != nil {
+		return
+	}
+
+	addraddr, err := addr.addr(ctx)
+	if err != nil {
+		return
+	}
+
+	offset, err := addraddr.pointer(ctx)
+	if err != nil {
+		return
+	}
+
+	err = (AssignStmt{
+		Left:  opt.ptr,
+		Right: AddrExpr{VarExpr((ctx.memory.Uint64(offset)&(1<<opt.width-1))*opt.step) + opt.base},
+	}).run(in, out, ctx)
+	if err != nil {
+		return
+	}
+
+	for i := offset; i < offset+opt.width; i++ {
+		_, err = varVal(i).value(ctx)
+		if err != nil {
+			return
+		}
+
+		ctx.memory.SetBit(i, true)
+	}
+
+	ctx.jump = false
+	return opt.endl, nil
+}
+
 type optPrintByteConst struct {
 	b byte
-	g *uint64
 	l *line
 }
 
-func (opt optPrintByteConst) run(in bitio.BitReader, out bitio.BitWriter, ctx *context) (g *uint64, l *line, err error) {
-	return opt.g, opt.l, bitio.WriteByte(out, opt.b)
+func (opt optPrintByteConst) run(in bitio.BitReader, out bitio.BitWriter, ctx *context) (l *line, err error) {
+	return opt.l, bitio.WriteByte(out, opt.b)
 }
 
 type optPrintByte struct {
 	p VarExpr
-	g *uint64
 	l *line
 }
 
-func (opt optPrintByte) run(in bitio.BitReader, out bitio.BitWriter, ctx *context) (g *uint64, l *line, err error) {
+func (opt optPrintByte) run(in bitio.BitReader, out bitio.BitWriter, ctx *context) (l *line, err error) {
 	n0 := ctx.bVar.Uint64(uint64(opt.p))
 	for i := uint64(0); i < 8; i++ {
 		if n0&1<<i == 0 {
@@ -299,5 +469,5 @@ func (opt optPrintByte) run(in bitio.BitReader, out bitio.BitWriter, ctx *contex
 
 	ctx.jump = b&1 == 1
 
-	return opt.g, opt.l, bitio.WriteByte(out, b)
+	return opt.l, bitio.WriteByte(out, b)
 }

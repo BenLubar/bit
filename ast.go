@@ -138,17 +138,9 @@ func (err *ProgramError) Error() string {
 }
 
 func (p Program) Run(in bitio.BitReader, out bitio.BitWriter) error {
-	ctx := &context{
-		jump: false,
-		aVar: make(map[uint64]uint64),
-	}
-	pc := new(uint64)
-	*pc = p.Start()
-	line := p[*pc]
-
-	var trace map[uint64]uint64
+	var trace func(*line)
 	if *flagTrace != "" {
-		trace = make(map[uint64]uint64)
+		m := make(map[uint64]uint64)
 		defer func() {
 			f, err := os.Create(*flagTrace)
 			if err != nil {
@@ -156,47 +148,58 @@ func (p Program) Run(in bitio.BitReader, out bitio.BitWriter) error {
 			}
 			defer f.Close()
 
-			err = gob.NewEncoder(f).Encode(trace)
+			err = gob.NewEncoder(f).Encode(m)
 			if err != nil {
 				panic(err)
 			}
 		}()
+
+		trace = func(l *line) {
+			m[l.num]++
+		}
 	}
+
+	_, err := p.run(in, out, trace)
+	return err
+}
+
+func (p Program) run(in bitio.BitReader, out bitio.BitWriter, trace func(*line)) (*context, error) {
+	ctx := &context{
+		jump: false,
+		aVar: make(map[uint64]uint64),
+	}
+	line, _ := p.findLine(p.Start())
 
 	for line != nil {
 		if trace != nil {
-			trace[*pc]++
+			trace(line)
 		}
 
 		if line.opt != nil {
-			newpc, newline, err := line.opt.run(in, out, ctx)
+			newline, err := line.opt.run(in, out, ctx)
 			if err != nil {
-				return &ProgramError{Err: err, Line: *pc}
+				return ctx, &ProgramError{Err: err, Line: line.num}
 			}
-			pc = newpc
 			line = newline
 		} else {
 			err := line.stmt.run(in, out, ctx)
 			if err != nil {
 				if r, ok := line.stmt.(ReadStmt); ok && r.pc != nil {
 					if l, ok := p.findLine(*r.pc); ok {
-						pc = r.pc
 						line = l
 						continue
 					}
 				}
-				return &ProgramError{Err: err, Line: *pc}
+				return ctx, &ProgramError{Err: err, Line: line.num}
 			}
 			if !ctx.jump {
-				pc = line.goto0
 				line = line.line0
 			} else {
-				pc = line.goto1
 				line = line.line1
 			}
 		}
 	}
-	return nil
+	return ctx, nil
 }
 
 func (p Program) RunByte(r io.ByteReader, w io.ByteWriter) error {
