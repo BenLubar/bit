@@ -120,6 +120,13 @@ intrinsicPrint:
 			l: done,
 		}
 	}
+
+	// intrinsic x < y or x <= y
+	for _, l := range p {
+		if _, ok := l.stmt.(JumpRegisterStmt); ok && l.line0 != l.line1 && l.line0 != nil && l.line1 != nil {
+			p.optimizeLess(l)
+		}
+	}
 }
 
 func (p Program) out(l *line, jr bool) *line {
@@ -410,6 +417,79 @@ func (p Program) verifyPrint(l *line, ptr VarExpr, offset uint64) (done *line, o
 	return p.verifyPrint(done, ptr, offset-1)
 }
 
+func (p Program) optimizeLess(l *line) {
+	less, equal, greater, left, right, width, ok := p.verifyLess(l)
+	if !ok {
+		return
+	}
+
+	l.opt = optLess{
+		less:    less,
+		equal:   equal,
+		greater: greater,
+		left:    left,
+		right:   right,
+		width:   width,
+	}
+}
+
+func (p Program) verifyLess(l *line) (less, equal, greater *line, left, right Expr, width uint64, ok bool) {
+	if l == nil {
+		return
+	}
+
+	l0, l1 := l.line0, l.line1
+	if l0 == nil || l1 == nil {
+		return
+	}
+
+	j, ok := l.stmt.(JumpRegisterStmt)
+	if !ok {
+		return
+	}
+	j0, ok := l0.stmt.(JumpRegisterStmt)
+	if !ok {
+		return
+	}
+	j1, ok := l1.stmt.(JumpRegisterStmt)
+	if !ok {
+		return
+	}
+	if j0.Right != j1.Right {
+		ok = false
+		return
+	}
+
+	equal0, equal1 := l0.line0, l1.line1
+	if equal0 != equal1 {
+		ok = false
+		return
+	}
+
+	less, equal, greater = l0.line1, equal0, l1.line0
+
+	nextLess, nextEqual, nextGreater, nextLeft, nextRight, nextWidth, ok := p.verifyLess(equal)
+	if !ok || nextWidth >= 64 {
+		left, right, width, ok = j.Right, j0.Right, 1, true
+		return
+	}
+
+	lo, ok := p.verifyAddConstOffset(left, nextLeft)
+	if !ok || lo != nextWidth {
+		ok = false
+		return
+	}
+
+	ro, ok := p.verifyAddConstOffset(right, nextRight)
+	if !ok || ro != nextWidth {
+		ok = false
+		return
+	}
+
+	less, equal, greater, left, right, width, ok = nextLess, nextEqual, nextGreater, nextLeft, nextRight, nextWidth+1, true
+	return
+}
+
 type optimized interface {
 	run(bitio.BitReader, bitio.BitWriter, *context) (*line, error)
 }
@@ -633,4 +713,61 @@ func (opt optPrintByte) run(in bitio.BitReader, out bitio.BitWriter, ctx *contex
 	ctx.jump = b&1 == 1
 
 	return opt.l, bitio.WriteByte(out, b)
+}
+
+type optLess struct {
+	less    *line
+	equal   *line
+	greater *line
+	left    Expr
+	right   Expr
+	width   uint64
+}
+
+func (opt optLess) run(in bitio.BitReader, out bitio.BitWriter, ctx *context) (l *line, err error) {
+	leftbit, err := opt.left.run(ctx)
+	if err != nil {
+		return
+	}
+
+	leftaddr, err := leftbit.addr(ctx)
+	if err != nil {
+		return
+	}
+
+	leftoffset, err := leftaddr.pointer(ctx)
+	if err != nil {
+		return
+	}
+
+	rightbit, err := opt.right.run(ctx)
+	if err != nil {
+		return
+	}
+
+	rightaddr, err := rightbit.addr(ctx)
+	if err != nil {
+		return
+	}
+
+	rightoffset, err := rightaddr.pointer(ctx)
+	if err != nil {
+		return
+	}
+
+	left := ctx.memory.Uint64(leftoffset) & (1<<opt.width - 1)
+	right := ctx.memory.Uint64(rightoffset) & (1<<opt.width - 1)
+
+	if left < right {
+		ctx.jump = true
+		return opt.less, nil
+	}
+
+	if left > right {
+		ctx.jump = false
+		return opt.greater, nil
+	}
+
+	ctx.jump = left&1 == 1
+	return opt.equal, nil
 }
