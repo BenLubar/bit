@@ -190,3 +190,13 @@ func (w *writer) Copy(start Line, left, right Integer, end Line) {
 	n, w.err = w.Writer.Copy(start, left, right, end)
 	w.n += n
 }
+
+func (w *writer) Less(start Line, left, right Integer, less, equal, greater Line) {
+	if w.err != nil {
+		return
+	}
+
+	var n int64
+	n, w.err = w.Writer.Less(start, left, right, less, equal, greater)
+	w.n += n
+}

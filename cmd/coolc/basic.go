@@ -1623,7 +1623,7 @@ var basicInt = &ClassDecl{
 				start = next
 
 				n0, n1 := w.ReserveLine(), w.ReserveLine()
-				w.LessThanUnsigned(start, w.IntValue(w.This.Ptr), w.IntValue(w.General[0].Ptr), n1, n0, n0)
+				w.Less(start, w.IntValue(w.This.Ptr), w.IntValue(w.General[0].Ptr), n1, n0, n0)
 
 				next = w.ReserveLine()
 				w.CopyReg(n0, w.Return, w.False, next)
@@ -1667,7 +1667,7 @@ var basicInt = &ClassDecl{
 				w.Jump(neg, bitgen.ValueAt{bitgen.Offset{w.General[0].Ptr, 32 + 32 - 1}}, yes, next)
 				start = next
 
-				w.LessThanUnsigned(start, w.IntValue(w.This.Ptr), w.IntValue(w.General[0].Ptr), yes, no, no)
+				w.Less(start, w.IntValue(w.This.Ptr), w.IntValue(w.General[0].Ptr), yes, no, no)
 
 				next = w.ReserveLine()
 				w.CopyReg(yes, w.Return, w.True, next)
@@ -1711,7 +1711,7 @@ var basicInt = &ClassDecl{
 				w.Jump(neg, bitgen.ValueAt{bitgen.Offset{w.General[0].Ptr, 32 + 32 - 1}}, yes, next)
 				start = next
 
-				w.LessThanUnsigned(start, w.IntValue(w.This.Ptr), w.IntValue(w.General[0].Ptr), yes, yes, no)
+				w.Less(start, w.IntValue(w.This.Ptr), w.IntValue(w.General[0].Ptr), yes, yes, no)
 
 				next = w.ReserveLine()
 				w.CopyReg(yes, w.Return, w.True, next)
@@ -2021,11 +2021,11 @@ var basicString = &ClassDecl{
 				start = next
 
 				next = w.ReserveLine()
-				w.LessThanUnsigned(start, w.IntValue(w.General[0].Ptr), w.IntValue(w.General[1].Ptr), next, next, w.IndexRange)
+				w.Less(start, w.IntValue(w.General[0].Ptr), w.IntValue(w.General[1].Ptr), next, next, w.IndexRange)
 				start = next
 
 				next = w.ReserveLine()
-				w.LessThanUnsigned(start, w.IntValue(w.General[1].Ptr), w.IntValue(w.General[2].Ptr), next, next, w.IndexRange)
+				w.Less(start, w.IntValue(w.General[1].Ptr), w.IntValue(w.General[2].Ptr), next, next, w.IndexRange)
 				start = next
 
 				next = w.ReserveLine()
@@ -2130,7 +2130,7 @@ var basicString = &ClassDecl{
 				start = next
 
 				next = w.ReserveLine()
-				w.LessThanUnsigned(start, w.IntValue(w.General[0].Ptr), w.IntValue(w.General[1].Ptr), next, w.IndexRange, w.IndexRange)
+				w.Less(start, w.IntValue(w.General[0].Ptr), w.IntValue(w.General[1].Ptr), next, w.IndexRange, w.IndexRange)
 				start = next
 
 				next = w.ReserveLine()
@@ -2718,7 +2718,7 @@ var basicArrayAny = &ClassDecl{
 				start = next
 
 				next = w.ReserveLine()
-				w.LessThanUnsigned(start, w.General[0].Num, w.IntValue(w.General[1].Ptr), next, w.IndexRange, w.IndexRange)
+				w.Less(start, w.General[0].Num, w.IntValue(w.General[1].Ptr), next, w.IndexRange, w.IndexRange)
 				start = next
 
 				next = w.ReserveLine()
@@ -2788,7 +2788,7 @@ var basicArrayAny = &ClassDecl{
 				start = next
 
 				next = w.ReserveLine()
-				w.LessThanUnsigned(start, w.General[0].Num, w.General[1].Num, next, w.IndexRange, w.IndexRange)
+				w.Less(start, w.General[0].Num, w.General[1].Num, next, w.IndexRange, w.IndexRange)
 				start = next
 
 				next = w.ReserveLine()

@@ -604,3 +604,31 @@ func (w *Writer) copy(start Line, left, right Integer, end Line, n *int64, err *
 		start = next
 	}
 }
+
+func (w *Writer) Less(start Line, left, right Integer, less, equal, greater Line) (n int64, err error) {
+	w.less(start, left, right, less, equal, greater, &n, &err)
+	return
+}
+
+func (w *Writer) less(start Line, left, right Integer, less, equal, greater Line, n *int64, err *error) {
+	if left.Width != right.Width {
+		panic("bitgen: non-equal widths for Less")
+	}
+
+	for i := left.Width - 1; i < left.Width; i-- {
+		zero, one := w.ReserveLine(), w.ReserveLine()
+		w.jump(start, left.Bit(i), zero, one, n, err)
+
+		var next Line
+		if i == 0 {
+			next = equal
+		} else {
+			next = w.ReserveLine()
+		}
+
+		w.jump(zero, right.Bit(i), next, less, n, err)
+		w.jump(one, right.Bit(i), greater, next, n, err)
+
+		start = next
+	}
+}

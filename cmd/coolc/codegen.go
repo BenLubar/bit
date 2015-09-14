@@ -543,7 +543,7 @@ func (w *writer) MethodTables(start, end bitgen.Line) {
 
 func (w *writer) Pointer(start bitgen.Line, ptr bitgen.Variable, num bitgen.Integer, end bitgen.Line) {
 	next := w.ReserveLine()
-	w.LessThanUnsigned(start, num, w.Alloc.Num, next, w.HeapRange, w.HeapRange)
+	w.Less(start, num, w.Alloc.Num, next, w.HeapRange, w.HeapRange)
 	start = next
 
 	next = w.ReserveLine()
@@ -952,29 +952,6 @@ func (w *writer) CmpReg(start bitgen.Line, left, right bitgen.Integer, same, dif
 
 		w.Jump(zero, right.Bit(i), next, different)
 		w.Jump(one, right.Bit(i), different, next)
-
-		start = next
-	}
-}
-
-func (w *writer) LessThanUnsigned(start bitgen.Line, left, right bitgen.Integer, less, equal, greater bitgen.Line) {
-	if left.Width != right.Width {
-		panic("non-equal widths for LessThanUnsigned")
-	}
-
-	for i := left.Width - 1; i < left.Width; i-- {
-		zero, one := w.ReserveLine(), w.ReserveLine()
-		w.Jump(start, left.Bit(i), zero, one)
-
-		var next bitgen.Line
-		if i == 0 {
-			next = equal
-		} else {
-			next = w.ReserveLine()
-		}
-
-		w.Jump(zero, right.Bit(i), next, less)
-		w.Jump(one, right.Bit(i), greater, next)
 
 		start = next
 	}
