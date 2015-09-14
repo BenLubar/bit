@@ -939,22 +939,7 @@ func (w *writer) CmpReg(start bitgen.Line, left, right bitgen.Integer, same, dif
 		panic("non-equal widths for CmpReg")
 	}
 
-	for i := uint(0); i < left.Width; i++ {
-		zero, one := w.ReserveLine(), w.ReserveLine()
-		w.Jump(start, left.Bit(i), zero, one)
-
-		var next bitgen.Line
-		if i == left.Width-1 {
-			next = same
-		} else {
-			next = w.ReserveLine()
-		}
-
-		w.Jump(zero, right.Bit(i), next, different)
-		w.Jump(one, right.Bit(i), different, next)
-
-		start = next
-	}
+	w.Less(start, left, right, different, same, different)
 }
 
 func (w *writer) IntValue(ptr bitgen.Value) bitgen.Integer {
