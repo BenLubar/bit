@@ -632,3 +632,29 @@ func (w *Writer) less(start Line, left, right Integer, less, equal, greater Line
 		start = next
 	}
 }
+
+func (w *Writer) Set(start Line, left Integer, right uint64, end Line) (n int64, err error) {
+	w.set(start, left, right, end, &n, &err)
+	return
+}
+
+func (w *Writer) set(start Line, left Integer, right uint64, end Line, n *int64, err *error) {
+	if *err != nil {
+		return
+	}
+
+	if right&(1<<left.Width-1) != right {
+		panic("bitgen: cannot copy integers of varying width")
+	}
+
+	for i := uint(0); i < left.Width; i++ {
+		var next Line
+		if i == left.Width-1 {
+			next = end
+		} else {
+			next = w.ReserveLine()
+		}
+		w.assign(start, left.Bit(i), Bit(right&(1<<i) != 0), next, n, err)
+		start = next
+	}
+}

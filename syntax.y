@@ -1,5 +1,6 @@
 %{
-//go:generate go tool yacc syntax.y
+//go:generate go get golang.org/x/tools/cmd/goyacc
+//go:generate goyacc syntax.y
 
 package bit
 

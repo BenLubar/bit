@@ -200,3 +200,13 @@ func (w *writer) Less(start Line, left, right Integer, less, equal, greater Line
 	n, w.err = w.Writer.Less(start, left, right, less, equal, greater)
 	w.n += n
 }
+
+func (w *writer) Set(start Line, left Integer, right uint64, end Line) {
+	if w.err != nil {
+		return
+	}
+
+	var n int64
+	n, w.err = w.Writer.Set(start, left, right, end)
+	w.n += n
+}

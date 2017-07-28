@@ -1,15 +1,16 @@
 //line syntax.y:2
 
-//go:generate go tool yacc syntax.y
+//go:generate go get golang.org/x/tools/cmd/goyacc
+//go:generate goyacc syntax.y
 
 package bit
 
 import __yyfmt__ "fmt"
 
-//line syntax.y:4
+//line syntax.y:5
 import "fmt"
 
-//line syntax.y:9
+//line syntax.y:10
 type yySymType struct {
 	yys     int
 	program *Program
@@ -62,7 +63,7 @@ var yyStatenames = [...]string{}
 
 const yyEofCode = 1
 const yyErrCode = 2
-const yyMaxDepth = 200
+const yyInitialStackSize = 16
 
 //line yacctab:1
 var yyExca = [...]int{
@@ -71,11 +72,7 @@ var yyExca = [...]int{
 	-2, 0,
 }
 
-const yyNprod = 49
 const yyPrivate = 57344
-
-var yyTokenNames []string
-var yyStates []string
 
 const yyLast = 190
 
@@ -231,18 +228,17 @@ type yyParser interface {
 }
 
 type yyParserImpl struct {
-	lookahead func() int
+	lval  yySymType
+	stack [yyInitialStackSize]yySymType
+	char  int
 }
 
 func (p *yyParserImpl) Lookahead() int {
-	return p.lookahead()
+	return p.char
 }
 
 func yyNewParser() yyParser {
-	p := &yyParserImpl{
-		lookahead: func() int { return -1 },
-	}
-	return p
+	return &yyParserImpl{}
 }
 
 const yyFlag = -1000
@@ -370,22 +366,20 @@ func yyParse(yylex yyLexer) int {
 
 func (yyrcvr *yyParserImpl) Parse(yylex yyLexer) int {
 	var yyn int
-	var yylval yySymType
 	var yyVAL yySymType
 	var yyDollar []yySymType
 	_ = yyDollar // silence set and not used
-	yyS := make([]yySymType, yyMaxDepth)
+	yyS := yyrcvr.stack[:]
 
 	Nerrs := 0   /* number of errors */
 	Errflag := 0 /* error recovery flag */
 	yystate := 0
-	yychar := -1
-	yytoken := -1 // yychar translated into internal numbering
-	yyrcvr.lookahead = func() int { return yychar }
+	yyrcvr.char = -1
+	yytoken := -1 // yyrcvr.char translated into internal numbering
 	defer func() {
 		// Make sure we report no lookahead when not parsing.
 		yystate = -1
-		yychar = -1
+		yyrcvr.char = -1
 		yytoken = -1
 	}()
 	yyp := -1
@@ -417,8 +411,8 @@ yynewstate:
 	if yyn <= yyFlag {
 		goto yydefault /* simple state */
 	}
-	if yychar < 0 {
-		yychar, yytoken = yylex1(yylex, &yylval)
+	if yyrcvr.char < 0 {
+		yyrcvr.char, yytoken = yylex1(yylex, &yyrcvr.lval)
 	}
 	yyn += yytoken
 	if yyn < 0 || yyn >= yyLast {
@@ -426,9 +420,9 @@ yynewstate:
 	}
 	yyn = yyAct[yyn]
 	if yyChk[yyn] == yytoken { /* valid shift */
-		yychar = -1
+		yyrcvr.char = -1
 		yytoken = -1
-		yyVAL = yylval
+		yyVAL = yyrcvr.lval
 		yystate = yyn
 		if Errflag > 0 {
 			Errflag--
@@ -440,8 +434,8 @@ yydefault:
 	/* default state action */
 	yyn = yyDef[yystate]
 	if yyn == -2 {
-		if yychar < 0 {
-			yychar, yytoken = yylex1(yylex, &yylval)
+		if yyrcvr.char < 0 {
+			yyrcvr.char, yytoken = yylex1(yylex, &yyrcvr.lval)
 		}
 
 		/* look through exception table */
@@ -504,7 +498,7 @@ yydefault:
 			if yytoken == yyEofCode {
 				goto ret1
 			}
-			yychar = -1
+			yyrcvr.char = -1
 			yytoken = -1
 			goto yynewstate /* try again in the same state */
 		}
@@ -547,7 +541,7 @@ yydefault:
 
 	case 1:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line syntax.y:39
+		//line syntax.y:40
 		{
 			yyVAL.program = new(Program)
 			yyVAL.program.AddLine(yyDollar[1].line.number, yyDollar[1].line.stmt, yyDollar[1].line.goto0, yyDollar[1].line.goto1)
@@ -555,7 +549,7 @@ yydefault:
 		}
 	case 2:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line syntax.y:45
+		//line syntax.y:46
 		{
 			yyVAL.program = yyDollar[1].program
 			yyVAL.program.AddLine(yyDollar[2].line.number, yyDollar[2].line.stmt, yyDollar[2].line.goto0, yyDollar[2].line.goto1)
@@ -563,26 +557,26 @@ yydefault:
 		}
 	case 3:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line syntax.y:54
+		//line syntax.y:55
 		{
 			yyVAL.number = 0
 		}
 	case 4:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line syntax.y:58
+		//line syntax.y:59
 		{
 			yyVAL.number = 1
 		}
 	case 5:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line syntax.y:65
+		//line syntax.y:66
 		{
 			yyVAL.numberbits.number = yyDollar[1].number
 			yyVAL.numberbits.bits = 1
 		}
 	case 6:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line syntax.y:70
+		//line syntax.y:71
 		{
 			yyVAL.numberbits.number = yyDollar[1].numberbits.number<<1 | yyDollar[2].number
 			yyVAL.numberbits.bits = yyDollar[1].numberbits.bits + 1
@@ -592,7 +586,7 @@ yydefault:
 		}
 	case 7:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line syntax.y:81
+		//line syntax.y:82
 		{
 			yyVAL.line.goto0 = new(uint64)
 			yyVAL.line.goto1 = new(uint64)
@@ -600,7 +594,7 @@ yydefault:
 		}
 	case 8:
 		yyDollar = yyS[yypt-8 : yypt+1]
-		//line syntax.y:87
+		//line syntax.y:88
 		{
 			if yyDollar[8].number == 0 {
 				yyVAL.line.goto0 = new(uint64)
@@ -614,55 +608,55 @@ yydefault:
 		}
 	case 9:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line syntax.y:102
+		//line syntax.y:103
 		{
 			yyVAL.expr = NandExpr{yyDollar[1].expr, yyDollar[3].expr}
 		}
 	case 10:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line syntax.y:106
+		//line syntax.y:107
 		{
 			yyVAL.expr = yyDollar[1].expr
 		}
 	case 11:
 		yyDollar = yyS[yypt-4 : yypt+1]
-		//line syntax.y:113
+		//line syntax.y:114
 		{
 			yyVAL.expr = AddrExpr{yyDollar[4].expr}
 		}
 	case 12:
 		yyDollar = yyS[yypt-4 : yypt+1]
-		//line syntax.y:117
+		//line syntax.y:118
 		{
 			yyVAL.expr = NextExpr{yyDollar[4].expr, 0}
 		}
 	case 13:
 		yyDollar = yyS[yypt-4 : yypt+1]
-		//line syntax.y:121
+		//line syntax.y:122
 		{
 			yyVAL.expr = StarExpr{yyDollar[4].expr}
 		}
 	case 14:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line syntax.y:125
+		//line syntax.y:126
 		{
 			yyVAL.expr = yyDollar[1].expr
 		}
 	case 15:
 		yyDollar = yyS[yypt-5 : yypt+1]
-		//line syntax.y:132
+		//line syntax.y:133
 		{
 			yyVAL.expr = yyDollar[3].expr
 		}
 	case 16:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line syntax.y:136
+		//line syntax.y:137
 		{
 			yyVAL.expr = VarExpr(yyDollar[2].numberbits.number)
 		}
 	case 17:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line syntax.y:140
+		//line syntax.y:141
 		{
 			if yyDollar[1].number == 0 {
 				yyVAL.expr = BitExpr(false)
@@ -672,19 +666,19 @@ yydefault:
 		}
 	case 18:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line syntax.y:151
+		//line syntax.y:152
 		{
 			yyVAL.stmt = AssignStmt{yyDollar[1].expr, yyDollar[3].expr}
 		}
 	case 19:
 		yyDollar = yyS[yypt-5 : yypt+1]
-		//line syntax.y:155
+		//line syntax.y:156
 		{
 			yyVAL.stmt = JumpRegisterStmt{yyDollar[5].expr}
 		}
 	case 20:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line syntax.y:159
+		//line syntax.y:160
 		{
 			if yyDollar[2].number == 0 {
 				yyVAL.stmt = PrintStmt(false)
@@ -694,13 +688,13 @@ yydefault:
 		}
 	case 21:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line syntax.y:167
+		//line syntax.y:168
 		{
 			yyVAL.stmt = ReadStmt{}
 		}
 	case 22:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line syntax.y:171
+		//line syntax.y:172
 		{
 			pc := new(uint64)
 			*pc = yyDollar[2].numberbits.number
@@ -710,14 +704,14 @@ yydefault:
 		}
 	case 23:
 		yyDollar = yyS[yypt-5 : yypt+1]
-		//line syntax.y:182
+		//line syntax.y:183
 		{
 			yyVAL.line.number, yyVAL.line.stmt = yyDollar[3].numberbits.number, yyDollar[5].stmt
 			yyVAL.line.goto0, yyVAL.line.goto1 = nil, nil
 		}
 	case 24:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line syntax.y:187
+		//line syntax.y:188
 		{
 			yyVAL.line.number, yyVAL.line.stmt = yyDollar[1].line.number, yyDollar[1].line.stmt
 			yyVAL.line.goto0, yyVAL.line.goto1 = yyDollar[1].line.goto0, yyDollar[1].line.goto1
