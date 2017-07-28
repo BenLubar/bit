@@ -47,6 +47,7 @@ func main() {
 
 		l := &lex{r: bufio.NewReader(f)}
 
+		yyErrorVerbose = true
 		if yyParse(l) != 0 {
 			fmt.Fprintln(os.Stderr, "parsing failed: syntax error")
 			os.Exit(1)

@@ -128,12 +128,12 @@ exit:
 	mov print_bits, %al
 	test %rax, %rax
 	jz .L_exit_exit
-	mov $7, %rbx
-	sub %rax, %rbx
+	mov $7, %rcx
+	sub %rax, %rcx
 	mov print_accum, %al
-	shl %rbx, %rax
+	shl %cl, %rax
 	mov %al, print_accum
-	mov $7, print_bits
+	movb $7, print_bits
 	xor %rax, %rax
 	call print
 .L_exit_exit:
