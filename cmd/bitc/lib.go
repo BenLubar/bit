@@ -125,19 +125,18 @@ read:
 .globl exit
 exit:
 	xor %rax, %rax
-	call print
+	mov print_bits, %al
+	test %rax, %rax
+	jz .L_exit_exit
+	mov $7, %rbx
+	sub %rax, %rbx
+	mov print_accum, %al
+	shl %rbx, %rax
+	mov %al, print_accum
+	mov $7, print_bits
 	xor %rax, %rax
 	call print
-	xor %rax, %rax
-	call print
-	xor %rax, %rax
-	call print
-	xor %rax, %rax
-	call print
-	xor %rax, %rax
-	call print
-	xor %rax, %rax
-	call print
+.L_exit_exit:
 	mov $60, %rax
 	mov $0, %rdi
 	syscall

@@ -59,6 +59,8 @@ func main() {
 
 	prog.FindPointerVariables()
 
+	prog.Optimize()
+
 	f, err := os.Create(*flagOutput)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
