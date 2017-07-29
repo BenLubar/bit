@@ -1,6 +1,4 @@
-package main
-
-import "sort"
+package bitnum
 
 type Number struct {
 	Bits []uint64
@@ -19,7 +17,14 @@ func (n *Number) Uint64() uint64 {
 	if n.Size > 64 {
 		panic("number too big: " + n.String())
 	}
-	return n.Bits[0]
+	return n.Uint64Offset(0)
+}
+
+func (n *Number) Uint64Offset(offset uint64) uint64 {
+	if uint64(len(n.Bits)) <= offset {
+		return 0
+	}
+	return n.Bits[offset]
 }
 
 func (n *Number) SetBit(i uint64, v bool) {
@@ -70,7 +75,7 @@ func (n *Number) String() string {
 	return string(buf[1:])
 }
 
-func (n *Number) shortString() string {
+func (n *Number) ShortString() string {
 	var buf []byte
 
 	for i := n.Size; i > 0; i-- {
@@ -114,59 +119,4 @@ func (n *Number) Less(o *Number) bool {
 	}
 
 	return false
-}
-
-type Numbers []*Number
-
-func (s Numbers) Len() int           { return len(s) }
-func (s Numbers) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
-func (s Numbers) Less(i, j int) bool { return s[i].Less(s[j]) }
-
-func (s Numbers) Search(n *Number) int {
-	return sort.Search(len(s), func(i int) bool {
-		return !s[i].Less(n)
-	})
-}
-
-func (s Numbers) Contains(n *Number) bool {
-	i := s.Search(n)
-	return i < len(s) && s[i].Equal(n)
-}
-
-func (s *Numbers) Add(n *Number) bool {
-	i := s.Search(n)
-	if i < len(*s) && (*s)[i].Equal(n) {
-		return false
-	}
-
-	*s = append(*s, nil)
-	copy((*s)[i+1:], (*s)[i:])
-	(*s)[i] = n
-
-	return true
-}
-
-type NumberMap struct {
-	Keys   Numbers
-	Values []interface{}
-}
-
-func (m *NumberMap) Get(k *Number) (v interface{}, ok bool) {
-	i := m.Keys.Search(k)
-	if i < len(m.Keys) && m.Keys[i].Equal(k) {
-		return m.Values[i], true
-	}
-	return nil, false
-}
-
-func (m *NumberMap) Set(k *Number, v interface{}) {
-	i := m.Keys.Search(k)
-	if i >= len(m.Keys) || !m.Keys[i].Equal(k) {
-		m.Keys = append(m.Keys, nil)
-		m.Values = append(m.Values, nil)
-		copy(m.Keys[i+1:], m.Keys[i:])
-		copy(m.Values[i+1:], m.Values[i:])
-		m.Keys[i] = k
-	}
-	m.Values[i] = v
 }

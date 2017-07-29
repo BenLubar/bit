@@ -1,6 +1,10 @@
 package main
 
-import "log"
+import (
+	"log"
+
+	"github.com/BenLubar/bit/bitnum"
+)
 
 // AssemblyWriter is an interface that is used to write compiler output.
 type AssemblyWriter interface {
@@ -13,17 +17,17 @@ type AssemblyWriter interface {
 	// will define executable code.
 	TextSegment() error
 	// DeclarePointer creates an address-of-a-bit variable.
-	DeclarePointer(n *Number) error
+	DeclarePointer(n *bitnum.Number) error
 	// Start marks the location where code will begin executing.
 	Start() error
 	// DeclareLine marks a line of BIT code.
-	DeclareLine(n *Number) error
+	DeclareLine(n *bitnum.Number) error
 	// Goto jumps to a line depending on the value of the jump register.
 	// Jumping to a nil line number exits the program.
-	Goto(zero, one *Number) error
+	Goto(zero, one *bitnum.Number) error
 	// Read reads one bit from the standard input into the jump register.
 	// If an error occurs, execution will resume on the line number given.
-	Read(eof *Number) error
+	Read(eof *bitnum.Number) error
 	// Print writes the bit in register 0 to the standard output.
 	Print() error
 	// SaveRegister pushes the register onto the stack.
@@ -32,14 +36,14 @@ type AssemblyWriter interface {
 	LoadRegister(register int) error
 	// PointerAddress puts the address of an address-of-a-bit variable into
 	// the register.
-	PointerAddress(register int, n *Number) error
+	PointerAddress(register int, n *bitnum.Number) error
 	// BitAddress puts the address of a bit variable into the register.
-	BitAddress(register int, n *Number) error
+	BitAddress(register int, n *bitnum.Number) error
 	// JumpAddress puts the address of the jump register into the register.
 	JumpAddress(register int) error
 	// PointerValue puts the value of an address-of-a-bit variable into the
 	// register.
-	PointerValue(register int, n *Number) error
+	PointerValue(register int, n *bitnum.Number) error
 	// ReadBit sets the dest register to the bit at the address in the src
 	// register. The registers may be the same.
 	ReadBit(dest, src int) error

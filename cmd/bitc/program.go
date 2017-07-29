@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"log"
 	"os"
+
+	"github.com/BenLubar/bit/bitnum"
 )
 
 type Program struct {
 	Lines       []*Line
-	Pointers    Numbers
-	notPointers Numbers
+	Pointers    bitnum.Numbers
+	notPointers bitnum.Numbers
 }
 
 func (p *Program) String() string {
@@ -24,7 +26,7 @@ func (p *Program) String() string {
 }
 
 func (p *Program) CheckLineNumbers(verbosity int) {
-	var lines NumberMap
+	var lines bitnum.NumberMap
 	for _, l := range p.Lines {
 		if o, ok := lines.Get(l.Num); ok {
 			fmt.Fprintln(os.Stderr, "multiple lines with the same line number:")
@@ -36,7 +38,7 @@ func (p *Program) CheckLineNumbers(verbosity int) {
 		lines.Set(l.Num, l)
 	}
 
-	var seen Numbers
+	var seen bitnum.Numbers
 	queue := []*Line{p.Lines[0]}
 
 	for len(queue) != 0 {

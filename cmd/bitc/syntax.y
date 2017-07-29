@@ -3,6 +3,8 @@
 //go:generate goyacc syntax.y
 
 package main
+
+import "github.com/BenLubar/bit/bitnum"
 %}
 
 %union {
@@ -10,7 +12,7 @@ package main
 	lines   []*Line
 	line    *Line
 	bit     bool
-	num     *Number
+	num     *bitnum.Number
 	stmt    Stmt
 	expr    Expr
 }
@@ -218,7 +220,7 @@ statement: lvalue EQUALS rvalue
 
 number: bit
 {
-	$$ = &Number{}
+	$$ = &bitnum.Number{}
 	$$.Append($1)
 }
 

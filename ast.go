@@ -10,6 +10,7 @@ import (
 	"sort"
 
 	"github.com/BenLubar/bit/bitio"
+	"github.com/BenLubar/bit/bitnum"
 	"github.com/BenLubar/bit/internal/bitdebug"
 )
 
@@ -25,52 +26,9 @@ var (
 
 type context struct {
 	jump   bool
-	memory bitInt
-	bVar   bitInt
+	memory bitnum.Number
+	bVar   bitnum.Number
 	aVar   map[uint64]uint64
-}
-
-type bitInt []uint64
-
-func (i *bitInt) Uint64(offset uint64) uint64 {
-	high, low := offset/64, offset%64
-	if uint64(len(*i)) > high {
-		if uint64(len(*i)) > high+1 {
-			return (*i)[high+1]<<(64-low) | (*i)[high]>>low
-		}
-		return (*i)[high] >> low
-	}
-	return 0
-}
-
-func (i *bitInt) SetBit(offset uint64, n bool) {
-	high, low := offset/64, offset%64
-	if n {
-		if uint64(len(*i)) <= high {
-			l := high
-			l |= l >> 1
-			l |= l >> 2
-			l |= l >> 4
-			l |= l >> 8
-			l |= l >> 16
-			l |= l >> 32
-			l++
-			t := make([]uint64, l)
-			copy(t, *i)
-			*i = t
-		}
-		(*i)[high] |= 1 << low
-	} else if uint64(len(*i)) > high {
-		(*i)[high] &^= 1 << low
-	}
-}
-
-func (i *bitInt) Bit(offset uint64) bool {
-	high, low := offset/64, offset%64
-	if uint64(len(*i)) > high {
-		return (*i)[high]&(1<<low) != 0
-	}
-	return false
 }
 
 type line struct {

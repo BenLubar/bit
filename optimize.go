@@ -516,7 +516,7 @@ func (opt optAddConst) run(in bitio.BitReader, out bitio.BitWriter, ctx *context
 		return
 	}
 
-	n0 := ctx.memory.Uint64(offset) & (1<<opt.width - 1)
+	n0 := ctx.memory.Uint64Offset(offset) & (1<<opt.width - 1)
 	n1 := n0 + opt.right
 	n2 := n1 & (1<<opt.width - 1)
 
@@ -571,7 +571,7 @@ func (opt optPointerAdvance) run(in bitio.BitReader, out bitio.BitWriter, ctx *c
 
 	err = (AssignStmt{
 		Left:  opt.ptr,
-		Right: AddrExpr{VarExpr((ctx.memory.Uint64(offset)&(1<<opt.width-1))*opt.step) + opt.base},
+		Right: AddrExpr{VarExpr((ctx.memory.Uint64Offset(offset)&(1<<opt.width-1))*opt.step) + opt.base},
 	}).run(in, out, ctx)
 	if err != nil {
 		return
@@ -698,7 +698,7 @@ type optPrintByte struct {
 }
 
 func (opt optPrintByte) run(in bitio.BitReader, out bitio.BitWriter, ctx *context) (l *line, err error) {
-	n0 := ctx.bVar.Uint64(uint64(opt.p))
+	n0 := ctx.bVar.Uint64Offset(uint64(opt.p))
 	for i := uint64(0); i < 8; i++ {
 		if n0&1<<i == 0 {
 			_, err = varVal(uint64(opt.p) + i).value(ctx)
@@ -708,7 +708,7 @@ func (opt optPrintByte) run(in bitio.BitReader, out bitio.BitWriter, ctx *contex
 		}
 	}
 
-	b := byte(ctx.memory.Uint64(uint64(opt.p)))
+	b := byte(ctx.memory.Uint64Offset(uint64(opt.p)))
 
 	ctx.jump = b&1 == 1
 
@@ -755,8 +755,8 @@ func (opt optLess) run(in bitio.BitReader, out bitio.BitWriter, ctx *context) (l
 		return
 	}
 
-	left := ctx.memory.Uint64(leftoffset) & (1<<opt.width - 1)
-	right := ctx.memory.Uint64(rightoffset) & (1<<opt.width - 1)
+	left := ctx.memory.Uint64Offset(leftoffset) & (1<<opt.width - 1)
+	right := ctx.memory.Uint64Offset(rightoffset) & (1<<opt.width - 1)
 
 	if left < right {
 		ctx.jump = true

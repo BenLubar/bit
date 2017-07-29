@@ -8,14 +8,16 @@ package main
 import __yyfmt__ "fmt"
 
 //line syntax.y:5
-//line syntax.y:8
+import "github.com/BenLubar/bit/bitnum"
+
+//line syntax.y:10
 type yySymType struct {
 	yys     int
 	program *Program
 	lines   []*Line
 	line    *Line
 	bit     bool
-	num     *Number
+	num     *bitnum.Number
 	stmt    Stmt
 	expr    Expr
 }
@@ -540,7 +542,7 @@ yydefault:
 
 	case 1:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line syntax.y:29
+		//line syntax.y:31
 		{
 			yyVAL.program = &Program{
 				Lines: yyDollar[1].lines,
@@ -549,19 +551,19 @@ yydefault:
 		}
 	case 2:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line syntax.y:37
+		//line syntax.y:39
 		{
 			yyVAL.lines = []*Line{yyDollar[1].line}
 		}
 	case 3:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line syntax.y:42
+		//line syntax.y:44
 		{
 			yyVAL.lines = append(yyDollar[1].lines, yyDollar[2].line)
 		}
 	case 4:
 		yyDollar = yyS[yypt-6 : yypt+1]
-		//line syntax.y:47
+		//line syntax.y:49
 		{
 			yyVAL.line = yyDollar[6].line
 			yyVAL.line.Num = yyDollar[3].num
@@ -569,25 +571,25 @@ yydefault:
 		}
 	case 5:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line syntax.y:54
+		//line syntax.y:56
 		{
 			yyVAL.bit = false
 		}
 	case 6:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line syntax.y:59
+		//line syntax.y:61
 		{
 			yyVAL.bit = true
 		}
 	case 7:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line syntax.y:64
+		//line syntax.y:66
 		{
 			yyVAL.stmt = &ReadStmt{}
 		}
 	case 8:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line syntax.y:69
+		//line syntax.y:71
 		{
 			if !yylex.(*lex).ext {
 				yylex.Error("READ with a line number is an extension (run bitc with the -ext option)")
@@ -598,7 +600,7 @@ yydefault:
 		}
 	case 9:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line syntax.y:79
+		//line syntax.y:81
 		{
 			yyVAL.stmt = &PrintStmt{
 				Bit: yyDollar[2].bit,
@@ -606,13 +608,13 @@ yydefault:
 		}
 	case 10:
 		yyDollar = yyS[yypt-0 : yypt+1]
-		//line syntax.y:86
+		//line syntax.y:88
 		{
 			yyVAL.line = &Line{}
 		}
 	case 11:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line syntax.y:91
+		//line syntax.y:93
 		{
 			yyVAL.line = &Line{
 				Zero: yyDollar[2].num,
@@ -621,7 +623,7 @@ yydefault:
 		}
 	case 12:
 		yyDollar = yyS[yypt-8 : yypt+1]
-		//line syntax.y:99
+		//line syntax.y:101
 		{
 			yyVAL.line = &Line{
 				Zero: yyDollar[2].num,
@@ -629,7 +631,7 @@ yydefault:
 		}
 	case 13:
 		yyDollar = yyS[yypt-8 : yypt+1]
-		//line syntax.y:106
+		//line syntax.y:108
 		{
 			yyVAL.line = &Line{
 				One: yyDollar[2].num,
@@ -637,7 +639,7 @@ yydefault:
 		}
 	case 14:
 		yyDollar = yyS[yypt-16 : yypt+1]
-		//line syntax.y:113
+		//line syntax.y:115
 		{
 			yyVAL.line = &Line{
 				Zero: yyDollar[2].num,
@@ -646,7 +648,7 @@ yydefault:
 		}
 	case 15:
 		yyDollar = yyS[yypt-16 : yypt+1]
-		//line syntax.y:121
+		//line syntax.y:123
 		{
 			yyVAL.line = &Line{
 				Zero: yyDollar[10].num,
@@ -655,7 +657,7 @@ yydefault:
 		}
 	case 16:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line syntax.y:129
+		//line syntax.y:131
 		{
 			yyVAL.expr = &UnknownVariable{
 				Num: yyDollar[2].num,
@@ -663,19 +665,19 @@ yydefault:
 		}
 	case 17:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line syntax.y:136
+		//line syntax.y:138
 		{
 			yyVAL.expr = &JumpRegister{}
 		}
 	case 18:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line syntax.y:141
+		//line syntax.y:143
 		{
 			yyVAL.expr = yyDollar[1].expr
 		}
 	case 19:
 		yyDollar = yyS[yypt-4 : yypt+1]
-		//line syntax.y:146
+		//line syntax.y:148
 		{
 			if !yyDollar[4].expr.Pointer() {
 				yylex.Error("not a pointer: " + yyDollar[4].expr.String())
@@ -687,7 +689,7 @@ yydefault:
 		}
 	case 20:
 		yyDollar = yyS[yypt-4 : yypt+1]
-		//line syntax.y:157
+		//line syntax.y:159
 		{
 			if !yyDollar[4].expr.Pointer() {
 				yylex.Error("not a pointer: " + yyDollar[4].expr.String())
@@ -699,7 +701,7 @@ yydefault:
 		}
 	case 21:
 		yyDollar = yyS[yypt-4 : yypt+1]
-		//line syntax.y:168
+		//line syntax.y:170
 		{
 			if !yyDollar[4].expr.Addressable() {
 				yylex.Error("not addressable: " + yyDollar[4].expr.String())
@@ -710,7 +712,7 @@ yydefault:
 		}
 	case 22:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line syntax.y:178
+		//line syntax.y:180
 		{
 			if !yyDollar[1].expr.Value() {
 				yylex.Error("not a value: " + yyDollar[1].expr.String())
@@ -725,19 +727,19 @@ yydefault:
 		}
 	case 23:
 		yyDollar = yyS[yypt-5 : yypt+1]
-		//line syntax.y:192
+		//line syntax.y:194
 		{
 			yyVAL.expr = yyDollar[3].expr
 		}
 	case 24:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line syntax.y:197
+		//line syntax.y:199
 		{
 			yyVAL.expr = yyDollar[1].expr
 		}
 	case 25:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line syntax.y:202
+		//line syntax.y:204
 		{
 			yyVAL.expr = &BitValue{
 				Bit: yyDollar[1].bit,
@@ -745,7 +747,7 @@ yydefault:
 		}
 	case 26:
 		yyDollar = yyS[yypt-3 : yypt+1]
-		//line syntax.y:209
+		//line syntax.y:211
 		{
 			if (!yyDollar[1].expr.Pointer() || !yyDollar[3].expr.Pointer()) && (!yyDollar[1].expr.Value() || !yyDollar[3].expr.Value()) {
 				yylex.Error("invalid assignment: " + yyDollar[1].expr.String() + " EQUALS " + yyDollar[3].expr.String())
@@ -757,14 +759,14 @@ yydefault:
 		}
 	case 27:
 		yyDollar = yyS[yypt-1 : yypt+1]
-		//line syntax.y:220
+		//line syntax.y:222
 		{
-			yyVAL.num = &Number{}
+			yyVAL.num = &bitnum.Number{}
 			yyVAL.num.Append(yyDollar[1].bit)
 		}
 	case 28:
 		yyDollar = yyS[yypt-2 : yypt+1]
-		//line syntax.y:226
+		//line syntax.y:228
 		{
 			yyVAL.num = yyDollar[1].num
 			yyVAL.num.Append(yyDollar[2].bit)

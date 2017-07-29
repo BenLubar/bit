@@ -1,12 +1,16 @@
 package main
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/BenLubar/bit/bitnum"
+)
 
 type Line struct {
-	Num  *Number
+	Num  *bitnum.Number
 	Stmt Stmt
-	Zero *Number
-	One  *Number
+	Zero *bitnum.Number
+	One  *bitnum.Number
 
 	gotoZero, gotoOne *Line
 }
@@ -36,7 +40,7 @@ type Stmt interface {
 }
 
 type ReadStmt struct {
-	EOFLine *Number // extension
+	EOFLine *bitnum.Number // extension
 	gotoEOF *Line
 }
 
@@ -75,7 +79,7 @@ type Expr interface {
 }
 
 type UnknownVariable struct {
-	Num *Number
+	Num *bitnum.Number
 }
 
 func (*UnknownVariable) Pointer() bool     { return true }
@@ -84,7 +88,7 @@ func (*UnknownVariable) Addressable() bool { return true }
 func (v *UnknownVariable) String() string  { return "VARIABLE " + v.Num.String() }
 
 type BitVariable struct {
-	Num *Number
+	Num *bitnum.Number
 }
 
 func (*BitVariable) Pointer() bool     { return false }
@@ -93,7 +97,7 @@ func (*BitVariable) Addressable() bool { return true }
 func (v *BitVariable) String() string  { return "VARIABLE " + v.Num.String() }
 
 type PointerVariable struct {
-	Num *Number
+	Num *bitnum.Number
 }
 
 func (*PointerVariable) Pointer() bool     { return true }

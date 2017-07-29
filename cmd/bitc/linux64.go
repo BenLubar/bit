@@ -4,19 +4,21 @@ import (
 	"fmt"
 	"io"
 	"log"
+
+	"github.com/BenLubar/bit/bitnum"
 )
 
 const linux64Runtime = `
 .data
-start_of_heap:
+.L_start_of_heap:
 	.quad 0
-end_of_heap:
+.L_end_of_heap:
 	.quad 0
 
 .text
 .globl var
 var:
-	mov start_of_heap, %rbx
+	mov .L_start_of_heap, %rbx
 	test %rbx, %rbx
 	jnz .L_var_ready
 	push %rax
@@ -24,8 +26,8 @@ var:
 	mov $0xc, %rax
 	syscall
 	mov %rax, %rbx
-	mov %rax, start_of_heap
-	mov %rax, end_of_heap
+	mov %rax, .L_start_of_heap
+	mov %rax, .L_end_of_heap
 	pop %rax
 .L_var_ready:
 	add %rbx, %rax
@@ -35,7 +37,7 @@ var:
 .text
 .globl ensure
 ensure:
-	mov end_of_heap, %rdi
+	mov .L_end_of_heap, %rdi
 	cmp %rdi, %rax
 	jl .L_ensure_ret
 	push %rax
@@ -46,7 +48,7 @@ ensure:
 	push %rdi
 	mov $0xc, %rax
 	syscall
-	mov %rax, end_of_heap
+	mov %rax, .L_end_of_heap
 	pop %rcx
 	pop %rdi
 	xor %rax, %rax
@@ -57,9 +59,9 @@ ensure:
 	ret
 
 .data
-print_bits:
+.L_print_bits:
 	.byte 0
-print_accum:
+.L_print_accum:
 	.byte 0
 
 .text
@@ -67,58 +69,58 @@ print_accum:
 print:
 	xor %rbx, %rbx
 	xor %rcx, %rcx
-	mov print_bits, %bl
-	mov print_accum, %cl
+	mov .L_print_bits, %bl
+	mov .L_print_accum, %cl
 	shl $1, %rcx
 	inc %rbx
 	or %rax, %rcx
-	mov %cl, print_accum
+	mov %cl, .L_print_accum
 	cmp $8, %rbx
 	je .L_print_out
-	mov %bl, print_bits
+	mov %bl, .L_print_bits
 	ret
 .L_print_out:
 	mov $1, %rax
 	mov $1, %rdi
-	mov $print_accum, %rsi
+	mov $.L_print_accum, %rsi
 	mov $1, %rdx
 	syscall
-	movb $0, print_bits
-	movb $0, print_accum
+	movb $0, .L_print_bits
+	movb $0, .L_print_accum
 	ret
 
 .data
-read_bits:
+.L_read_bits:
 	.byte 0
-read_accum:
+.L_read_accum:
 	.byte 0
 
 .text
 .globl read
 read:
 	xor %rbx, %rbx
-	mov read_bits, %bl
+	mov .L_read_bits, %bl
 	test %rbx, %rbx
 	jz .L_read_in
 	dec %rbx
-	mov %bl, read_bits
-	mov read_accum, %bl
+	mov %bl, .L_read_bits
+	mov .L_read_accum, %bl
 	mov %rbx, %rax
 	and $1, %rax
 	shr $1, %rbx
-	mov %bl, read_accum
+	mov %bl, .L_read_accum
 	ret
 .L_read_in:
 	push %rax
 	mov $0, %rax
 	mov $0, %rdi
-	mov $read_accum, %rsi
+	mov $.L_read_accum, %rsi
 	mov $1, %rdx
 	syscall
 	test %rax, %rax
 	jz .L_read_fail
 	pop %rax
-	movb $8, read_bits
+	movb $8, .L_read_bits
 	jmp read
 .L_read_fail:
 	pop %rax
@@ -131,15 +133,15 @@ read:
 .globl exit
 exit:
 	xor %rax, %rax
-	mov print_bits, %al
+	mov .L_print_bits, %al
 	test %rax, %rax
 	jz .L_exit_exit
 	mov $7, %rcx
 	sub %rax, %rcx
-	mov print_accum, %al
+	mov .L_print_accum, %al
 	shl %cl, %rax
-	mov %al, print_accum
-	movb $7, print_bits
+	mov %al, .L_print_accum
+	movb $7, .L_print_bits
 	xor %rax, %rax
 	call print
 .L_exit_exit:
@@ -172,8 +174,8 @@ func (w Linux64AssemblyWriter) TextSegment() error {
 	return err
 }
 
-func (w Linux64AssemblyWriter) DeclarePointer(n *Number) error {
-	_, err := fmt.Fprintf(w.W, "ptr_%s:\n\t.quad 0\n", n.shortString())
+func (w Linux64AssemblyWriter) DeclarePointer(n *bitnum.Number) error {
+	_, err := fmt.Fprintf(w.W, "ptr_%s:\n\t.quad 0\n", n.ShortString())
 	return err
 }
 
@@ -182,35 +184,35 @@ func (w Linux64AssemblyWriter) Start() error {
 	return err
 }
 
-func (w Linux64AssemblyWriter) DeclareLine(n *Number) error {
-	_, err := fmt.Fprintf(w.W, ".L_l%s:\n", n.shortString())
+func (w Linux64AssemblyWriter) DeclareLine(n *bitnum.Number) error {
+	_, err := fmt.Fprintf(w.W, ".L_l%s:\n", n.ShortString())
 	return err
 }
 
-func (w Linux64AssemblyWriter) Goto(zero, one *Number) error {
+func (w Linux64AssemblyWriter) Goto(zero, one *bitnum.Number) error {
 	if zero != nil && one != nil {
 		if zero.Equal(one) {
-			_, err := fmt.Fprintf(w.W, "\tjmp .L_l%s\n", zero.shortString())
+			_, err := fmt.Fprintf(w.W, "\tjmp .L_l%s\n", zero.ShortString())
 			return err
 		}
-		_, err := fmt.Fprintf(w.W, "\tmov jump_register, %%al\n\ttest %%al, %%al\n\tjz .L_l%s\n\tjmp .L_l%s\n", zero.shortString(), one.shortString())
+		_, err := fmt.Fprintf(w.W, "\tmov jump_register, %%al\n\ttest %%al, %%al\n\tjz .L_l%s\n\tjmp .L_l%s\n", zero.ShortString(), one.ShortString())
 		return err
 	}
 	if zero != nil {
-		_, err := fmt.Fprintf(w.W, "\tmov jump_register, %%al\n\ttest %%al, %%al\n\tjz .L_l%s\n\tcall exit\n", zero.shortString())
+		_, err := fmt.Fprintf(w.W, "\tmov jump_register, %%al\n\ttest %%al, %%al\n\tjz .L_l%s\n\tcall exit\n", zero.ShortString())
 		return err
 	}
 	if one != nil {
-		_, err := fmt.Fprintf(w.W, "\tmov jump_register, %%al\n\ttest %%al, %%al\n\tjnz .L_l%s\n\tcall exit\n", one.shortString())
+		_, err := fmt.Fprintf(w.W, "\tmov jump_register, %%al\n\ttest %%al, %%al\n\tjnz .L_l%s\n\tcall exit\n", one.ShortString())
 		return err
 	}
 	_, err := io.WriteString(w.W, "\tcall exit\n")
 	return err
 }
 
-func (w Linux64AssemblyWriter) Read(eof *Number) error {
+func (w Linux64AssemblyWriter) Read(eof *bitnum.Number) error {
 	if eof != nil {
-		if _, err := fmt.Fprintf(w.W, "\tmov $.L_l%s, %%rax\n", eof.shortString()); err != nil {
+		if _, err := fmt.Fprintf(w.W, "\tmov $.L_l%s, %%rax\n", eof.ShortString()); err != nil {
 			return err
 		}
 	} else {
@@ -257,12 +259,12 @@ func (w Linux64AssemblyWriter) WriteBit(dest, src int) error {
 	return err
 }
 
-func (w Linux64AssemblyWriter) PointerAddress(reg int, n *Number) error {
-	_, err := fmt.Fprintf(w.W, "\tmov $ptr_%s, %%r%cx\n", n.shortString(), reg+'a')
+func (w Linux64AssemblyWriter) PointerAddress(reg int, n *bitnum.Number) error {
+	_, err := fmt.Fprintf(w.W, "\tmov $ptr_%s, %%r%cx\n", n.ShortString(), reg+'a')
 	return err
 }
 
-func (w Linux64AssemblyWriter) BitAddress(reg int, n *Number) error {
+func (w Linux64AssemblyWriter) BitAddress(reg int, n *bitnum.Number) error {
 	if reg != 0 {
 		log.Panicln("internal compiler error: unsupported BitAddress register for Linux64AssemblyWriter:", reg)
 	}
@@ -270,8 +272,8 @@ func (w Linux64AssemblyWriter) BitAddress(reg int, n *Number) error {
 	return err
 }
 
-func (w Linux64AssemblyWriter) PointerValue(reg int, n *Number) error {
-	_, err := fmt.Fprintf(w.W, "\tmov ptr_%s, %%r%cx\n", n.shortString(), reg+'a')
+func (w Linux64AssemblyWriter) PointerValue(reg int, n *bitnum.Number) error {
+	_, err := fmt.Fprintf(w.W, "\tmov ptr_%s, %%r%cx\n", n.ShortString(), reg+'a')
 	return err
 }
 
