@@ -275,7 +275,7 @@ func (w Linux64AssemblyWriter) PointerValue(reg int, n *Number) error {
 	return err
 }
 
-func (w Linux64AssemblyWriter) ReadBitPointer(dest, src int) error {
+func (w Linux64AssemblyWriter) ReadBit(dest, src int) error {
 	_, err := fmt.Fprintf(w.W, "\tmov (%%r%cx), %%%cl\n\tand $1, %%r%cx\n", src+'a', dest+'a', dest+'a')
 	return err
 }
