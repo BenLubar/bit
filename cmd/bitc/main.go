@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 )
 
 func main() {
@@ -13,6 +14,8 @@ func main() {
 		flag.PrintDefaults()
 	}
 	flagOutput := flag.String("o", "", "output filename. by default, this is the input filename with .s at the end.")
+	flagExtensions := flag.Bool("ext", false, "allow some BIT extensions")
+	flagOptimize := flag.Bool("opt", false, "optimize generated assembly code")
 	flag.Parse()
 
 	if flag.NArg() != 1 {
@@ -22,7 +25,7 @@ func main() {
 	}
 
 	if *flagOutput == "" {
-		*flagOutput = flag.Arg(0) + ".s"
+		*flagOutput = strings.TrimSuffix(flag.Arg(0), ".bit") + ".s"
 	}
 
 	var prog *Program
@@ -45,7 +48,7 @@ func main() {
 		}
 		defer f.Close()
 
-		l := &lex{r: bufio.NewReader(f)}
+		l := &lex{r: bufio.NewReader(f), ext: *flagExtensions}
 
 		yyErrorVerbose = true
 		if yyParse(l) != 0 {
@@ -60,7 +63,9 @@ func main() {
 
 	prog.FindPointerVariables()
 
-	prog.Optimize()
+	if *flagOptimize {
+		prog.Optimize()
+	}
 
 	f, err := os.Create(*flagOutput)
 	if err != nil {
@@ -70,7 +75,7 @@ func main() {
 	}
 	defer f.Close()
 
-	err = prog.Compile(f)
+	err = prog.Compile(Linux64AssemblyWriter{f})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)

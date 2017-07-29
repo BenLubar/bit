@@ -67,7 +67,9 @@ statement: READ
 
 statement: READ number
 {
-	// extension
+	if !yylex.(*lex).ext {
+		yylex.Error("READ with a line number is an extension (run bitc with the -ext option)")
+	}
 	$$ = &ReadStmt{
 		EOFLine: $2,
 	}

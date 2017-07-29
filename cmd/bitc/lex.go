@@ -9,6 +9,7 @@ import (
 
 type lex struct {
 	r       *bufio.Reader
+	ext     bool
 	program *Program
 	line    int
 	col     int

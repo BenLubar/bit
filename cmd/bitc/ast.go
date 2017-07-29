@@ -1,5 +1,7 @@
 package main
 
+import "strings"
+
 type Line struct {
 	Num  *Number
 	Stmt Stmt
@@ -119,10 +121,7 @@ func (v *ValueAt) String() string {
 	if v.Offset == 0 {
 		return "THE VALUE AT " + v.Target.String()
 	}
-	if v.Offset == 1 {
-		return "THE VALUE BEYOND " + v.Target.String()
-	}
-	panic("invalid offset")
+	return strings.Repeat("THE VALUE BEYOND THE ADDRESS OF ", v.Offset-1) + "THE VALUE BEYOND " + v.Target.String()
 }
 
 type AddressOf struct {
