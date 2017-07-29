@@ -4,9 +4,17 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"io"
 	"os"
+	"sort"
 	"strings"
 )
+
+var osArch = map[[2]string]func(w io.Writer) AssemblyWriter{
+	{"linux", "amd64"}: func(w io.Writer) AssemblyWriter {
+		return Linux64AssemblyWriter{w}
+	},
+}
 
 func main() {
 	flag.Usage = func() {
@@ -17,6 +25,8 @@ func main() {
 	flagExtensions := flag.Bool("ext", false, "allow some BIT extensions")
 	flagOptimize := flag.Bool("opt", false, "optimize generated assembly code")
 	flagVerbose := flag.Int("v", 0, "logging verbosity")
+	flagOS := flag.String("os", "linux", "the operating system to generate assembly for")
+	flagArch := flag.String("arch", "amd64", "the processor architecture to generate assembly for")
 	flag.Parse()
 
 	if flag.NArg() != 1 {
@@ -82,18 +92,32 @@ func main() {
 		prog.Optimize(*flagVerbose)
 	}
 
-	f, err := os.Create(*flagOutput)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(2)
-		return
-	}
-	defer f.Close()
+	if a, ok := osArch[[2]string{*flagOS, *flagArch}]; ok {
+		f, err := os.Create(*flagOutput)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(2)
+			return
+		}
+		defer f.Close()
 
-	err = prog.Compile(Linux64AssemblyWriter{f})
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(2)
+		err = prog.Compile(a(f))
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(2)
+			return
+		}
+	} else {
+		fmt.Fprintln(os.Stderr, "unsupported operating system or architecture:", *flagOS+"/"+*flagArch)
+		var supported []string
+		for k := range osArch {
+			supported = append(supported, k[0]+"/"+k[1])
+		}
+		sort.Strings(supported)
+		for _, s := range supported {
+			fmt.Fprintln(os.Stderr, "supported:", s)
+		}
+		os.Exit(1)
 		return
 	}
 }
