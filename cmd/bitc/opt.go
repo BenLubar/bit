@@ -1,6 +1,6 @@
 package main
 
-func (p *Program) Optimize() {
+func (p *Program) Optimize(verbosity int) {
 	p.optimizeOffsets()
 }
 

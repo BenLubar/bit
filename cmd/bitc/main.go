@@ -16,6 +16,7 @@ func main() {
 	flagOutput := flag.String("o", "", "output filename. by default, this is the input filename with .s at the end.")
 	flagExtensions := flag.Bool("ext", false, "allow some BIT extensions")
 	flagOptimize := flag.Bool("opt", false, "optimize generated assembly code")
+	flagVerbose := flag.Int("v", 0, "logging verbosity")
 	flag.Parse()
 
 	if flag.NArg() != 1 {
@@ -48,23 +49,37 @@ func main() {
 		}
 		defer f.Close()
 
+		if *flagVerbose > 2 {
+			yyDebug = *flagVerbose - 2
+			realStdout := os.Stdout
+			os.Stdout = os.Stderr
+			defer func() {
+				os.Stdout = realStdout
+			}()
+		}
+
 		l := &lex{r: bufio.NewReader(f), ext: *flagExtensions}
 
 		yyErrorVerbose = true
 		if yyParse(l) != 0 {
 			fmt.Fprintln(os.Stderr, "parsing failed: syntax error")
 			os.Exit(1)
+			return
 		}
 
 		prog = l.program
 	}()
 
-	prog.CheckLineNumbers()
+	if *flagVerbose >= 1 {
+		fmt.Fprintln(os.Stderr, "parsed", len(prog.Lines), "lines")
+	}
 
-	prog.FindPointerVariables()
+	prog.CheckLineNumbers(*flagVerbose)
+
+	prog.FindPointerVariables(*flagVerbose)
 
 	if *flagOptimize {
-		prog.Optimize()
+		prog.Optimize(*flagVerbose)
 	}
 
 	f, err := os.Create(*flagOutput)

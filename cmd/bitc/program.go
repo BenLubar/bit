@@ -23,7 +23,7 @@ func (p *Program) String() string {
 	return string(buf[1:])
 }
 
-func (p *Program) CheckLineNumbers() {
+func (p *Program) CheckLineNumbers(verbosity int) {
 	var lines NumberMap
 	for _, l := range p.Lines {
 		if o, ok := lines.Get(l.Num); ok {
@@ -83,7 +83,7 @@ func (p *Program) CheckLineNumbers() {
 		}
 	}
 
-	/*if len(lines.Keys) != len(seen) {
+	if verbosity >= 2 && len(lines.Keys) != len(seen) {
 		fmt.Fprintln(os.Stderr, "unreachable code:")
 		for _, v := range lines.Values {
 			line := v.(*Line)
@@ -91,11 +91,10 @@ func (p *Program) CheckLineNumbers() {
 				fmt.Fprintln(os.Stderr, line)
 			}
 		}
-		os.Exit(1)
-	}*/
+	}
 }
 
-func (p *Program) FindPointerVariables() {
+func (p *Program) FindPointerVariables(verbosity int) {
 	anyIdentified, anyUnknown := true, true
 	for anyIdentified {
 		anyIdentified, anyUnknown = false, false
@@ -132,6 +131,10 @@ func (p *Program) FindPointerVariables() {
 
 	if anyUnknown {
 		log.Panicln("could not identify all variables")
+	}
+
+	if verbosity >= 1 {
+		fmt.Fprintln(os.Stderr, "identified", len(p.Pointers), "pointer and", len(p.notPointers), "bit variables")
 	}
 
 	return
@@ -174,6 +177,8 @@ func (p *Program) findPointerVariables(expr *Expr, ptr, val, guess bool) (bool, 
 		return lefti || righti, leftu || rightu
 	case *Parenthesis:
 		return p.findPointerVariables(&e.Inner, ptr, val, guess)
+	default:
+		log.Panicln("internal compiler error: unhandled expression:", e)
+		panic("unreachable")
 	}
-	panic("unreachable")
 }
