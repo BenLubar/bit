@@ -21,10 +21,18 @@ func (n *Number) Uint64() uint64 {
 }
 
 func (n *Number) Uint64Offset(offset uint64) uint64 {
-	if uint64(len(n.Bits)) <= offset {
+	if n.Size <= offset {
 		return 0
 	}
-	return n.Bits[offset]
+	words, bits := offset/64, offset%64
+	var high, low uint64
+	if words < uint64(len(n.Bits)) {
+		low = n.Bits[offset/64]
+	}
+	if bits != 0 && words+1 < uint64(len(n.Bits)) {
+		high = n.Bits[offset/64+1]
+	}
+	return high<<(64-bits) | low>>bits
 }
 
 func (n *Number) SetBit(i uint64, v bool) {
