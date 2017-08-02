@@ -22,7 +22,7 @@ var:
 	test %rbx, %rbx
 	jnz .L_var_ready
 	push %rax
-	mov $_end, %rdi
+	xor %rdi, %rdi
 	mov $0xc, %rax
 	syscall
 	mov %rax, %rbx

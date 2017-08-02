@@ -11,6 +11,9 @@ import (
 )
 
 var osArch = map[[2]string]func(w io.Writer) AssemblyWriter{
+	{"linux", "386"}: func(w io.Writer) AssemblyWriter {
+		return Linux32AssemblyWriter{w}
+	},
 	{"linux", "amd64"}: func(w io.Writer) AssemblyWriter {
 		return Linux64AssemblyWriter{w}
 	},
