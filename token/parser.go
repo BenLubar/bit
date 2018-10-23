@@ -25,7 +25,7 @@ type Parser struct {
 }
 
 // ErrSyntax is returned by Parser methods when a token is truncated or invalid.
-var ErrSyntax = errors.New("bit2017/token: syntax error")
+var ErrSyntax = errors.New("bit/token: syntax error")
 
 // ErrInvalidChar is returned by Parser methods when a character that is not an
 // uppercase ASCII letter or a space is written.
@@ -35,7 +35,7 @@ type ErrInvalidChar struct {
 
 // Error implements the error interface.
 func (err ErrInvalidChar) Error() string {
-	return "bit2017/token: invalid character: " + strconv.QuoteRune(err.Char)
+	return "bit/token: invalid character: " + strconv.QuoteRune(err.Char)
 }
 
 // Write wraps the WriteByte method of Parser.
@@ -73,10 +73,6 @@ func (p *Parser) write(c byte) error {
 			p.index = 0
 			return ErrSyntax
 		}
-
-		for p.index < len(p.state.rest) && p.state.rest[p.index] == ' ' {
-			p.index++
-		}
 	} else {
 		if p.state.choice[c-'A'] == (state{}) {
 			p.state = nil
@@ -88,7 +84,11 @@ func (p *Parser) write(c byte) error {
 		p.index = 0
 	}
 
-	if p.index == len(p.state.rest) {
+	for p.index < len(p.state.rest) && p.state.rest[p.index] == ' ' {
+		p.index++
+	}
+
+	if p.index == len(p.state.rest) && p.state.choice == nil {
 		p.Tokens = append(p.Tokens, p.state.token)
 		p.state = nil
 		p.index = 0

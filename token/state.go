@@ -25,8 +25,16 @@ var parser = state{
 			token: Beyond,
 		},
 		'C' - 'A': {
-			rest:  "LOSE",
-			token: Close,
+			choice: &[26]state{
+				'L' - 'A': {
+					rest:  "OSE",
+					token: Close,
+				},
+				'O' - 'A': {
+					rest:  "DE",
+					token: Code,
+				},
+			},
 		},
 		'E' - 'A': {
 			rest:  "QUALS",

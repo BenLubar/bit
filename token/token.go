@@ -1,3 +1,4 @@
+// Package token implements tokenization of BIT code.
 package token
 
 // Token represents a word or pair of words in the BIT language.
@@ -11,6 +12,7 @@ const (
 	At
 	Beyond
 	Close
+	Code
 	Equals
 	Goto
 	If
@@ -44,6 +46,7 @@ var names = [...]string{
 	At:           "AT",
 	Beyond:       "BEYOND",
 	Close:        "CLOSE",
+	Code:         "CODE",
 	Equals:       "EQUALS",
 	Goto:         "GOTO",
 	If:           "IF",

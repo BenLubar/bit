@@ -1,5 +1,0 @@
-class Main() extends IO() {
-	{
-		out("Hello, World!\n")
-	};
-}
