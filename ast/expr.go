@@ -2,10 +2,15 @@ package ast
 
 // Expr is the interface all expressions implement.
 type Expr interface {
+	// CanVal returns true if the expression can be read as BIT value.
 	CanVal() bool
+	// CanAddr returns true if the expression is an addressable BIT value.
 	CanAddr() bool
+	// CanDeref returns true if the expression is a pointer value.
 	CanDeref() bool
+	// CanAssign returns true if the expression points to a mutable value.
 	CanAssign() bool
+	// String implements fmt.Stringer.
 	String() string
 	expr()
 }
