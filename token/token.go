@@ -8,7 +8,7 @@ type Token uint8
 const (
 	_ Token = iota
 
-	Address
+	AddressOf
 	At
 	Beyond
 	Close
@@ -42,7 +42,7 @@ func (t Token) String() string {
 }
 
 var names = [...]string{
-	Address:      "ADDRESS",
+	AddressOf:    "ADDRESS OF",
 	At:           "AT",
 	Beyond:       "BEYOND",
 	Close:        "CLOSE",

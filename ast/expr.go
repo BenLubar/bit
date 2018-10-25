@@ -2,18 +2,25 @@ package ast
 
 // Expr is the interface all expressions implement.
 type Expr interface {
-	// CanVal returns true if the expression can be read as BIT value.
-	CanVal() bool
-	// CanAddr returns true if the expression is an addressable BIT value.
-	CanAddr() bool
-	// CanDeref returns true if the expression is a pointer value.
-	CanDeref() bool
-	// CanAssign returns true if the expression points to a mutable value.
-	CanAssign() bool
-	// String implements fmt.Stringer.
+	canVal() bool
+	canAddr() bool
+	canDeref() bool
+	canAssign() bool
 	String() string
 	expr()
 }
+
+// CanVal returns true if the expression can be read as BIT value.
+func CanVal(expr Expr) bool { return expr.canVal() }
+
+// CanAddr returns true if the expression is an addressable BIT value.
+func CanAddr(expr Expr) bool { return expr.canAddr() }
+
+// CanDeref returns true if the expression is a pointer value.
+func CanDeref(expr Expr) bool { return expr.canDeref() }
+
+// CanAssign returns true if the expression points to a mutable value.
+func CanAssign(expr Expr) bool { return expr.canAssign() }
 
 // ValueAt is the THE VALUE AT operator. It can be used on pointers,
 // either stored in a variable or from the THE ADDRESS OF operator.
@@ -60,34 +67,34 @@ type Variable struct {
 type JumpRegister struct {
 }
 
-func (*ValueAt) CanVal() bool         { return true }
-func (*ValueBeyond) CanVal() bool     { return true }
-func (*AddressOf) CanVal() bool       { return false }
-func (*Nand) CanVal() bool            { return true }
-func (*Constant) CanVal() bool        { return true }
-func (*Variable) CanVal() bool        { return true }
-func (*JumpRegister) CanVal() bool    { return false }
-func (*ValueAt) CanAddr() bool        { return true }
-func (*ValueBeyond) CanAddr() bool    { return true }
-func (*AddressOf) CanAddr() bool      { return false }
-func (*Nand) CanAddr() bool           { return false }
-func (*Constant) CanAddr() bool       { return false }
-func (*Variable) CanAddr() bool       { return true }
-func (*JumpRegister) CanAddr() bool   { return false }
-func (*ValueAt) CanDeref() bool       { return false }
-func (*ValueBeyond) CanDeref() bool   { return false }
-func (*AddressOf) CanDeref() bool     { return true }
-func (*Nand) CanDeref() bool          { return false }
-func (*Constant) CanDeref() bool      { return false }
-func (*Variable) CanDeref() bool      { return true }
-func (*JumpRegister) CanDeref() bool  { return false }
-func (*ValueAt) CanAssign() bool      { return true }
-func (*ValueBeyond) CanAssign() bool  { return true }
-func (*AddressOf) CanAssign() bool    { return false }
-func (*Nand) CanAssign() bool         { return false }
-func (*Constant) CanAssign() bool     { return false }
-func (*Variable) CanAssign() bool     { return true }
-func (*JumpRegister) CanAssign() bool { return true }
+func (*ValueAt) canVal() bool         { return true }
+func (*ValueBeyond) canVal() bool     { return true }
+func (*AddressOf) canVal() bool       { return false }
+func (*Nand) canVal() bool            { return true }
+func (*Constant) canVal() bool        { return true }
+func (*Variable) canVal() bool        { return true }
+func (*JumpRegister) canVal() bool    { return false }
+func (*ValueAt) canAddr() bool        { return true }
+func (*ValueBeyond) canAddr() bool    { return true }
+func (*AddressOf) canAddr() bool      { return false }
+func (*Nand) canAddr() bool           { return false }
+func (*Constant) canAddr() bool       { return false }
+func (*Variable) canAddr() bool       { return true }
+func (*JumpRegister) canAddr() bool   { return false }
+func (*ValueAt) canDeref() bool       { return false }
+func (*ValueBeyond) canDeref() bool   { return false }
+func (*AddressOf) canDeref() bool     { return true }
+func (*Nand) canDeref() bool          { return false }
+func (*Constant) canDeref() bool      { return false }
+func (*Variable) canDeref() bool      { return true }
+func (*JumpRegister) canDeref() bool  { return false }
+func (*ValueAt) canAssign() bool      { return true }
+func (*ValueBeyond) canAssign() bool  { return true }
+func (*AddressOf) canAssign() bool    { return false }
+func (*Nand) canAssign() bool         { return false }
+func (*Constant) canAssign() bool     { return false }
+func (*Variable) canAssign() bool     { return true }
+func (*JumpRegister) canAssign() bool { return true }
 func (v *ValueAt) String() string     { return "THE VALUE AT " + v.Ptr.String() }
 func (v *ValueBeyond) String() string { return "THE VALUE BEYOND " + v.Ptr.String() }
 func (a *AddressOf) String() string   { return "THE ADDRESS OF " + a.Val.String() }

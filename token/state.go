@@ -11,8 +11,8 @@ var parser = state{
 		'A' - 'A': {
 			choice: &[26]state{
 				'D' - 'A': {
-					rest:  "DRESS",
-					token: Address,
+					rest:  "DRESS OF",
+					token: AddressOf,
 				},
 				'T' - 'A': {
 					rest:  "",
