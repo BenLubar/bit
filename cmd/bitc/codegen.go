@@ -30,25 +30,51 @@ func codeGen(w io.Writer, semProg *semanticProgram) {
 	}
 
 	printf(`.text
+.Lline_0:
+	jmp exit
 .globl _start
 _start:
 	xor %%edx, %%edx
-	jmp .Lline_%d
-.Lline_0:
-	jmp exit
-`, semProg.start)
+`)
 
-	for i, line := range semProg.lines {
-		if i == 0 {
-			continue
+	wroteLines := make([]bool, len(semProg.lines))
+	wroteLines[0] = true
+
+	genLines(printf, semProg, wroteLines, semProg.start)
+}
+
+func genLines(printf func(string, ...interface{}), semProg *semanticProgram, wrote []bool, i int) {
+	if wrote[i] {
+		printf("\tjmp .Lline_%d\n", i)
+		return
+	}
+	wrote[i] = true
+
+	printf("\n.Lline_%d:\n", i)
+	line := semProg.lines[i]
+	genLine(printf, semProg, i, line)
+
+	if line.goto0 == line.goto1 {
+		genLines(printf, semProg, wrote, line.goto0)
+	} else {
+		printf("\ttest %%edx, %%edx\n")
+		if wrote[line.goto0] {
+			printf("\tjz .Lline_%d\n", line.goto0)
+			genLines(printf, semProg, wrote, line.goto1)
+		} else if wrote[line.goto1] {
+			printf("\tjnz .Lline_%d\n", line.goto1)
+			genLines(printf, semProg, wrote, line.goto0)
+		} else {
+			printf("\tjz .Lline_%d\n", line.goto0)
+			genLines(printf, semProg, wrote, line.goto1)
+			if !wrote[line.goto0] {
+				genLines(printf, semProg, wrote, line.goto0)
+			}
 		}
-		genLine(printf, semProg, i, line)
 	}
 }
 
 func genLine(printf func(string, ...interface{}), semProg *semanticProgram, i int, line semanticLine) {
-	printf("\n\nline_%d:\n.Lline_%d:\n", i, i)
-
 	switch s := line.stmt.(type) {
 	case *ast.Read:
 		printf("\tcall read\n")
@@ -78,12 +104,6 @@ func genLine(printf func(string, ...interface{}), semProg *semanticProgram, i in
 		genExpr(printf, semProg, s.Left)
 		printf("\tpop %%ebx\n")
 		printf("\tmovb %%bl, (%%eax)\n")
-	}
-
-	if line.goto0 == line.goto1 {
-		printf("\tjmp .Lline_%d\n", line.goto0)
-	} else {
-		printf("\ttest %%edx, %%edx\n\tjz .Lline_%d\n\tjmp .Lline_%d\n", line.goto0, line.goto1)
 	}
 }
 
